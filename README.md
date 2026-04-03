@@ -21,3 +21,7 @@ jq -r '(.externalIdentifier | sub("^druid:"; "")) as $id |
 ```
 ./download.rb feinstein_files.csv
 ```
+
+```
+uv run extract_pdfs.py
+```
