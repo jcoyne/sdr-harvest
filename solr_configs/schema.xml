@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<schema name="document-schema" version="1.6">
+
+  <!-- Field Types -->
+  <fieldType name="string" class="solr.StrField" sortMissingLast="true" docValues="true" />
+
+  <fieldType name="strings" class="solr.StrField" sortMissingLast="true" multiValued="true" docValues="true" />
+
+  <fieldType name="pdate" class="solr.DatePointField" docValues="true" />
+
+  <fieldType name="text_en" class="solr.TextField" positionIncrementGap="100">
+    <analyzer type="index">
+      <tokenizer class="solr.StandardTokenizerFactory" />
+      <filter class="solr.LowerCaseFilterFactory" />
+      <filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+      <filter class="solr.EnglishPossessiveFilterFactory" />
+      <filter class="solr.PorterStemFilterFactory" />
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer class="solr.StandardTokenizerFactory" />
+      <filter class="solr.LowerCaseFilterFactory" />
+      <filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+      <filter class="solr.EnglishPossessiveFilterFactory" />
+      <filter class="solr.PorterStemFilterFactory" />
+    </analyzer>
+  </fieldType>
+
+  <fieldType name="knn_vector_1024" class="solr.DenseVectorField" vectorDimension="1024" similarityFunction="cosine" />
+
+  <!-- Required Fields -->
+  <field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
+  <field name="_version_" type="plong" indexed="false" stored="false" />
+  <field name="_root_" type="string" indexed="true" stored="false" docValues="false" />
+  <field name="_nest_path_" type="string" indexed="true" stored="true" />
+
+  <field name="vector" type="knn_vector_1024" indexed="true" stored="true" />
+
+  <!-- Dynamic Fields -->
+  <!-- English text fields: *_tesim (stored, indexed, multiValued) -->
+  <dynamicField name="*_tesim" type="text_en" indexed="true" stored="true" multiValued="true" />
+
+  <!-- English text fields: *_tesi (stored, indexed, single value) -->
+  <dynamicField name="*_tesi" type="text_en" indexed="true" stored="true" multiValued="false" />
+
+  <!-- Stored strings: *_ss (single value) -->
+  <dynamicField name="*_ss" type="string" indexed="true" stored="true" multiValued="false" />
+
+  <!-- Stored strings: *_ssm (multi-valued) -->
+  <dynamicField name="*_ssm" type="strings" indexed="true" stored="true" multiValued="true" />
+
+  <!-- Stored strings: *_ssi (single value, indexed) -->
+  <dynamicField name="*_ssi" type="string" indexed="true" stored="true" multiValued="false" />
+
+  <!-- Date fields: *_dtsi (stored, indexed) -->
+  <dynamicField name="*_dtsi" type="pdate" indexed="true" stored="true" multiValued="false" />
+
+  <!-- Integer fields for things like chunk_index -->
+  <dynamicField name="*_i" type="pint" indexed="true" stored="true" />
+
+  <!-- Unique Key -->
+  <uniqueKey>id</uniqueKey>
+
+  <!-- Field type for _version_ -->
+  <fieldType name="plong" class="solr.LongPointField" docValues="true" />
+  <fieldType name="pint" class="solr.IntPointField" docValues="true" />
+
+</schema>

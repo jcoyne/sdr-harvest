@@ -3,3 +3,4 @@ downloads/*
 purl_data/*
 extracted_texts/*
 embeddings.jsonl
+solr_documents/*

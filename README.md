@@ -25,3 +25,11 @@ jq -r '(.externalIdentifier | sub("^druid:"; "")) as $id |
 ```
 uv run extract_pdfs.py
 ```
+
+```
+uv run create_embeddings.py
+```
+
+```
+./create_solr_docs.rb
+```
