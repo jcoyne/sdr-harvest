@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+
+  <luceneMatchVersion>10.3</luceneMatchVersion>
+
+  <dataDir>${solr.data.dir:}</dataDir>
+
+  <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.NRTCachingDirectoryFactory}" />
+
+  <codecFactory class="solr.SchemaCodecFactory" />
+
+  <indexConfig>
+    <lockType>${solr.lock.type:native}</lockType>
+  </indexConfig>
+
+  <updateHandler class="solr.DirectUpdateHandler2">
+    <updateLog>
+      <str name="dir">${solr.ulog.dir:}</str>
+      <int name="numVersionBuckets">${solr.ulog.numVersionBuckets:65536}</int>
+    </updateLog>
+    <autoCommit>
+      <maxTime>${solr.autoCommit.maxTime:15000}</maxTime>
+      <openSearcher>false</openSearcher>
+    </autoCommit>
+    <autoSoftCommit>
+      <maxTime>${solr.autoSoftCommit.maxTime:-1}</maxTime>
+    </autoSoftCommit>
+  </updateHandler>
+
+  <query>
+    <maxBooleanClauses>${solr.max.booleanClauses:1024}</maxBooleanClauses>
+    <filterCache size="512" initialSize="512" autowarmCount="0" />
+    <queryResultCache size="512" initialSize="512" autowarmCount="0" />
+    <documentCache size="512" initialSize="512" autowarmCount="0" />
+    <cache name="perSegFilter" size="10" initialSize="10" autowarmCount="10" regenerator="solr.NoOpRegenerator" />
+    <enableLazyFieldLoading>true</enableLazyFieldLoading>
+    <queryResultWindowSize>20</queryResultWindowSize>
+    <queryResultMaxDocsCached>200</queryResultMaxDocsCached>
+    <useColdSearcher>false</useColdSearcher>
+    <maxWarmingSearchers>2</maxWarmingSearchers>
+  </query>
+
+  <requestDispatcher>
+    <requestParsers
+      enableRemoteStreaming="true"
+      multipartUploadLimitInKB="-1"
+      formdataUploadLimitInKB="-1"
+      addHttpRequestToContext="false"
+    />
+    <httpCaching never304="true" />
+  </requestDispatcher>
+
+  <!-- Standard search handler -->
+  <requestHandler name="/select" class="solr.SearchHandler">
+    <lst name="defaults">
+      <str name="echoParams">explicit</str>
+      <int name="rows">10</int>
+      <str name="df">_text_</str>
+    </lst>
+  </requestHandler>
+
+  <!-- KNN vector search handler -->
+  <requestHandler name="/knn" class="solr.SearchHandler">
+    <lst name="defaults">
+      <str name="echoParams">explicit</str>
+      <int name="rows">10</int>
+      <str name="defType">knn</str>
+      <str name="knn.f">vector</str>
+    </lst>
+  </requestHandler>
+
+  <!-- Update handler -->
+  <requestHandler name="/update" class="solr.UpdateRequestHandler" />
+
+  <!-- Update handler for JSON -->
+  <requestHandler name="/update/json" class="solr.UpdateRequestHandler">
+    <lst name="defaults">
+      <str name="stream.contentType">application/json</str>
+    </lst>
+  </requestHandler>
+
+  <!-- Ping handler for health checks -->
+  <requestHandler name="/admin/ping" class="solr.PingRequestHandler">
+    <lst name="invariants">
+      <str name="q">solrpingquery</str>
+    </lst>
+    <lst name="defaults">
+      <str name="echoParams">all</str>
+    </lst>
+  </requestHandler>
+
+  <!-- Query elevation component -->
+  <searchComponent name="elevator" class="solr.QueryElevationComponent">
+    <str name="queryFieldType">string</str>
+  </searchComponent>
+
+  <!-- Highlighting component -->
+  <searchComponent name="highlight" class="solr.HighlightComponent">
+    <highlighting>
+      <fragmenter name="gap" default="true" class="solr.highlight.GapFragmenter">
+        <lst name="defaults">
+          <int name="hl.fragsize">100</int>
+        </lst>
+      </fragmenter>
+      <formatter name="html" default="true" class="solr.highlight.HtmlFormatter">
+        <lst name="defaults">
+          <str name="hl.simple.pre"><![CDATA[<em>]]></str>
+          <str name="hl.simple.post"><![CDATA[</em>]]></str>
+        </lst>
+      </formatter>
+      <encoder name="html" class="solr.highlight.HtmlEncoder" />
+      <fragListBuilder name="simple" class="solr.highlight.SimpleFragListBuilder" />
+      <fragListBuilder name="single" class="solr.highlight.SingleFragListBuilder" />
+      <fragListBuilder name="weighted" default="true" class="solr.highlight.WeightedFragListBuilder" />
+      <fragmentsBuilder name="default" default="true" class="solr.highlight.ScoreOrderFragmentsBuilder" />
+      <fragmentsBuilder name="colored" class="solr.highlight.ScoreOrderFragmentsBuilder">
+        <lst name="defaults">
+          <str
+            name="hl.tag.pre"
+          ><![CDATA[<b style="background:yellow">,<b style="background:lawgreen">,<b style="background:aquamarine">,<b style="background:magenta">,<b style="background:palegreen">,<b style="background:coral">,<b style="background:wheat">,<b style="background:khaki">,<b style="background:lime">,<b style="background:deepskyblue">]]></str>
+          <str name="hl.tag.post"><![CDATA[</b>]]></str>
+        </lst>
+      </fragmentsBuilder>
+      <boundaryScanner name="default" default="true" class="solr.highlight.SimpleBoundaryScanner">
+        <lst name="defaults">
+          <str name="hl.bs.maxScan">10</str>
+          <str name="hl.bs.chars">.,!? &#9;&#10;&#13;</str>
+        </lst>
+      </boundaryScanner>
+      <boundaryScanner name="breakIterator" class="solr.highlight.BreakIteratorBoundaryScanner">
+        <lst name="defaults">
+          <str name="hl.bs.type">WORD</str>
+          <str name="hl.bs.language">en</str>
+          <str name="hl.bs.country">US</str>
+        </lst>
+      </boundaryScanner>
+    </highlighting>
+  </searchComponent>
+
+</config>

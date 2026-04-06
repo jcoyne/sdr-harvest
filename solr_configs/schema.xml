@@ -31,7 +31,8 @@
   <field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
   <field name="_version_" type="plong" indexed="false" stored="false" />
   <field name="_root_" type="string" indexed="true" stored="false" docValues="false" />
-  <field name="_nest_path_" type="string" indexed="true" stored="true" />
+  <field name="_nest_path_" type="_nest_path_" />
+  <fieldType name="_nest_path_" class="solr.NestPathField" />
 
   <field name="vector" type="knn_vector_1024" indexed="true" stored="true" />
 
