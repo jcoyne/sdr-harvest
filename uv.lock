@@ -1175,6 +1175,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "langchain-text-splitters" },
     { name = "pymupdf4llm" },
+    { name = "requests" },
     { name = "sentence-transformers" },
     { name = "torch" },
     { name = "transformers" },
@@ -1184,6 +1185,7 @@ dependencies = [
 requires-dist = [
     { name = "langchain-text-splitters", specifier = ">=1.1.1" },
     { name = "pymupdf4llm", specifier = ">=1.27.2.2" },
+    { name = "requests", specifier = ">=2.33.1" },
     { name = "sentence-transformers", specifier = ">=5.3.0" },
     { name = "torch", specifier = ">=2.11.0" },
     { name = "transformers", specifier = ">=5.5.0" },

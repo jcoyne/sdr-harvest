@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "langchain-text-splitters>=1.1.1",
     "pymupdf4llm>=1.27.2.2",
+    "requests>=2.33.1",
     "sentence-transformers>=5.3.0",
     "torch>=2.11.0",
     "transformers>=5.5.0",
