@@ -33,3 +33,7 @@ uv run create_embeddings.py
 ```
 ./create_solr_docs.rb
 ```
+
+```
+uv run load_to_solr.py
+```

@@ -3,6 +3,8 @@
 require 'csv'
 require 'json'
 require 'fileutils'
+require 'active_support'
+require 'active_support/core_ext'
 
 # Create output directory if it doesn't exist
 FileUtils.mkdir_p('solr_documents')
@@ -76,19 +78,20 @@ files_by_object.each do |object_id, filenames|
     if has("value") then .value
     elif has("structuredValue") then (.structuredValue[] | select(.type == "start") | .value)
     else empty
-    end' purl_data/#{object_id}.json`
+    end' purl_data/#{object_id}.json`.strip
 
   # Create parent document with all child documents from all files
   parent_document = {
     "id" => object_id,
     "title_tesi" => title.strip,
-    "creation_date_dtsi" => created.strip,
     "collection_title_ss" => "Dianne Feinstein Senatorial papers, 1992-2023",
     "collection_url_ss" => "https://searchworks.stanford.edu/view/in00000122003",
     "filenames_ssm" => filenames,
     "doc_type_ssi" => "parent",
     "_childDocuments_" => all_child_documents
   }
+
+  parent_document["creation_date_dtsi"] = created + "T00:00:00Z" if created.present?
 
   # Write this object's document to its own file
   output_path = "solr_documents/#{object_id}.json"
