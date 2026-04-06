@@ -1,0 +1,18 @@
+services:
+  solr:
+    image: solr:10
+    ports:
+      - "8983:8983"
+    volumes:
+      - ./solr_configs:/opt/solr/conf
+      - solr_data:/var/solr
+    command:
+      - solr-precreate
+      - sdr-search
+      - /opt/solr/conf
+      - --user-managed
+      - "-Xms256m"
+      - "-Xmx512m"
+
+volumes:
+  solr_data:
