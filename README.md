@@ -56,7 +56,7 @@ uv run extract_pdfs.py
 ```
 
 ## Generate embeddings
-Create embeddings from the Markdown.
+Creates chunks from the markdown and embeddings from the chunks.
 ```
 uv run create_embeddings.py
 ```
