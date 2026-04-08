@@ -27,34 +27,47 @@ tail -n +2 world-readable-document-type-with-pdf.csv | parallel --bar --eta -j 8
   'test -f "purl_data/{}.json" || curl -s -S -o "purl_data/{}.json" "https://purl.stanford.edu/{}.json"'
 ```
 
-## Extract PDF files
+## Extract PDF filenames
 Get the filename for any file along with the object id (DRUID) and save it to a CSV.
 ```
-jq -r '(.externalIdentifier | sub("^druid:"; "")) as $id |
-  .structural.contains[].structural.contains[].filename |
-  "\($id),\(.)"' purl_data/*.json > feinstein_files.csv
+find purl_data -name '*.json' | parallel --bar --joblog extract_log.txt -j 8 \
+  'jq -r "(.externalIdentifier | sub(\"^druid:\"; \"\")) as \$id |
+    .structural.contains[].structural.contains[] |
+    select(.hasMimeType == \"application/pdf\") |
+    \"\(\$id),\(.filename)\"" {}' \
+  > file_list.csv
 ```
 
-Read the CSV and download all the data files (mostly PDFs for this collection)
+You can find any errors in this process by running:
 ```
-./download.rb feinstein_files.csv
+grep -a -E $'\t5\t0\t' extract_log.txt | grep -a -o 'purl_data/[^"]*\.json'
 ```
 
+## Download PDF files
+Read the CSV and download all the PDF files
+```
+./download.rb file_list.csv
+```
+
+## Extract text
 Extract the text from the PFSs and save it as Markdown.
 ```
 uv run extract_pdfs.py
 ```
 
+## Generate embeddings
 Create embeddings from the Markdown.
 ```
 uv run create_embeddings.py
 ```
 
+## Create Solr documents
 Create solr documents from the embeddings and original data. Save them as json files.
 ```
 ./create_solr_docs.rb
 ```
 
+## Index Solr documents
 Load the JSON files into Solr.
 ```
 uv run load_to_solr.py
