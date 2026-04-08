@@ -6,4 +6,5 @@ downloads/*
 purl_data/*
 extracted_texts/*
 embeddings.jsonl
+embeddings.parquet
 solr_documents/*

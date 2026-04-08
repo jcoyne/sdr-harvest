@@ -50,9 +50,15 @@ uv run download.py file_list.csv
 ```
 
 ## Extract text
-Extract the text from the PFSs and save it as Markdown.
+Extract the text from the PDFs and save it as Markdown.
 ```
 uv run extract_pdfs.py
+```
+
+Note, this currently does no OCR, so a number of the created MD files will not have any text data.
+We can identify these by:
+```
+grep -L -r -E '\w' --include='*.md' extracted_texts
 ```
 
 ## Generate embeddings
@@ -62,9 +68,9 @@ uv run create_embeddings.py
 ```
 
 ## Create Solr documents
-Create solr documents from the embeddings and original data. Save them as json files.
+Create solr documents from the embeddings. Save them as json files.
 ```
-./create_solr_docs.rb
+uv run create_solr_docs.py
 ```
 
 ## Index Solr documents
