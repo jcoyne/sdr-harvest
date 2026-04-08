@@ -11,41 +11,13 @@ import signal
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
+from logging.handlers import QueueHandler, QueueListener
+from multiprocessing import Manager
 from pathlib import Path
 from threading import Event
 
 import pymupdf4llm
 from tqdm import tqdm
-
-
-def setup_logger(output_dir: str, name: str = "PDFExtractor") -> tuple:
-    """Setup logging to file"""
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    # Create log filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = output_path / f"extraction_{timestamp}.log"
-
-    # Create logger
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    logger.handlers.clear()  # Clear any existing handlers
-
-    # File handler - detailed logging
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    file_handler.setFormatter(file_formatter)
-    logger.addHandler(file_handler)
-
-    logger.info("=" * 60)
-    logger.info("PDF Extraction Process Started")
-    logger.info("=" * 60)
-
-    return logger, log_file
 
 
 def process_single_pdf(args_tuple):
@@ -62,7 +34,7 @@ def process_single_pdf(args_tuple):
         overwrite,
         save_metadata,
         page_chunks,
-        log_dir,
+        log_queue,
     ) = args_tuple
 
     # Convert strings back to Path objects
@@ -70,8 +42,14 @@ def process_single_pdf(args_tuple):
     input_path = Path(input_path_str)
     output_path = Path(output_path_str)
 
-    # Create a process-specific logger
-    logger, _ = setup_logger(log_dir, f"PDFExtractor_Process_{index}")
+    # Setup logging for this process to use the queue
+    if log_queue:
+        logger = logging.getLogger(f"PDFExtractor_Process_{index}")
+        logger.setLevel(logging.DEBUG)
+        logger.handlers.clear()
+        logger.addHandler(QueueHandler(log_queue))
+    else:
+        logger = logging.getLogger("PDFExtractor")
 
     try:
         relative_path = pdf_file.relative_to(input_path)
@@ -87,8 +65,7 @@ def process_single_pdf(args_tuple):
 
         md_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Extract using pymupdf4llm, but disable OCR.
-        # NOTE: We may want to enable OCR in the future, but for now we want a fast pass.
+        # Extract using pymupdf4llm
         result = pymupdf4llm.to_markdown(
             str(pdf_file), page_chunks=page_chunks, write_images=False, use_ocr=False
         )
@@ -129,13 +106,42 @@ def process_single_pdf(args_tuple):
 
     except Exception as e:
         error_msg = f"{pdf_file.name}: {str(e)}"
-        logger.error(f"Failed to process {relative_path}: {str(e)}", exc_info=True)
+        logger.error(f"Failed to process {pdf_file.name}: {str(e)}", exc_info=True)
         return {
             "status": "failed",
             "file": str(pdf_file),
             "error": error_msg,
-            "path": str(relative_path),
+            "path": str(relative_path)
+            if "relative_path" in locals()
+            else str(pdf_file),
         }
+
+
+def setup_logging(output_dir: str) -> tuple:
+    """Setup centralized logging with queue for multiprocessing"""
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Create log filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = output_path / f"extraction_{timestamp}.log"
+
+    # Create file handler
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setLevel(logging.DEBUG)
+    file_formatter = logging.Formatter(
+        "%(asctime)s - %(processName)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    file_handler.setFormatter(file_formatter)
+
+    # Create console handler for warnings/errors
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.WARNING)
+    console_formatter = logging.Formatter("%(levelname)s: %(message)s")
+    console_handler.setFormatter(console_formatter)
+
+    return file_handler, console_handler, log_file
 
 
 def extract_pdfs_to_markdown(
@@ -155,8 +161,8 @@ def extract_pdfs_to_markdown(
     if not input_path.exists():
         raise FileNotFoundError(f"Input directory not found: {input_dir}")
 
-    # Setup logging
-    logger, log_file = setup_logger(output_dir)
+    # Setup logging with queue for multiprocessing
+    file_handler, console_handler, log_file = setup_logging(output_dir)
 
     pdf_files = list(input_path.rglob("*.pdf"))
     stats = {
@@ -170,16 +176,9 @@ def extract_pdfs_to_markdown(
 
     if not pdf_files:
         message = f"No PDF files found in {input_dir}"
-        logger.warning(message)
         if verbose:
             print(message)
         return stats
-
-    logger.info(f"Found {len(pdf_files)} PDF files in {input_dir}")
-    logger.info(f"Output directory: {output_dir}")
-    logger.info(f"Parallel workers: {max_workers}")
-    logger.info(f"Page chunks: {'enabled' if page_chunks else 'disabled'}")
-    logger.info(f"Overwrite existing: {overwrite}")
 
     if verbose:
         print(f"Found {len(pdf_files)} PDF files")
@@ -193,6 +192,31 @@ def extract_pdfs_to_markdown(
 
     # Setup signal handler for CTRL-C
     original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+    # Create manager and queue for logging
+    manager = Manager()
+    log_queue = manager.Queue()
+
+    # Setup queue listener for centralized logging
+    queue_listener = QueueListener(
+        log_queue, file_handler, console_handler, respect_handler_level=True
+    )
+    queue_listener.start()
+
+    # Create main logger
+    logger = logging.getLogger("PDFExtractor")
+    logger.setLevel(logging.DEBUG)
+    logger.handlers.clear()
+    logger.addHandler(QueueHandler(log_queue))
+
+    logger.info("=" * 60)
+    logger.info("PDF Extraction Process Started")
+    logger.info("=" * 60)
+    logger.info(f"Found {len(pdf_files)} PDF files in {input_dir}")
+    logger.info(f"Output directory: {output_dir}")
+    logger.info(f"Parallel workers: {max_workers}")
+    logger.info(f"Page chunks: {'enabled' if page_chunks else 'disabled'}")
+    logger.info(f"Overwrite existing: {overwrite}")
 
     # Process PDFs in parallel with progress bar
     try:
@@ -211,7 +235,7 @@ def extract_pdfs_to_markdown(
                     overwrite,
                     save_metadata,
                     page_chunks,
-                    output_dir,
+                    log_queue,
                 )
                 for i, pdf_file in enumerate(pdf_files, 1)
             ]
@@ -290,19 +314,29 @@ def extract_pdfs_to_markdown(
     except Exception as e:
         logger.error(f"Fatal error during processing: {e}", exc_info=True)
         raise
+    finally:
+        # Stop the queue listener
+        queue_listener.stop()
 
-    # Log final statistics
-    logger.info("=" * 60)
-    logger.info("Processing Complete")
-    logger.info("=" * 60)
-    logger.info(f"Total PDFs: {stats['total']}")
-    logger.info(f"Successful: {stats['successful']}")
-    logger.info(f"Failed: {stats['failed']}")
-    logger.info(f"Skipped: {stats['skipped']}")
-    logger.info(f"Cancelled: {stats['cancelled']}")
+    # Log final statistics (use print since queue listener is stopped)
+    final_message = f"""
+{"=" * 60}
+Processing Complete
+{"=" * 60}
+Total PDFs: {stats["total"]}
+Successful: {stats["successful"]}
+Failed: {stats["failed"]}
+Skipped: {stats["skipped"]}
+Cancelled: {stats["cancelled"]}
+"""
+
+    # Append to log file directly
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(final_message)
 
     if errors:
-        logger.error(f"Total errors encountered: {len(errors)}")
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(f"\nTotal errors encountered: {len(errors)}\n")
 
     # Print summary
     if verbose:
