@@ -34,7 +34,7 @@ find purl_data -name '*.json' | parallel --bar --joblog extract_log.txt -j 8 \
   'jq -r "(.externalIdentifier | sub(\"^druid:\"; \"\")) as \$id |
     .structural.contains[].structural.contains[] |
     select(.hasMimeType == \"application/pdf\") |
-    \"\(\$id),\(.filename)\"" {}' \
+    [\$id, .filename] | @csv" {}' \
   > file_list.csv
 ```
 
@@ -46,7 +46,7 @@ grep -a -E $'\t5\t0\t' extract_log.txt | grep -a -o 'purl_data/[^"]*\.json'
 ## Download PDF files
 Read the CSV and download all the PDF files
 ```
-./download.rb file_list.csv
+uv run download.py file_list.csv
 ```
 
 ## Extract text
