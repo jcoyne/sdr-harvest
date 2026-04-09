@@ -156,6 +156,7 @@ def main():
             "filenames_ssm": filenames,
             "doc_type_ssi": "parent",
             "_childDocuments_": all_child_documents,
+            "child_count_i": len(all_child_documents),
         }
 
         # Add creation date if available
