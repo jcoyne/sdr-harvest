@@ -2,9 +2,11 @@
 
 import csv
 import json
+import multiprocessing
 import os
 import subprocess
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import pandas as pd
@@ -99,6 +101,81 @@ def create_child_documents(embeddings, filename, object_id):
     return child_documents
 
 
+def process_object(args):
+    """
+    Process a single object (to be run in parallel)
+    Args is a tuple of (object_id, files_dict, output_dir_str)
+    """
+    object_id, files_dict, output_dir_str = args
+    output_dir = Path(output_dir_str)
+
+    all_child_documents = []
+    filenames = []
+    file_count = 0
+
+    for file_path, file_embeddings in files_dict.items():
+        # Extract PDF filename from the .md file path
+        filename = extract_filename_from_path(file_path)
+        filenames.append(filename)
+
+        # Create child documents for this file
+        child_documents = create_child_documents(file_embeddings, filename, object_id)
+        all_child_documents.extend(child_documents)
+        file_count += 1
+
+    # Get metadata using jq
+    title = get_jq_value(object_id, ".label")
+
+    creation_jq = """
+    .description.event[] |
+    select(.type == "creation") |
+    .date[] |
+    if has("value") then .value
+    elif has("structuredValue") then (.structuredValue[] | select(.type == "start") | .value)
+    else empty
+    end
+    """
+    created = get_jq_value(object_id, creation_jq)
+
+    collection_id = get_jq_value(object_id, ".structural.isPartOf")
+
+    # Create parent document with all child documents from all files
+    parent_document = {
+        "id": object_id,
+        "title_tesi": title,
+        "filenames_ssm": filenames,
+        "doc_type_ssi": "parent",
+        "_childDocuments_": all_child_documents,
+        "child_count_i": len(all_child_documents),
+    }
+
+    if collection_id:
+        parent_document["collection_title_ss"] = collection_id
+        parent_document["collection_url_ss"] = (
+            f"https://purl.stanford.edu/{collection_id}"
+        )
+
+    # Add creation date if available
+    if created:
+        # Check if created is in YYYY-MM format (length 7)
+        if len(created) == 7:
+            created = f"{created}-01"
+        elif len(created) == 4:
+            created = f"{created}-01-01"
+        parent_document["creation_date_dtsi"] = f"{created}T00:00:00Z"
+
+    # Write this object's document to its own file
+    output_path = output_dir / f"{object_id}.json"
+    with open(output_path, "w") as f:
+        json.dump(parent_document, f, indent=2)
+
+    return {
+        "object_id": object_id,
+        "child_count": len(all_child_documents),
+        "file_count": file_count,
+    }
+
+
 def main():
     # Create output directory
     output_dir = Path("solr_documents")
@@ -108,82 +185,55 @@ def main():
     embeddings_by_object = read_embeddings_from_parquet_by_object("embeddings.parquet")
     print(f"Loaded embeddings for {len(embeddings_by_object)} objects\n")
 
-    # Process each object
+    # Convert embeddings_by_object to regular dicts (defaultdict doesn't pickle well)
+    embeddings_by_object = {k: dict(v) for k, v in embeddings_by_object.items()}
+
+    # Process objects in parallel
     total_objects = 0
     total_children = 0
     total_files = 0
 
-    for object_id, files_dict in tqdm(
-        embeddings_by_object.items(), desc="Processing objects", unit=" objects"
-    ):
-        all_child_documents = []
-        filenames = []
+    max_workers = 8  # Adjust based on your CPU cores
 
-        for file_path, file_embeddings in files_dict.items():
-            # Extract PDF filename from the .md file path
-            filename = extract_filename_from_path(file_path)
-            filenames.append(filename)
+    # Prepare arguments for each worker
+    # Convert Path to string for pickling
+    tasks = [
+        (object_id, files_dict, str(output_dir))
+        for object_id, files_dict in embeddings_by_object.items()
+    ]
 
-            # Create child documents for this file
-            child_documents = create_child_documents(
-                file_embeddings, filename, object_id
-            )
-            all_child_documents.extend(child_documents)
-            total_files += 1
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks
+        futures = [executor.submit(process_object, task) for task in tasks]
 
-        # Get metadata using jq
-        title = get_jq_value(object_id, ".label")
-
-        creation_jq = """
-        .description.event[] |
-        select(.type == "creation") |
-        .date[] |
-        if has("value") then .value
-        elif has("structuredValue") then (.structuredValue[] | select(.type == "start") | .value)
-        else empty
-        end
-        """
-        created = get_jq_value(object_id, creation_jq)
-
-        collection_id = get_jq_value(object_id, ".structural.isPartOf")
-
-        # Create parent document with all child documents from all files
-        parent_document = {
-            "id": object_id,
-            "title_tesi": title,
-            "collection_title_ss": collection_id,
-            "collection_url_ss": f"https://purl.stanford.edu/{collection_id}",
-            "filenames_ssm": filenames,
-            "doc_type_ssi": "parent",
-            "_childDocuments_": all_child_documents,
-            "child_count_i": len(all_child_documents),
-        }
-
-        # Add creation date if available
-        if created:
-            # Check if created is in YYYY-MM format (length 7)
-            if len(created) == 7:
-                created = f"{created}-01"
-            elif len(created) == 4:
-                created = f"{created}-01-01"
-            parent_document["creation_date_dtsi"] = f"{created}T00:00:00Z"
-
-        # Write this object's document to its own file
-        output_path = output_dir / f"{object_id}.json"
-        with open(output_path, "w") as f:
-            json.dump(parent_document, f, indent=2)
-
-        total_objects += 1
-        total_children += len(all_child_documents)
+        # Process completed tasks with progress bar
+        with tqdm(
+            total=len(futures), desc="Processing objects", unit=" objects"
+        ) as pbar:
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    total_objects += 1
+                    total_children += result["child_count"]
+                    total_files += result["file_count"]
+                    pbar.update(1)
+                except Exception as exc:
+                    print(f"\nError processing object: {exc}")
+                    pbar.update(1)
 
     print(f"\n{'=' * 50}")
     print(f"Processed {total_objects:,} objects")
     print(f"Total files: {total_files:,}")
     print(f"Total child documents: {total_children:,}")
-    print(f"Average children per object: {total_children / total_objects:.1f}")
+    if total_objects > 0:
+        print(f"Average children per object: {total_children / total_objects:.1f}")
     print("Output written to solr_documents/ directory")
     print(f"{'=' * 50}")
 
 
 if __name__ == "__main__":
+    # Needed for Windows compatibility
+    multiprocessing.set_start_method(
+        "spawn", force=True
+    ) if multiprocessing.get_start_method() != "spawn" else None
     main()
