@@ -61,8 +61,15 @@ We can identify these by:
 grep -L -r -E '\w' --include='*.md' extracted_texts
 ```
 
+## Chunk data
+Creates chunks from the markdown and writes to chunks.parquet
+
+```
+uv run create_chunks.py
+```
+
 ## Generate embeddings
-Creates chunks from the markdown and embeddings from the chunks.
+Creates embeddings from the chunks and writes to embeddings.parquet
 ```
 uv run create_embeddings.py
 ```
