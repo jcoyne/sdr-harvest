@@ -1,5 +1,8 @@
 import os
+import queue
+import threading
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import numpy as np
@@ -11,10 +14,59 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from transformers import AutoModel, AutoTokenizer
 
 
+def read_and_chunk_file(args):
+    """
+    Worker function to read and chunk a single file.
+    This is I/O bound, so we can use threads.
+    """
+    file_path, chunk_size, chunk_overlap = args
+
+    try:
+        # Extract object_id
+        parts = Path(file_path).parts
+        object_id = None
+        try:
+            extracted_idx = parts.index("extracted_texts")
+            if extracted_idx + 1 < len(parts):
+                object_id = parts[extracted_idx + 1]
+        except (ValueError, IndexError):
+            pass
+
+        # Read file
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Chunk the content
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            separators=["\n## ", "\n### ", "\n#### ", "\n\n", "\n", " ", ""],
+        )
+        chunks = splitter.split_text(content)
+
+        # Return chunks with metadata
+        results = []
+        for chunk_idx, chunk in enumerate(chunks):
+            results.append(
+                {
+                    "object_id": object_id,
+                    "file": str(file_path),
+                    "chunk_index": chunk_idx,
+                    "text": chunk,
+                }
+            )
+
+        return {"success": True, "file": str(file_path), "chunks": results}
+
+    except Exception as e:
+        return {"success": False, "file": str(file_path), "error": str(e)}
+
+
 class ResumableMarkdownEmbedder:
     def __init__(self, model_name="Qwen/Qwen3-Embedding-0.6B"):
         """Initialize the embedding model"""
         print("Loading model...")
+        self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
 
@@ -22,6 +74,9 @@ class ResumableMarkdownEmbedder:
         if torch.backends.mps.is_available():
             self.device = torch.device("mps")
             print("Using MPS (Apple Silicon GPU)")
+        elif torch.cuda.is_available():
+            self.device = torch.device("cuda")
+            print("Using CUDA GPU")
         else:
             self.device = torch.device("cpu")
             print("Using CPU")
@@ -29,55 +84,38 @@ class ResumableMarkdownEmbedder:
         self.model.to(self.device)
         self.model.eval()
 
-    def extract_object_id(self, file_path):
-        """
-        Extract object_id from file path.
-        For path like 'extracted_texts/kq478vz7750/FEMGEN100CManuscript.md',
-        returns 'kq478vz7750'
-        """
-        parts = Path(file_path).parts
-        try:
-            # Find 'extracted_texts' in the path and get the next part
-            extracted_idx = parts.index("extracted_texts")
-            if extracted_idx + 1 < len(parts):
-                return parts[extracted_idx + 1]
-        except (ValueError, IndexError):
-            pass
+    def get_embeddings_batch(self, texts, batch_size=32):
+        """Generate embeddings for multiple texts in batches"""
+        embeddings = []
 
-        # Fallback: return None or empty string if pattern not found
-        return None
+        for i in range(0, len(texts), batch_size):
+            batch_texts = texts[i : i + batch_size]
 
-    def get_embedding(self, text):
-        """Generate embedding for a single text chunk"""
-        inputs = self.tokenizer(
-            text, return_tensors="pt", padding=True, truncation=True, max_length=512
-        ).to(self.device)
+            inputs = self.tokenizer(
+                batch_texts,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=512,
+            ).to(self.device)
 
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-            embeddings = outputs.last_hidden_state.mean(dim=1)
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+                batch_embeddings = outputs.last_hidden_state.mean(dim=1)
+                batch_embeddings = batch_embeddings.float().cpu().numpy()
 
-        return embeddings.float().cpu().numpy()[0]
+            embeddings.extend(batch_embeddings)
 
-    def chunk_markdown(self, text, chunk_size=500, chunk_overlap=50):
-        """Split markdown into chunks"""
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            separators=["\n## ", "\n### ", "\n#### ", "\n\n", "\n", " ", ""],
-        )
-        return splitter.split_text(text)
+        return embeddings
 
     def get_processed_files(self, parquet_file):
         """
         Read the existing Parquet file and return set of already processed files.
-        Only reads the 'file' column for efficiency.
         """
         if not os.path.exists(parquet_file):
             return set()
 
         try:
-            # Only read the 'file' column - very fast even for large files
             table = pq.read_table(parquet_file, columns=["file"])
             df = table.to_pandas()
             processed_files = set(df["file"].unique())
@@ -95,9 +133,17 @@ class ResumableMarkdownEmbedder:
         output_file="embeddings.parquet",
         batch_size=100,
         force_reprocess=False,
+        chunk_size=500,
+        chunk_overlap=50,
+        embedding_batch_size=32,
+        num_io_workers=4,
     ):
         """
-        Process markdown files, skipping those already in the Parquet file.
+        Process markdown files using threading for I/O and batched embeddings.
+
+        Args:
+            embedding_batch_size: Number of chunks to embed at once
+            num_io_workers: Number of threads for reading/chunking files
         """
         md_files = list(Path(directory_path).rglob("*.md"))
         print(f"Found {len(md_files)} total markdown files")
@@ -106,7 +152,6 @@ class ResumableMarkdownEmbedder:
         if force_reprocess:
             processed_files = set()
             print("Force reprocess enabled - will process all files")
-            # Remove existing file if force reprocessing
             if os.path.exists(output_file):
                 os.remove(output_file)
                 print(f"Removed existing {output_file}")
@@ -124,62 +169,85 @@ class ResumableMarkdownEmbedder:
         print(
             f"Skipping {len(md_files) - len(files_to_process)} already processed files"
         )
+        print(f"Using {num_io_workers} I/O worker threads")
+        print(f"Embedding batch size: {embedding_batch_size}")
+
+        # Prepare arguments for chunking
+        chunk_args = [(str(f), chunk_size, chunk_overlap) for f in files_to_process]
 
         total_chunks = 0
-        batch_data = {
-            "object_id": [],
-            "file": [],
-            "chunk_index": [],
-            "text": [],
-            "embedding": [],
-        }
+        all_chunk_data = []
+
+        # Phase 1: Read and chunk files using threads (I/O bound)
+        print("\n=== Phase 1: Reading and chunking files ===")
+        with ThreadPoolExecutor(max_workers=num_io_workers) as executor:
+            future_to_file = {
+                executor.submit(read_and_chunk_file, args): args[0]
+                for args in chunk_args
+            }
+
+            completed = 0
+            for future in as_completed(future_to_file):
+                completed += 1
+
+                try:
+                    result = future.result()
+
+                    if result["success"]:
+                        num_chunks = len(result["chunks"])
+                        print(
+                            f"[{completed}/{len(files_to_process)}] ✓ {result['file']} - {num_chunks} chunks"
+                        )
+                        all_chunk_data.extend(result["chunks"])
+                    else:
+                        print(
+                            f"[{completed}/{len(files_to_process)}] ✗ {result['file']} - Error: {result['error']}"
+                        )
+
+                except Exception as e:
+                    print(f"[{completed}/{len(files_to_process)}] ✗ Exception: {e}")
+
+        if not all_chunk_data:
+            print("No chunks to process!")
+            return 0
+
+        print(f"\nTotal chunks to embed: {len(all_chunk_data)}")
+
+        # Phase 2: Generate embeddings in batches (GPU/CPU bound)
+        print("\n=== Phase 2: Generating embeddings ===")
         writer = None
 
-        for idx, file_path in enumerate(files_to_process, 1):
-            print(f"Processing {idx}/{len(files_to_process)}: {file_path}")
+        for i in range(0, len(all_chunk_data), batch_size):
+            batch_chunks = all_chunk_data[i : i + batch_size]
 
-            try:
-                # Extract object_id
-                object_id = self.extract_object_id(file_path)
+            # Extract texts for embedding
+            texts = [chunk["text"] for chunk in batch_chunks]
 
-                # Read file
-                with open(file_path, "r", encoding="utf-8") as f:
-                    content = f.read()
+            # Generate embeddings in sub-batches
+            print(
+                f"Embedding chunks {i + 1}-{min(i + batch_size, len(all_chunk_data))} of {len(all_chunk_data)}..."
+            )
+            embeddings = self.get_embeddings_batch(texts, embedding_batch_size)
 
-                # Chunk the content
-                chunks = self.chunk_markdown(content)
-                print(f"  - Split into {len(chunks)} chunks")
+            # Prepare batch data for writing
+            batch_data = {
+                "object_id": [chunk["object_id"] for chunk in batch_chunks],
+                "file": [chunk["file"] for chunk in batch_chunks],
+                "chunk_index": [chunk["chunk_index"] for chunk in batch_chunks],
+                "text": texts,
+                "embedding": [emb.astype(np.float32) for emb in embeddings],
+            }
 
-                # Process each chunk
-                for chunk_idx, chunk in enumerate(chunks):
-                    embedding = self.get_embedding(chunk)
-
-                    batch_data["object_id"].append(object_id)
-                    batch_data["file"].append(str(file_path))
-                    batch_data["chunk_index"].append(chunk_idx)
-                    batch_data["text"].append(chunk)
-                    batch_data["embedding"].append(embedding.astype(np.float32))
-
-                    total_chunks += 1
-
-                    # Write batch when full
-                    if len(batch_data["file"]) >= batch_size:
-                        writer = self._write_batch(batch_data, output_file, writer)
-                        batch_data = {k: [] for k in batch_data}
-
-                # Clear cache periodically
-                if idx % 10 == 0:
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                    if torch.backends.mps.is_available():
-                        torch.mps.empty_cache()
-
-            except Exception as e:
-                print(f"  - Error processing {file_path}: {e}")
-
-        # Write remaining data
-        if batch_data["file"]:
+            # Write batch
             writer = self._write_batch(batch_data, output_file, writer)
+            total_chunks += len(batch_chunks)
+
+            # Clear cache periodically
+            if (i // batch_size) % 10 == 0:
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                if torch.backends.mps.is_available():
+                    torch.mps.empty_cache()
 
         # Close the writer
         if writer is not None:
@@ -230,18 +298,21 @@ class ResumableMarkdownEmbedder:
 
         return writer
 
-    def reprocess_specific_files(self, file_paths, output_file="embeddings.parquet"):
+    def reprocess_specific_files(
+        self,
+        file_paths,
+        output_file="embeddings.parquet",
+        embedding_batch_size=32,
+        num_io_workers=4,
+    ):
         """
         Reprocess specific files and update the Parquet file.
-        This removes old entries for these files and adds new ones.
-
-        Args:
-            file_paths: List of file paths to reprocess
-            output_file: Parquet file to update
         """
         if not os.path.exists(output_file):
             print(f"No existing file {output_file}, processing normally")
-            return self.process_specific_files(file_paths, output_file)
+            return self.process_specific_files(
+                file_paths, output_file, embedding_batch_size, num_io_workers
+            )
 
         # Read existing data
         print("Reading existing embeddings...")
@@ -266,67 +337,68 @@ class ResumableMarkdownEmbedder:
                 compression_level=9,
             )
         else:
-            # Remove file if no data left
             os.remove(output_file)
 
         # Now process the specified files
         print(f"\nProcessing {len(files_to_reprocess)} files...")
-        return self.process_specific_files(file_paths, output_file)
+        return self.process_specific_files(
+            file_paths, output_file, embedding_batch_size, num_io_workers
+        )
 
     def process_specific_files(
-        self, file_paths, output_file="embeddings.parquet", batch_size=100
+        self,
+        file_paths,
+        output_file="embeddings.parquet",
+        embedding_batch_size=32,
+        num_io_workers=4,
+        batch_size=100,
     ):
-        """Process a specific list of files (helper method)"""
+        """Process a specific list of files"""
+        chunk_args = [(str(f), 500, 50) for f in file_paths if Path(f).exists()]
+
+        all_chunk_data = []
+
+        # Read and chunk files
+        print("Reading and chunking files...")
+        with ThreadPoolExecutor(max_workers=num_io_workers) as executor:
+            future_to_file = {
+                executor.submit(read_and_chunk_file, args): args[0]
+                for args in chunk_args
+            }
+
+            completed = 0
+            for future in as_completed(future_to_file):
+                completed += 1
+                result = future.result()
+
+                if result["success"]:
+                    print(f"[{completed}/{len(chunk_args)}] ✓ {result['file']}")
+                    all_chunk_data.extend(result["chunks"])
+
+        if not all_chunk_data:
+            return 0
+
+        # Generate embeddings
+        print(f"\nGenerating embeddings for {len(all_chunk_data)} chunks...")
         total_chunks = 0
-        batch_data = {
-            "object_id": [],
-            "file": [],
-            "chunk_index": [],
-            "text": [],
-            "embedding": [],
-        }
         writer = None
 
-        for idx, file_path in enumerate(file_paths, 1):
-            file_path = Path(file_path)
+        for i in range(0, len(all_chunk_data), batch_size):
+            batch_chunks = all_chunk_data[i : i + batch_size]
+            texts = [chunk["text"] for chunk in batch_chunks]
 
-            if not file_path.exists():
-                print(f"Warning: {file_path} does not exist, skipping")
-                continue
+            embeddings = self.get_embeddings_batch(texts, embedding_batch_size)
 
-            print(f"Processing {idx}/{len(file_paths)}: {file_path}")
+            batch_data = {
+                "object_id": [chunk["object_id"] for chunk in batch_chunks],
+                "file": [chunk["file"] for chunk in batch_chunks],
+                "chunk_index": [chunk["chunk_index"] for chunk in batch_chunks],
+                "text": texts,
+                "embedding": [emb.astype(np.float32) for emb in embeddings],
+            }
 
-            try:
-                # Extract object_id
-                object_id = self.extract_object_id(file_path)
-
-                with open(file_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-
-                chunks = self.chunk_markdown(content)
-                print(f"  - Split into {len(chunks)} chunks")
-
-                for chunk_idx, chunk in enumerate(chunks):
-                    embedding = self.get_embedding(chunk)
-
-                    batch_data["object_id"].append(object_id)
-                    batch_data["file"].append(str(file_path))
-                    batch_data["chunk_index"].append(chunk_idx)
-                    batch_data["text"].append(chunk)
-                    batch_data["embedding"].append(embedding.astype(np.float32))
-
-                    total_chunks += 1
-
-                    if len(batch_data["file"]) >= batch_size:
-                        writer = self._write_batch(batch_data, output_file, writer)
-                        batch_data = {k: [] for k in batch_data}
-
-            except Exception as e:
-                print(f"  - Error processing {file_path}: {e}")
-
-        # Write remaining data
-        if batch_data["file"]:
             writer = self._write_batch(batch_data, output_file, writer)
+            total_chunks += len(batch_chunks)
 
         if writer is not None:
             writer.close()
@@ -334,17 +406,45 @@ class ResumableMarkdownEmbedder:
         return total_chunks
 
 
-# Usage Examples
 if __name__ == "__main__":
     embedder = ResumableMarkdownEmbedder()
 
-    # First run - processes all files
-    print("=== Initial Processing ===")
+    # Process with threading for I/O and batched embeddings
     embedder.process_directory_resumable(
         directory_path="./extracted_texts",
         output_file="embeddings.parquet",
-        batch_size=100,
+        batch_size=100,  # Chunks to write at once
+        embedding_batch_size=32,  # Chunks to embed at once
+        num_io_workers=4,  # Number of I/O threads
     )
+
+    # Second run - only processes new files
+    # print("\n=== Resumable Processing (run again after adding files) ===")
+    # embedder.process_directory_resumable(
+    #     directory_path="./extracted_texts",
+    #     output_file="embeddings.parquet",
+    #     batch_size=100,
+    # )
+
+    # Force reprocess everything
+    # print("\n=== Force Reprocess All ===")
+    # embedder.process_directory_resumable(
+    #     directory_path="./extracted_texts",
+    #     output_file="embeddings.parquet",
+    #     batch_size=100,
+    #     force_reprocess=True,
+    # )
+
+    # Reprocess specific files (e.g., if they changed)
+    # print("\n=== Reprocess Specific Files ===")
+    # files_to_update = [
+    #     "extracted_texts/druid123/file1.md",
+    #     "extracted_texts/druid456/file2.md",
+    # ]
+    # embedder.reprocess_specific_files(
+    #     file_paths=files_to_update,
+    #     output_file="embeddings.parquet",
+    # )
 
     # Second run - only processes new files
     # print("\n=== Resumable Processing (run again after adding files) ===")
