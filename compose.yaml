@@ -5,13 +5,10 @@ services:
       - "8983:8983"
     volumes:
       - ./solr_configs:/opt/solr/conf
-      - solr_data:/var/solr
+      - ./solr_data:/var/solr
     environment:
       SOLR_JAVA_MEM: "-Xms256m -Xmx512m"
     command:
       - solr-precreate
       - sdr-search
       - /opt/solr/conf
-
-volumes:
-  solr_data:

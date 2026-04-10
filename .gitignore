@@ -9,3 +9,4 @@ embeddings.jsonl
 chunks.parquet
 embeddings.parquet
 solr_documents/*
+solr_data/*
