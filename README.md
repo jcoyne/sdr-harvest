@@ -30,7 +30,7 @@ tail -n +2 world-readable-document-type-with-pdf.csv | parallel --bar --eta -j 8
 ## Extract PDF filenames
 Get the filename for any file along with the object id (DRUID) and save it to a CSV.
 ```
-find purl_data -name '*.json' | parallel --bar --joblog extract_log.txt -j 8 \
+find purl_data -name '*.json' | parallel --bar --joblog extract.log -j 8 \
   'jq -r "(.externalIdentifier | sub(\"^druid:\"; \"\")) as \$id |
     .structural.contains[].structural.contains[] |
     select(.hasMimeType == \"application/pdf\") |
@@ -40,7 +40,7 @@ find purl_data -name '*.json' | parallel --bar --joblog extract_log.txt -j 8 \
 
 You can find any errors in this process by running:
 ```
-grep -a -E $'\t5\t0\t' extract_log.txt | grep -a -o 'purl_data/[^"]*\.json'
+grep -a -E $'\t5\t0\t' extract.log | grep -a -o 'purl_data/[^"]*\.json'
 ```
 
 ## Download PDF files
@@ -72,6 +72,11 @@ uv run create_chunks.py
 Creates embeddings from the chunks and writes to embeddings.parquet
 ```
 uv run create_embeddings.py
+```
+
+If you need to check if an object is present in the embeddings.parquet, you can check with:
+```
+uv run python3 -c "import pyarrow.parquet as pq; df = pq.read_table('embeddings.parquet', columns=['object_id']).to_pandas(); print('zd240tq9137' in df['object_id'].values)"
 ```
 
 ## Create Solr documents
