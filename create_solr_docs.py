@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
-import csv
 import json
 import multiprocessing
-import os
 import subprocess
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from functools import lru_cache
 from pathlib import Path
 
-import pandas as pd
 import pyarrow.parquet as pq
+import requests
 from tqdm import tqdm
 
 
@@ -137,9 +136,7 @@ def process_object(args):
     """
     created = get_jq_value(object_id, creation_jq)
 
-    collection_id = get_jq_value(
-        object_id, '.structural.isMemberOf[0] | ltrimstr("druid:")'
-    )
+    collection_id, collection_title = get_collection_id(object_id)
 
     # Create parent document with all child documents from all files
     parent_document = {
@@ -152,7 +149,8 @@ def process_object(args):
     }
 
     if collection_id:
-        parent_document["collection_title_ss"] = collection_id
+        parent_document["collection_title_ss"] = collection_title
+        parent_document["collection_id_ss"] = collection_id
         parent_document["collection_url_ss"] = (
             f"https://purl.stanford.edu/{collection_id}"
         )
@@ -171,6 +169,23 @@ def process_object(args):
         "child_count": len(all_child_documents),
         "file_count": file_count,
     }
+
+
+def get_collection_id(object_id):
+    collection_id = get_jq_value(
+        object_id, '.structural.isMemberOf[0] | ltrimstr("druid:")'
+    )
+    title = get_collection_title(collection_id)
+
+    return collection_id, title
+
+
+@lru_cache(maxsize=None)
+def get_collection_title(collection_id):
+    response = requests.get(f"https://purl.stanford.edu/{collection_id}.json")
+    if response.status_code == 200:
+        return response.json().get("label", collection_id)
+    return collection_id
 
 
 def format_date(created):
