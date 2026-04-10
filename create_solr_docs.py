@@ -137,7 +137,7 @@ def process_object(args):
     """
     created = get_jq_value(object_id, creation_jq)
 
-    collection_id = get_jq_value(object_id, ".structural.isPartOf")
+    collection_id = get_jq_value(object_id, ".structural.isMemberOf")
 
     # Create parent document with all child documents from all files
     parent_document = {
