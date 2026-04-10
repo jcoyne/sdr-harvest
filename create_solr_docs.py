@@ -159,12 +159,7 @@ def process_object(args):
 
     # Add creation date if available
     if created:
-        # Check if created is in YYYY-MM format (length 7)
-        if len(created) == 7:
-            created = f"{created}-01"
-        elif len(created) == 4:
-            created = f"{created}-01-01"
-        parent_document["creation_date_dtsi"] = f"{created}T00:00:00Z"
+        parent_document["creation_date_dtsi"] = format_date(created)
 
     # Write this object's document to its own file
     output_path = output_dir / f"{object_id}.json"
@@ -176,6 +171,16 @@ def process_object(args):
         "child_count": len(all_child_documents),
         "file_count": file_count,
     }
+
+
+def format_date(created):
+    # Check if created is in YYYY-MM format (length 7)
+    if len(created) == 7:
+        return f"{created}-01T00:00:00Z"
+    elif len(created) == 4:
+        return f"{created}-01-01T00:00:00Z"
+    else:
+        return f"{created}T00:00:00Z"
 
 
 def main():
