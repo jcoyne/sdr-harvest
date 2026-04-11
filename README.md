@@ -27,6 +27,11 @@ tail -n +2 world-readable-document-type-with-pdf.csv | parallel --bar --eta -j 8
   'test -f "purl_data/{}.json" || curl -s -S -o "purl_data/{}.json" "https://purl.stanford.edu/{}.json"'
 ```
 
+## Extract index data
+```
+traject -c  ./sdr_config.rb > raw_solr_data.jsonl
+```
+
 ## Extract PDF filenames
 Get the filename for any file along with the object id (DRUID) and save it to a CSV.
 ```

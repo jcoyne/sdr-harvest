@@ -2,29 +2,12 @@
 
 import json
 import multiprocessing
-import subprocess
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from functools import lru_cache
 from pathlib import Path
 
 import pyarrow.parquet as pq
-import requests
 from tqdm import tqdm
-
-
-def get_jq_value(druid, jq_filter):
-    """Execute jq command and return the result"""
-    try:
-        result = subprocess.run(
-            ["jq", "-r", jq_filter, f"purl_data/{druid}.json"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        return ""
 
 
 def sanitize_filename(filename):
@@ -122,42 +105,9 @@ def process_object(args):
         all_child_documents.extend(child_documents)
         file_count += 1
 
-    # Get metadata using jq
-    title = get_jq_value(object_id, ".label")
-
-    creation_jq = """
-    .description.event[] |
-    select(.type == "creation") |
-    .date[] |
-    if has("value") then .value
-    elif has("structuredValue") then (.structuredValue[] | select(.type == "start") | .value)
-    else empty
-    end
-    """
-    created = get_jq_value(object_id, creation_jq)
-
-    collection_id, collection_title = get_collection_id(object_id)
-
-    # Create parent document with all child documents from all files
-    parent_document = {
-        "id": object_id,
-        "title_tesi": title,
-        "filenames_ssm": filenames,
-        "doc_type_ssi": "parent",
-        "_childDocuments_": all_child_documents,
-        "child_count_i": len(all_child_documents),
-    }
-
-    if collection_id:
-        parent_document["collection_title_ss"] = collection_title
-        parent_document["collection_id_ss"] = collection_id
-        parent_document["collection_url_ss"] = (
-            f"https://purl.stanford.edu/{collection_id}"
-        )
-
-    # Add creation date if available
-    if created:
-        parent_document["creation_date_dtsi"] = format_date(created)
+    parent_document = load_parent_document(object_id)
+    parent_document["_childDocuments"] = all_child_documents
+    parent_document["child_count_i"] = len(all_child_documents)
 
     # Write this object's document to its own file
     output_path = output_dir / f"{object_id}.json"
@@ -171,31 +121,38 @@ def process_object(args):
     }
 
 
-def get_collection_id(object_id):
-    collection_id = get_jq_value(
-        object_id, '.structural.isMemberOf[0] | ltrimstr("druid:")'
-    )
-    title = get_collection_title(collection_id)
-
-    return collection_id, title
+_raw_solr_index = None
 
 
-@lru_cache(maxsize=None)
-def get_collection_title(collection_id):
-    response = requests.get(f"https://purl.stanford.edu/{collection_id}.json")
-    if response.status_code == 200:
-        return response.json().get("label", collection_id)
-    return collection_id
+def _get_raw_solr_index(file="raw_solr_data.jsonl"):
+    """Lazily load raw_solr_data.jsonl into an in-memory dict keyed by object_id."""
+    global _raw_solr_index
+    if _raw_solr_index is None:
+        _raw_solr_index = {}
+        with open(file) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                doc = json.loads(line)
+                doc_id = doc.get("id", [None])[0]
+                if doc_id:
+                    _raw_solr_index[doc_id] = doc
+    return _raw_solr_index
 
 
-def format_date(created):
-    # Check if created is in YYYY-MM format (length 7)
-    if len(created) == 7:
-        return f"{created}-01T00:00:00Z"
-    elif len(created) == 4:
-        return f"{created}-01-01T00:00:00Z"
-    else:
-        return f"{created}T00:00:00Z"
+def load_parent_document(object_id, solr_data_file="raw_solr_data.jsonl"):
+    """Look up the parent document for object_id from raw_solr_data.jsonl."""
+    index = _get_raw_solr_index(solr_data_file)
+    doc = index.get(object_id)
+
+    if doc is None:
+        doc = {}
+
+    doc["id"] = object_id
+    doc["doc_type_ssi"] = "parent"
+
+    return doc
 
 
 def main():

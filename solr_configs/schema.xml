@@ -52,11 +52,17 @@
   <!-- Stored strings: *_ssi (single value, indexed) -->
   <dynamicField name="*_ssi" type="string" indexed="true" stored="true" multiValued="false" />
 
+  <!-- Stored strings: *_ssim (multi-valuee, indexed) -->
+  <dynamicField name="*_ssim" type="string" indexed="true" stored="true" multiValued="true" />
+
+  <dynamicField name="*_hsim" type="string_hierarch" stored="true" indexed="true" multiValued="true" />
+
   <!-- Date fields: *_dtsi (stored, indexed) -->
   <dynamicField name="*_dtsi" type="pdate" indexed="true" stored="true" multiValued="false" />
 
   <!-- Integer fields for things like chunk_index -->
   <dynamicField name="*_i" type="pint" indexed="true" stored="true" />
+  <dynamicField name="*_isim" type="pint" indexed="true" stored="true" multiValued="true" />
 
   <!-- Unique Key -->
   <uniqueKey>id</uniqueKey>
@@ -65,4 +71,17 @@
   <fieldType name="plong" class="solr.LongPointField" docValues="true" />
   <fieldType name="pint" class="solr.IntPointField" docValues="true" />
 
+  <!-- for hierarchical facets
+     a query for Books/NonFic will match documents indexed with values like
+      Books/NonFic, Books/NonFic/Law, Books/NonFic/Science/Physics, etc.
+     But it will not match documents indexed with values like Books, or Books/Fic...
+   -->
+  <fieldType name="string_hierarch" class="solr.TextField" positionIncrementGap="100">
+    <analyzer type="index">
+      <tokenizer class="solr.PathHierarchyTokenizerFactory" delimiter="|" />
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer class="solr.KeywordTokenizerFactory" />
+    </analyzer>
+  </fieldType>
 </schema>
