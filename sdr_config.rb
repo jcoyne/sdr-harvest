@@ -46,7 +46,7 @@ to_field 'all_search_tesi', cocina_display(:text)
 
 ##
 # Title Fields
-to_field 'title_display', cocina_display(:display_title), default('[Untitled]')
+to_field 'title_display_tesi', cocina_display(:display_title), default('[Untitled]')
 
 ##
 # Author Fields
