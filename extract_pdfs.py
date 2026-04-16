@@ -67,7 +67,10 @@ def process_single_pdf(args_tuple):
 
         # Extract using pymupdf4llm
         result = pymupdf4llm.to_markdown(
-            str(pdf_file), page_chunks=page_chunks, write_images=False, use_ocr=False
+            str(pdf_file),
+            page_chunks=page_chunks,
+            write_images=False,
+            use_ocr=pymupdf4llm.ocr.OCRMode.NEVER,
         )
 
         # Handle different return types

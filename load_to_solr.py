@@ -90,7 +90,7 @@ def load_documents_into_solr():
                     print(f"FAIL: {result}")
                     failure_count += len(batch_docs)
             else:
-                print(f"FAIL (HTTP {response.status_code}: {response.text[:100]})")
+                print(f"FAIL (HTTP {response.status_code}: {response.text})")
                 failure_count += len(batch_docs)
 
         except requests.exceptions.RequestException as e:

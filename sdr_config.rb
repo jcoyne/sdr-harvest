@@ -38,7 +38,7 @@ to_field 'id', cocina_display(:bare_druid)
 # index the parts of the cocina record needed for display: description,
 # identification (for DOIs), and access (for URLs, related resources, etc.)
 to_field 'cocina_ss' do |record, accumulator|
-  accumulator << record.public_cocina.cocina_doc.slice('description', 'identification', 'access')
+  accumulator << record.public_cocina.cocina_doc.slice('description', 'identification', 'access').to_json
 end
 
 # flattened text of all nodes in the record for searching
