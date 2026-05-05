@@ -1,125 +1,107 @@
 #!/usr/bin/env python3
+"""
+create_solr_docs.py
 
+Memory-efficient Solr document builder.
+
+  - Loads the parquet once as a compact Arrow columnar table (~4 bytes/float).
+  - Sorts by object_id using an index array
+  - Converts embeddings to Python lists one object at a time, inside the worker,
+    so peak memory for conversions is proportional to the *largest single object*
+  - Uses ThreadPoolExecutor (shared memory, no pickling) with a bounded queue
+    so at most max_workers*2 Arrow sub-tables exist simultaneously.
+"""
+
+import itertools
 import json
-import multiprocessing
-from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from tqdm import tqdm
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
 
 def sanitize_filename(filename):
-    """Convert filename to safe string for IDs"""
+    """Convert filename to a safe string for document IDs."""
     base = filename.replace(".pdf", "")
-    # Replace non-alphanumeric characters (except dash and underscore) with underscore
     return "".join(c if c.isalnum() or c in "-_" else "_" for c in base)
 
 
 def extract_filename_from_path(file_path):
     """
-    Extract filename from path and convert .md to .pdf
-    Example: 'extracted_texts/kq478vz7750/FEMGEN100CManuscript.md' -> 'FEMGEN100CManuscript.pdf'
+    Extract filename from path and convert .md to .pdf.
+    Example: 'extracted_texts/kq478vz7750/FEMGEN100CManuscript.md'
+          -> 'FEMGEN100CManuscript.pdf'
     """
     filename = Path(file_path).name
     return filename.replace(".md", ".pdf")
 
 
-def read_embeddings_from_parquet_by_object(parquet_file, batch_size=10000):
-    """Read embeddings from Parquet file grouped by object_id"""
-    embeddings_by_object = defaultdict(lambda: defaultdict(list))
-
-    parquet_file_obj = pq.ParquetFile(parquet_file)
-    total_rows = parquet_file_obj.metadata.num_rows
-
-    print(f"Reading {total_rows:,} rows from parquet file...")
-
-    with tqdm(total=total_rows, desc="Loading embeddings", unit=" rows") as pbar:
-        for batch in parquet_file_obj.iter_batches(batch_size=batch_size):
-            df = batch.to_pandas()
-
-            for _, row in df.iterrows():
-                object_id = row["object_id"]
-                file_path = row["file"]
-
-                embedding_data = {
-                    "file": file_path,
-                    "chunk_index": int(row["chunk_index"]),
-                    "text": row["text"],
-                    "embedding": row["embedding"].tolist(),
-                }
-                embeddings_by_object[object_id][file_path].append(embedding_data)
-
-            pbar.update(len(df))
-
-    # Sort embeddings by chunk_index for each file
-    print("Sorting embeddings by chunk index...")
-    for object_id in tqdm(embeddings_by_object, desc="Sorting", unit=" objects"):
-        for file_path in embeddings_by_object[object_id]:
-            embeddings_by_object[object_id][file_path].sort(
-                key=lambda x: x["chunk_index"]
-            )
-
-    return embeddings_by_object
+# ---------------------------------------------------------------------------
+# Per-object worker (runs in a thread)
+# ---------------------------------------------------------------------------
 
 
-def create_child_documents(embeddings, filename, object_id):
-    """Create child documents from embeddings for a single file"""
-    child_documents = []
-    base_filename = sanitize_filename(filename)
-
-    for embedding in embeddings:
-        child_document = {
-            "id": f"{object_id}_{base_filename}_c{embedding['chunk_index']}",
-            "chunk_text_tesi": embedding["text"],
-            "vector": embedding["embedding"],
-            "chunk_index_i": embedding["chunk_index"],
-            "filename_ss": filename,
-            "doc_type_ssi": "child",
-        }
-        child_documents.append(child_document)
-
-    return child_documents
-
-
-def process_object(args):
+def process_object_from_table(object_id, obj_table, output_dir_str):
     """
-    Process a single object (to be run in parallel)
-    Args is a tuple of (object_id, files_dict, output_dir_str)
+    Build and write the Solr JSON document for one object.
+
+    ``obj_table`` is a small Arrow sub-table containing only this object's
+    rows.  Embeddings are converted to Python lists here – one object at a
+    time – so the expensive conversion never happens for the whole dataset
+    simultaneously.
     """
-    object_id, files_dict, output_dir_str = args
-    output_dir = Path(output_dir_str)
+    # Sort within this object: by file then chunk_index
+    sort_idx = pc.sort_indices(
+        obj_table,
+        sort_keys=[("file", "ascending"), ("chunk_index", "ascending")],
+    )
+    obj_table = obj_table.take(sort_idx)
 
-    all_child_documents = []
-    filenames = []
-    file_count = 0
+    files_col = obj_table.column("file")
+    chunks_col = obj_table.column("chunk_index")
+    texts_col = obj_table.column("text")
+    embs_col = obj_table.column("embedding")
 
-    for file_path, file_embeddings in files_dict.items():
-        # Extract PDF filename from the .md file path
+    child_docs = []
+    for i in range(len(obj_table)):
+        file_path = files_col[i].as_py()
         filename = extract_filename_from_path(file_path)
-        filenames.append(filename)
+        base_filename = sanitize_filename(filename)
+        chunk_idx = chunks_col[i].as_py()
 
-        # Create child documents for this file
-        child_documents = create_child_documents(file_embeddings, filename, object_id)
-        all_child_documents.extend(child_documents)
-        file_count += 1
+        child_docs.append(
+            {
+                "id": f"{object_id}_{base_filename}_c{chunk_idx}",
+                "chunk_text_tesi": texts_col[i].as_py(),
+                # .as_py() on a FixedSizeListScalar returns a plain Python list
+                # but only for this one chunk – not the whole dataset at once.
+                "vector": embs_col[i].as_py(),
+                "chunk_index_i": chunk_idx,
+                "filename_ss": filename,
+                "doc_type_ssi": "child",
+            }
+        )
 
-    parent_document = load_parent_document(object_id)
-    parent_document["_childDocuments"] = all_child_documents
-    parent_document["child_count_i"] = len(all_child_documents)
+    parent_doc = load_parent_document(object_id)
+    parent_doc["_childDocuments_"] = child_docs
+    parent_doc["child_count_i"] = len(child_docs)
 
-    # Write this object's document to its own file
-    output_path = output_dir / f"{object_id}.json"
+    output_path = Path(output_dir_str) / f"{object_id}.json"
     with open(output_path, "w") as f:
-        json.dump(parent_document, f, indent=2)
+        json.dump(parent_doc, f, indent=2)
 
-    return {
-        "object_id": object_id,
-        "child_count": len(all_child_documents),
-        "file_count": file_count,
-    }
+    return {"object_id": object_id, "child_count": len(child_docs)}
 
+
+# ---------------------------------------------------------------------------
+# Parent-document lookup (read-only after preload, safe for threads)
+# ---------------------------------------------------------------------------
 
 _raw_solr_index = None
 
@@ -144,65 +126,119 @@ def _get_raw_solr_index(file="raw_solr_data.jsonl"):
 def load_parent_document(object_id, solr_data_file="raw_solr_data.jsonl"):
     """Look up the parent document for object_id from raw_solr_data.jsonl."""
     index = _get_raw_solr_index(solr_data_file)
-    doc = index.get(object_id)
-
-    if doc is None:
-        doc = {}
-
+    # Shallow-copy so we don't mutate the shared cache entry
+    doc = dict(index.get(object_id) or {})
     doc["id"] = object_id
     doc["doc_type_ssi"] = "parent"
-
     return doc
 
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+
 def main():
-    # Create output directory
     output_dir = Path("solr_documents")
     output_dir.mkdir(exist_ok=True)
 
-    # Read all embeddings grouped by object_id
-    embeddings_by_object = read_embeddings_from_parquet_by_object("embeddings.parquet")
-    print(f"Loaded embeddings for {len(embeddings_by_object)} objects\n")
+    # Preload the parent-doc index in the main thread before spawning workers.
+    print("Loading parent document index...")
+    _get_raw_solr_index()
 
-    # Convert embeddings_by_object to regular dicts (defaultdict doesn't pickle well)
-    embeddings_by_object = {k: dict(v) for k, v in embeddings_by_object.items()}
+    # ------------------------------------------------------------------
+    # Read the parquet once as a compact Arrow columnar table.
+    # With 3072-dim float32 embeddings each row is ~12 KB in Arrow vs
+    # ~72 KB if eagerly converted to Python lists.
+    # ------------------------------------------------------------------
+    print("Reading embeddings parquet...")
+    table = pq.read_table("embeddings.parquet")
+    n_rows = len(table)
+    print(f"  {n_rows:,} rows loaded")
 
-    # Process objects in parallel
+    # Compute a sort-order index by object_id.
+    # This is just an int64 array (~800 KB for 100 K rows) – no second
+    # copy of the full table is created.
+    print("  Grouping by object_id...")
+    sort_idx = pc.sort_indices(table, sort_keys=[("object_id", "ascending")])
+    sorted_oids = table.column("object_id").take(sort_idx)
+
+    # Walk the sorted order once to build (object_id, start, length) triples.
+    groups = []
+    start = 0
+    current_id = sorted_oids[0].as_py()
+    for i in range(1, n_rows + 1):
+        next_id = sorted_oids[i].as_py() if i < n_rows else None
+        if next_id != current_id:
+            groups.append((current_id, start, i - start))
+            start = i
+            current_id = next_id
+    del sorted_oids  # no longer needed
+
+    n_objects = len(groups)
+    print(f"  {n_objects:,} unique objects\n")
+
+    # ------------------------------------------------------------------
+    # Process objects with a ThreadPoolExecutor.
+    #
+    # Threads share the Arrow table buffer (no pickling, no copies).
+    # A bounded queue (max_queued) ensures at most that many Arrow
+    # sub-tables – each covering one object – exist simultaneously.
+    # Once a worker finishes its sub-table, it can be GC'd immediately.
+    # ------------------------------------------------------------------
+    max_workers = 8
+    max_queued = max_workers * 2
+    output_dir_str = str(output_dir)
+
     total_objects = 0
     total_children = 0
-    total_files = 0
+    pending = set()
+    groups_iter = iter(groups)
 
-    max_workers = 8  # Adjust based on your CPU cores
+    def _submit_next():
+        """Pull the next group, slice its Arrow rows, and submit to the pool."""
+        obj_id, g_start, length = next(groups_iter)
+        obj_table = table.take(sort_idx.slice(g_start, length))
+        return executor.submit(
+            process_object_from_table, obj_id, obj_table, output_dir_str
+        )
 
-    # Prepare arguments for each worker
-    # Convert Path to string for pickling
-    tasks = [
-        (object_id, files_dict, str(output_dir))
-        for object_id, files_dict in embeddings_by_object.items()
-    ]
-
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks
-        futures = [executor.submit(process_object, task) for task in tasks]
-
-        # Process completed tasks with progress bar
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         with tqdm(
-            total=len(futures), desc="Processing objects", unit=" objects"
+            total=n_objects, desc="Writing Solr documents", unit=" objects"
         ) as pbar:
-            for future in as_completed(futures):
-                try:
-                    result = future.result()
-                    total_objects += 1
-                    total_children += result["child_count"]
-                    total_files += result["file_count"]
+            # Prime the queue with the initial batch of tasks.
+            for _ in range(min(max_queued, n_objects)):
+                pending.add(_submit_next())
+
+            while pending:
+                done, pending = wait(pending, return_when=FIRST_COMPLETED)
+                for future in done:
+                    try:
+                        result = future.result()
+                        total_objects += 1
+                        total_children += result["child_count"]
+                    except Exception as exc:
+                        print(f"\nError processing object: {exc}")
                     pbar.update(1)
-                except Exception as exc:
-                    print(f"\nError processing object: {exc}")
-                    pbar.update(1)
+
+                    # Immediately replace each completed task with a new one
+                    # so the queue stays full while data flows through.
+                    for obj_id, g_start, length in itertools.islice(groups_iter, 1):
+                        obj_table = table.take(sort_idx.slice(g_start, length))
+                        pending.add(
+                            executor.submit(
+                                process_object_from_table,
+                                obj_id,
+                                obj_table,
+                                output_dir_str,
+                            )
+                        )
+
+    del table  # release the Arrow buffer
 
     print(f"\n{'=' * 50}")
     print(f"Processed {total_objects:,} objects")
-    print(f"Total files: {total_files:,}")
     print(f"Total child documents: {total_children:,}")
     if total_objects > 0:
         print(f"Average children per object: {total_children / total_objects:.1f}")
@@ -211,8 +247,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # Needed for Windows compatibility
-    multiprocessing.set_start_method(
-        "spawn", force=True
-    ) if multiprocessing.get_start_method() != "spawn" else None
     main()
