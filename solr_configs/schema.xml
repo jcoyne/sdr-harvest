@@ -25,7 +25,7 @@
     </analyzer>
   </fieldType>
 
-  <fieldType name="knn_vector_3072" class="solr.DenseVectorField" vectorDimension="3072 " similarityFunction="cosine" />
+  <fieldType name="knn_vector_3072" class="solr.DenseVectorField" vectorDimension="3072" similarityFunction="cosine" />
 
   <!-- Required Fields -->
   <field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
