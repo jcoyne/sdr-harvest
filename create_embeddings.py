@@ -1,21 +1,25 @@
+import concurrent.futures
 import logging
 import os
+import time
 from datetime import datetime
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-import torch
-from transformers import AutoModel, AutoTokenizer
+from google import genai
+from google.genai import types
 
 
 class MarkdownEmbedder:
     def __init__(
-        self, model_name="Qwen/Qwen3-Embedding-0.6B", log_file="embedding_process.log"
+        self,
+        model_name="gemini-embedding-2",
+        log_file="embedding_process.log",
+        max_workers=8,
     ):
-        """Load the embedding model onto the best available device."""
+        """Set up the Gemini embedding API client."""
         # Set up logging
         self.setup_logging(log_file)
 
@@ -25,27 +29,21 @@ class MarkdownEmbedder:
         )
         self.logger.info(f"Model: {model_name}")
 
-        print("Loading model...")
         self.model_name = model_name
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModel.from_pretrained(model_name)
 
-        if torch.backends.mps.is_available():
-            self.device = torch.device("mps")
-            print("Using MPS (Apple Silicon GPU)")
-            self.logger.info("Device: MPS (Apple Silicon GPU)")
-        elif torch.cuda.is_available():
-            self.device = torch.device("cuda")
-            print("Using CUDA GPU")
-            self.logger.info("Device: CUDA GPU")
-        else:
-            self.device = torch.device("cpu")
-            print("Using CPU")
-            self.logger.info("Device: CPU")
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "GEMINI_API_KEY environment variable is not set. "
+                "Please set it before running this script."
+            )
 
-        self.model.to(self.device)
-        self.model.eval()
-        self.logger.info("Model loaded successfully")
+        self.client = genai.Client(api_key=api_key)
+        self.max_workers = max_workers
+        self.logger.info("Gemini API client initialized successfully")
+        self.logger.info(f"Parallel workers: {max_workers}")
+        print(f"Using Gemini API with model: {model_name}")
+        print(f"Parallel API workers: {max_workers}")
 
     def setup_logging(self, log_file):
         """Configure logging to both file and console."""
@@ -72,36 +70,72 @@ class MarkdownEmbedder:
         self.logger.addHandler(ch)
 
     def get_embeddings_batch(self, texts, batch_size=32):
-        """Generate embeddings for a list of texts, processing in sub-batches."""
-        embeddings = []
+        """Generate embeddings for a list of texts via the Gemini API.
 
-        for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i : i + batch_size]
+        Sub-batches of `batch_size` texts are dispatched in parallel using a
+        ThreadPoolExecutor (``self.max_workers`` concurrent requests), so API
+        round-trip latency is overlapped rather than paid sequentially.
 
-            try:
-                inputs = self.tokenizer(
-                    batch_texts,
-                    return_tensors="pt",
-                    padding=True,
-                    truncation=True,
-                    max_length=512,
-                ).to(self.device)
+        Each text is wrapped in its own Content object so the API returns a
+        separate embedding per text (rather than one aggregated embedding).
+        Includes exponential-backoff retry logic for transient API errors.
+        """
+        # Build all sub-batches up front so we can submit them all at once.
+        sub_batches = [
+            texts[i : i + batch_size] for i in range(0, len(texts), batch_size)
+        ]
 
-                with torch.no_grad():
-                    outputs = self.model(**inputs)
-                    batch_embeddings = outputs.last_hidden_state.mean(dim=1)
-                    batch_embeddings = batch_embeddings.float().cpu().numpy()
+        def _call_api(batch_idx, batch_texts):
+            """Embed one sub-batch with retry; returns list of np.ndarray."""
+            contents = [
+                types.Content(parts=[types.Part.from_text(text=t)]) for t in batch_texts
+            ]
+            max_retries = 5
+            delay = 2.0  # seconds
+            for attempt in range(max_retries):
+                try:
+                    result = self.client.models.embed_content(
+                        model=self.model_name,
+                        contents=contents,
+                    )
+                    return [
+                        np.array(emb.values, dtype=np.float32)
+                        for emb in result.embeddings
+                    ]
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        self.logger.warning(
+                            f"API error on sub-batch {batch_idx}, attempt "
+                            f"{attempt + 1}/{max_retries}: {e}. "
+                            f"Retrying in {delay:.1f}s..."
+                        )
+                        time.sleep(delay)
+                        delay *= 2  # exponential back-off
+                    else:
+                        self.logger.error(
+                            f"Failed to embed sub-batch {batch_idx} after "
+                            f"{max_retries} attempts: {e}"
+                        )
+                        self.logger.error(
+                            f"Batch text samples: {[t[:100] for t in batch_texts[:3]]}"
+                        )
+                        raise
 
-                embeddings.extend(batch_embeddings)
+        # Submit all sub-batches concurrently and collect results in order.
+        results = [None] * len(sub_batches)
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.max_workers
+        ) as executor:
+            future_to_idx = {
+                executor.submit(_call_api, idx, batch): idx
+                for idx, batch in enumerate(sub_batches)
+            }
+            for future in concurrent.futures.as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                results[idx] = future.result()  # re-raises any exception
 
-            except Exception as e:
-                self.logger.error(f"Error embedding batch {i // batch_size}: {e}")
-                self.logger.error(
-                    f"Batch text samples: {[t[:100] for t in batch_texts[:3]]}"
-                )
-                raise
-
-        return embeddings
+        # Flatten sub-batch results back into a single ordered list.
+        return [emb for batch_result in results for emb in batch_result]
 
     def get_already_embedded_chunks(self, output_file):
         """Return the set of (file, chunk_index) tuples already present in the embeddings parquet."""
@@ -154,7 +188,7 @@ class MarkdownEmbedder:
             chunks_file:          Path to the chunks parquet produced by create_chunks.py.
             output_file:          Destination parquet file (adds an `embedding` column).
             batch_size:           Number of chunks to embed and flush to disk at once.
-            embedding_batch_size: Number of texts passed to the model per forward pass.
+            embedding_batch_size: Number of texts sent to the Gemini API per request.
             force_reprocess:      Re-embed every chunk, even if already present.
         """
         self.logger.info("=" * 80)
@@ -352,15 +386,6 @@ class MarkdownEmbedder:
                     self.logger.error(f"Files affected: {list(batch_files)}")
                     raise
 
-                # Periodically free GPU memory
-                batch_num = i // batch_size
-                if batch_num % 10 == 0:
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                    if torch.backends.mps.is_available():
-                        torch.mps.empty_cache()
-                    self.logger.info(f"Cleared GPU cache at batch {batch_num}")
-
         except KeyboardInterrupt:
             self.logger.warning(
                 "KeyboardInterrupt received – merging partial results before exit"
@@ -474,13 +499,16 @@ class MarkdownEmbedder:
 
 
 if __name__ == "__main__":
-    embedder = MarkdownEmbedder(log_file="embedding_process.log")
+    embedder = MarkdownEmbedder(
+        log_file="embedding_process.log",
+        max_workers=8,  # concurrent Gemini API requests
+    )
 
     embedder.embed_chunks(
         chunks_file="chunks.parquet",
         output_file="embeddings.parquet",
         batch_size=100,
-        embedding_batch_size=32,
+        embedding_batch_size=50,  # texts per API request
     )
 
     # Force re-embed everything:

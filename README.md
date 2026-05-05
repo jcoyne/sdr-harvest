@@ -76,7 +76,7 @@ uv run create_chunks.py
 ## Generate embeddings
 Creates embeddings from the chunks and writes to embeddings.parquet
 ```
-uv run create_embeddings.py
+GEMINI_API_KEY=<key> uv run create_embeddings.py
 ```
 
 If you need to check if an object is present in the embeddings.parquet, you can check with:
