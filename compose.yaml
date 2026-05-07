@@ -7,7 +7,7 @@ services:
       - ./solr_configs:/opt/solr/conf
       - ./solr_data:/var/solr
     environment:
-      SOLR_JAVA_MEM: "-Xms256m -Xmx512m"
+      SOLR_JAVA_MEM: "-Xms256m -Xmx1024m"
     command:
       - solr-precreate
       - sdr-search
