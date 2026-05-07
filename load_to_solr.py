@@ -5,6 +5,7 @@ Uses the Solr JSON update API which supports nested documents (_childDocuments_)
 Loads documents in batches for better performance.
 """
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -12,7 +13,7 @@ from pathlib import Path
 import requests
 
 # Configuration
-SOLR_URL = "http://localhost:8983/solr/sdr-search"
+DEFAULT_SOLR_URL = "http://localhost:8983/solr/sdr-search"
 DOCS_DIRECTORY = Path("solr_documents")
 BATCH_SIZE = 100  # Number of documents to send in each request
 
@@ -29,7 +30,7 @@ def batch_iterable(iterable, batch_size):
         yield batch
 
 
-def load_documents_into_solr():
+def load_documents_into_solr(solr_url: str):
     """
     Load all JSON documents from the solr_documents directory into the Solr index.
     Uses the JSON update API which supports nested documents (_childDocuments_).
@@ -44,7 +45,7 @@ def load_documents_into_solr():
         sys.exit(1)
 
     print(f"Found {len(json_files)} JSON files to load into Solr")
-    print(f"Solr collection: {SOLR_URL}")
+    print(f"Solr collection: {solr_url}")
     print(f"Batch size: {BATCH_SIZE}")
     print("-" * 60)
 
@@ -76,7 +77,7 @@ def load_documents_into_solr():
 
         try:
             response = requests.post(
-                f"{SOLR_URL}/update/json",
+                f"{solr_url}/update/json",
                 json=batch_docs,
                 headers={"Content-Type": "application/json"},
             )
@@ -107,7 +108,7 @@ def load_documents_into_solr():
     # Commit the documents to make them searchable
     print("\nCommitting changes to Solr...")
     commit_response = requests.post(
-        f"{SOLR_URL}/update?commit=true",
+        f"{solr_url}/update?commit=true",
         headers={"Content-Type": "application/json"},
         json={},  # Send empty JSON body
     )
@@ -123,23 +124,39 @@ def load_documents_into_solr():
     return success_count == len(json_files)
 
 
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Load JSON documents into a Solr index."
+    )
+    parser.add_argument(
+        "--solr-url",
+        default=DEFAULT_SOLR_URL,
+        help=f"Solr collection URL (default: {DEFAULT_SOLR_URL})",
+    )
+    return parser.parse_args()
+
+
 def main():
     """Main entry point for the script."""
+    args = parse_args()
+    solr_url = args.solr_url
+
     print("=" * 60)
     print("Solr Document Loader (Batched)")
     print("=" * 60)
     print(f"Documents directory: {DOCS_DIRECTORY.absolute()}")
-    print(f"Solr URL: {SOLR_URL}")
+    print(f"Solr URL: {solr_url}")
     print("=" * 60)
 
     # Load documents
-    success = load_documents_into_solr()
+    success = load_documents_into_solr(solr_url)
 
     if success:
         print("\n" + "=" * 60)
         print("All documents loaded successfully!")
         print("You can now search your Solr collection at:")
-        print(f"  {SOLR_URL}")
+        print(f"  {solr_url}")
         print("=" * 60)
     else:
         print("\nSome documents failed to load. Check the output above.")
