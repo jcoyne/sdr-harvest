@@ -97,6 +97,9 @@ class MarkdownEmbedder:
                     result = self.client.models.embed_content(
                         model=self.model_name,
                         contents=contents,
+                        config=types.EmbedContentConfig(
+                            output_dimensionality=768
+                        ),  # reduced from default of 3072
                     )
                     return [
                         np.array(emb.values, dtype=np.float32)
@@ -509,6 +512,7 @@ if __name__ == "__main__":
         output_file="embeddings.parquet",
         batch_size=100,
         embedding_batch_size=50,  # texts per API request
+        force_reprocess=True,
     )
 
     # Force re-embed everything:
