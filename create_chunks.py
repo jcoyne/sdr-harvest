@@ -1,4 +1,6 @@
+import json
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -7,24 +9,75 @@ import pyarrow.parquet as pq
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
+def extract_object_id(file_path):
+    """
+    Extract object_id from path.
+    Assumes path contains 'extracted_texts/OBJECT_ID/...'
+    """
+    parts = Path(file_path).parts
+    try:
+        extracted_idx = parts.index("extracted_texts")
+        if extracted_idx + 1 < len(parts):
+            return parts[extracted_idx + 1]
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def load_metadata_lookup(jsonl_path):
+    """
+    Load metadata from a JSONL file and format it into a single string for each object.
+    """
+    lookup = {}
+    if not os.path.exists(jsonl_path):
+        print(f"Warning: {jsonl_path} not found.")
+        return lookup
+
+    print(f"Loading metadata from {jsonl_path}...")
+    with open(jsonl_path, "r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                data = json.loads(line)
+                obj_id = data.get("id")
+                if isinstance(obj_id, list):
+                    obj_id = obj_id[0]
+
+                if not obj_id:
+                    continue
+
+                # Create metadata text
+                metadata_parts = []
+                for k, v in data.items():
+                    if k in ["cocina_ss", "all_search_tesi"]:
+                        continue
+
+                    # Drop suffix
+                    clean_k = re.sub(r"_(tesi|ssim|isim|ss)$", "", k)
+                    # Convert underscores to spaces
+                    display_k = clean_k.replace("_", " ")
+
+                    if isinstance(v, list):
+                        v_str = ", ".join(map(str, v))
+                    else:
+                        v_str = str(v)
+
+                    metadata_parts.append(f"{display_k}: {v_str}")
+
+                lookup[obj_id] = "\n".join(metadata_parts)
+            except Exception as e:
+                print(f"Error parsing line in {jsonl_path}: {e}")
+    print(f"Loaded metadata for {len(lookup)} objects.")
+    return lookup
+
+
 def read_and_chunk_file(args):
     """
     Worker function to read and chunk a single file.
     This is I/O bound, so we can use threads.
     """
-    file_path, chunk_size, chunk_overlap = args
+    file_path, object_id, chunk_size, chunk_overlap = args
 
     try:
-        # Extract object_id from path
-        parts = Path(file_path).parts
-        object_id = None
-        try:
-            extracted_idx = parts.index("extracted_texts")
-            if extracted_idx + 1 < len(parts):
-                object_id = parts[extracted_idx + 1]
-        except (ValueError, IndexError):
-            pass
-
         # Read file
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -55,18 +108,20 @@ def read_and_chunk_file(args):
         return {"success": False, "file": str(file_path), "error": str(e)}
 
 
-def get_processed_files(chunks_file):
+def get_processed_items(chunks_file):
     """
-    Return the set of file paths already present in the chunks parquet file.
+    Return the set of (object_id, file) tuples already present in the chunks parquet file.
     """
     if not os.path.exists(chunks_file):
         return set()
 
     try:
-        table = pq.read_table(chunks_file, columns=["file"])
+        table = pq.read_table(chunks_file, columns=["object_id", "file"])
         df = table.to_pandas()
-        processed = set(df["file"].unique())
-        print(f"Found {len(processed)} already-chunked files in {chunks_file}")
+        processed = set(zip(df["object_id"], df["file"]))
+        print(
+            f"Found {len(processed)} already-chunked (object, file) pairs in {chunks_file}"
+        )
         return processed
     except Exception as e:
         print(f"Warning: Could not read existing chunks file: {e}")
@@ -76,6 +131,7 @@ def get_processed_files(chunks_file):
 def chunk_directory(
     directory_path,
     output_file="chunks.parquet",
+    metadata_file="raw_solr_data.jsonl",
     chunk_size=500,
     chunk_overlap=50,
     num_io_workers=4,
@@ -84,43 +140,61 @@ def chunk_directory(
 ):
     """
     Read all markdown files under `directory_path`, chunk them, and write the
-    results to a Parquet file.
+    results to a Parquet file. Also creates a metadata chunk for each object.
 
     Columns written: object_id, file, chunk_index, text
 
     Args:
         directory_path:  Root directory to search for .md files.
         output_file:     Destination Parquet file path.
+        metadata_file:   Source of object metadata (JSONL).
         chunk_size:      Maximum characters per chunk.
         chunk_overlap:   Overlap characters between consecutive chunks.
         num_io_workers:  Number of threads for reading/chunking files.
         batch_size:      Number of chunks to accumulate before flushing to disk.
         force_reprocess: When True, delete the existing output file and reprocess
-                         every markdown file from scratch.
+                         everything from scratch.
     """
     md_files = list(Path(directory_path).rglob("*.md"))
     print(f"Found {len(md_files)} total markdown files")
 
     if force_reprocess:
-        processed_files = set()
-        print("Force reprocess enabled – will process all files")
+        processed_items = set()
+        print("Force reprocess enabled – will process all files and metadata")
         if os.path.exists(output_file):
             os.remove(output_file)
             print(f"Removed existing {output_file}")
     else:
-        processed_files = get_processed_files(output_file)
+        processed_items = get_processed_items(output_file)
 
-    files_to_process = [f for f in md_files if str(f) not in processed_files]
+    # Load metadata
+    metadata_lookup = load_metadata_lookup(metadata_file)
 
-    if not files_to_process:
-        print("No new files to process!")
+    # Identify files to process
+    files_to_process = []
+    unique_object_ids = set()
+    for f in md_files:
+        obj_id = extract_object_id(f)
+        if obj_id:
+            unique_object_ids.add(obj_id)
+            if (obj_id, str(f)) not in processed_items:
+                files_to_process.append((str(f), obj_id))
+
+    # Identify metadata to process
+    metadata_to_process = [
+        oid
+        for oid in unique_object_ids
+        if (oid, "_metadata_") not in processed_items and oid in metadata_lookup
+    ]
+
+    if not files_to_process and not metadata_to_process:
+        print("No new files or metadata to process!")
         return 0
 
     print(f"Will process  : {len(files_to_process)} new files")
-    print(f"Already done  : {len(md_files) - len(files_to_process)} files (skipped)")
+    print(f"Will process  : {len(metadata_to_process)} new metadata chunks")
+    print(f"Already done  : {len(processed_items)} items (skipped)")
     print(f"I/O workers   : {num_io_workers}")
-
-    chunk_args = [(str(f), chunk_size, chunk_overlap) for f in files_to_process]
 
     # Schema used for every batch written to Parquet
     schema = pa.schema(
@@ -135,7 +209,7 @@ def chunk_directory(
     writer = None
     pending: list[dict] = []
     total_chunks = 0
-    completed = 0
+    completed_files = 0
 
     def flush(chunks: list[dict], w):
         """Write a list of chunk dicts to the Parquet writer; return the writer."""
@@ -159,33 +233,55 @@ def chunk_directory(
         w.write_table(table)
         return w
 
-    with ThreadPoolExecutor(max_workers=num_io_workers) as executor:
-        future_to_file = {
-            executor.submit(read_and_chunk_file, args): args[0] for args in chunk_args
-        }
+    # Add metadata chunks to pending
+    for oid in metadata_to_process:
+        pending.append(
+            {
+                "object_id": oid,
+                "file": "_metadata_",
+                "chunk_index": 1,
+                "text": metadata_lookup[oid],
+            }
+        )
+        if len(pending) >= batch_size:
+            writer = flush(pending, writer)
+            total_chunks += len(pending)
+            pending = []
 
-        for future in as_completed(future_to_file):
-            completed += 1
-            try:
-                result = future.result()
-                if result["success"]:
-                    n = len(result["chunks"])
-                    print(
-                        f"[{completed}/{len(files_to_process)}] ✓ {result['file']} – {n} chunks"
-                    )
-                    pending.extend(result["chunks"])
-                else:
-                    print(
-                        f"[{completed}/{len(files_to_process)}] ✗ {result['file']} – {result['error']}"
-                    )
-            except Exception as exc:
-                print(f"[{completed}/{len(files_to_process)}] ✗ Exception: {exc}")
+    # Process files
+    chunk_args = [(f, oid, chunk_size, chunk_overlap) for f, oid in files_to_process]
 
-            # Flush accumulated chunks to disk periodically
-            if len(pending) >= batch_size:
-                writer = flush(pending, writer)
-                total_chunks += len(pending)
-                pending = []
+    if chunk_args:
+        with ThreadPoolExecutor(max_workers=num_io_workers) as executor:
+            future_to_file = {
+                executor.submit(read_and_chunk_file, args): args[0]
+                for args in chunk_args
+            }
+
+            for future in as_completed(future_to_file):
+                completed_files += 1
+                try:
+                    result = future.result()
+                    if result["success"]:
+                        n = len(result["chunks"])
+                        print(
+                            f"[{completed_files}/{len(files_to_process)}] ✓ {result['file']} – {n} chunks"
+                        )
+                        pending.extend(result["chunks"])
+                    else:
+                        print(
+                            f"[{completed_files}/{len(files_to_process)}] ✗ {result['file']} – {result['error']}"
+                        )
+                except Exception as exc:
+                    print(
+                        f"[{completed_files}/{len(files_to_process)}] ✗ Exception: {exc}"
+                    )
+
+                # Flush accumulated chunks to disk periodically
+                if len(pending) >= batch_size:
+                    writer = flush(pending, writer)
+                    total_chunks += len(pending)
+                    pending = []
 
     # Flush any remaining chunks
     if pending:
@@ -207,6 +303,7 @@ if __name__ == "__main__":
     chunk_directory(
         directory_path="./extracted_texts",
         output_file="chunks.parquet",
+        metadata_file="raw_solr_data.jsonl",
         chunk_size=500,
         chunk_overlap=50,
         num_io_workers=4,

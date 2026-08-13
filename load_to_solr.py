@@ -80,6 +80,7 @@ def load_documents_into_solr(solr_url: str):
                 f"{solr_url}/update/json",
                 json=batch_docs,
                 headers={"Content-Type": "application/json"},
+                verify=False,
             )
 
             if response.status_code == 200:
@@ -111,6 +112,7 @@ def load_documents_into_solr(solr_url: str):
         f"{solr_url}/update?commit=true",
         headers={"Content-Type": "application/json"},
         json={},  # Send empty JSON body
+        verify=False,
     )
     if commit_response.status_code == 200:
         print("Documents committed successfully!")

@@ -1,4 +1,5 @@
 # SDR Harvest
+*REMEMBER TO UNSET `GOOGLE_GEMINI_BASE_URL` environment variable before running this script*
 
 ## Get DRUIDs
 ### Getting DRUIDs from Searchworks
@@ -28,8 +29,9 @@ tail -n +2 world-readable-document-type-with-pdf.csv | parallel --bar --eta -j 8
 ```
 
 ## Extract index data
+This is used by create_solr_docs.py later in the process
 ```
-traject -c  ./sdr_config.rb > raw_solr_data.jsonl
+traject -c ./sdr_config.rb > raw_solr_data.jsonl
 ```
 
 ## Extract PDF filenames

@@ -15,7 +15,7 @@ from google.genai import types
 class MarkdownEmbedder:
     def __init__(
         self,
-        model_name="gemini-embedding-2",
+        model_name="models/gemini-embedding-2",
         log_file="embedding_process.log",
         max_workers=8,
     ):
