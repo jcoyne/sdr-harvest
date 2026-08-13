@@ -19,6 +19,8 @@ And click "Download CSV"
 
 Save this as "world-readable-document-type-with-pdf.csv"
 
+Or use https://argo.stanford.edu/report?f%5Bcontent_file_mimetypes_ssimdv%5D%5B%5D=application%2Fpdf&f%5Bmember_of_collection_ssim%5D%5B%5D=druid%3Ats561xq4138&f%5Brights_descriptions_ssimdv%5D%5B%5D=world and save it as "oral-history-ts561xq4138-druids.csv"
+
 ## Harvest COCINA
 After skipping the headers, for each of the identifiers in the file, download the COCINA JSON data.
 This downloads 8 files at a time using `parallel`. (You may need to `brew install parallel`)
@@ -39,7 +41,7 @@ Get the filename for any file along with the object id (DRUID) and save it to a 
 ```
 find purl_data -name '*.json' | parallel --bar --joblog extract.log -j 8 \
   'jq -r "(.externalIdentifier | sub(\"^druid:\"; \"\")) as \$id |
-    .structural.contains[].structural.contains[] |
+    .structural.contains[]? | .structural.contains[]? |
     select(.hasMimeType == \"application/pdf\") |
     [\$id, .filename] | @csv" {}' \
   > file_list.csv
