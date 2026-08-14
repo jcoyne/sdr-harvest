@@ -17,7 +17,7 @@ Build the corpus, inspect failures, and retry them:
 
 ```shell
 GEMINI_API_KEY=<key> uv run sdr-harvest run \
-  --manifest manifest.csv --workers 4
+  --manifest manifest.csv --workers 7
 
 uv run sdr-harvest status --failed
 GEMINI_API_KEY=<key> uv run sdr-harvest retry --failed
@@ -54,7 +54,7 @@ The main build command is:
 
 ```shell
 GEMINI_API_KEY=<key> uv run sdr-harvest run \
-  --manifest manifest.csv --workers 4
+  --manifest manifest.csv --workers 7
 ```
 
 The progress display begins with fully current objects already counted as
@@ -98,7 +98,7 @@ Publish completed documents to staging only after the build has been reviewed:
 uv run sdr-harvest publish \
   --manifest manifest.csv \
   --target https://solr-stage.example.edu/solr/sdr-search \
-  --workers 4
+  --workers 7
 ```
 
 Publication state is tracked by both DRUID and target URL. Repeating this
@@ -113,7 +113,7 @@ complete `.sdr-harvest/` directory to it. Then publish to production:
 uv run sdr-harvest publish \
   --manifest manifest.csv \
   --target https://solr-prod.example.edu/solr/sdr-search \
-  --workers 4
+  --workers 7
 ```
 
 Staging and production have independent publication records, so success on
@@ -136,7 +136,7 @@ To store this data elsewhere, place the global option before the command:
 
 ```shell
 uv run sdr-harvest --state-dir /data/sdr-harvest run \
-  --manifest manifest.csv --workers 4
+  --manifest manifest.csv --workers 7
 ```
 
 Only one build or publish process may use a state directory at a time.
