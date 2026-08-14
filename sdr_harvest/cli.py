@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -207,6 +209,13 @@ def main(argv: list[str] | None = None) -> None:
                         shutil.rmtree(version)
                         removed += 1
             print(f"Removed {removed} old non-current artifact directories.")
+    except KeyboardInterrupt:
+        # ThreadPoolExecutor registers an interpreter-exit hook that otherwise
+        # waits for active workers. State has already been marked interrupted by
+        # Pipeline; close the coordinator connection and terminate immediately.
+        store.close()
+        print("\nInterrupted; queued work was cancelled.", file=sys.stderr, flush=True)
+        os._exit(130)
     finally:
         store.close()
 

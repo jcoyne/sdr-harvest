@@ -75,6 +75,10 @@ COCINA record can add downstream work after the estimate is printed. Use
 `--no-progress` for schedulers or redirected logs; the estimate and final JSON
 summary are still printed.
 
+Pressing Ctrl-C once cancels work that has not started, records the run as
+interrupted, and exits immediately with status 130. The next invocation safely
+resumes from completed stage artifacts.
+
 `run` builds and validates the per-object Solr JSON files but never contacts
 Solr. Publishing is a separate corpus-level operation with an explicit target:
 

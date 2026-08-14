@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import time
 from collections import Counter
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -191,6 +192,19 @@ class EventLog:
             stream.write(json.dumps(event, sort_keys=True, default=str) + "\n")
 
 
+@contextmanager
+def interruptible_thread_pool(max_workers: int):
+    """Do not wait for active worker threads after a keyboard interrupt."""
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+    try:
+        yield executor
+    except KeyboardInterrupt:
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise
+    else:
+        executor.shutdown(wait=True)
+
+
 class Pipeline:
     def __init__(
         self,
@@ -327,7 +341,7 @@ class Pipeline:
                 finally:
                     worker_store.close()
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.settings.workers) as executor:
+            with interruptible_thread_pool(self.settings.workers) as executor:
                 pending = {executor.submit(process, druid) for druid in selected}
                 active: dict[str, str] = {}
                 last_refresh = 0.0
@@ -545,9 +559,7 @@ class Pipeline:
                 worker_store.close()
 
         try:
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.settings.workers
-            ) as executor:
+            with interruptible_thread_pool(self.settings.workers) as executor:
                 futures = [executor.submit(process, druid) for druid in druids]
                 with tqdm(
                     total=len(futures),

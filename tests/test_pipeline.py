@@ -1,4 +1,4 @@
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 
 import hashlib
 import io
@@ -6,6 +6,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -13,6 +14,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from sdr_harvest.bootstrap import bootstrap, format_bootstrap_summary
+from sdr_harvest.cli import main
 from sdr_harvest.pipeline import (
     SIGNATURES,
     Pipeline,
@@ -23,6 +25,7 @@ from sdr_harvest.pipeline import (
     parse_manifest,
     source_fingerprint,
     file_sha256,
+    interruptible_thread_pool,
 )
 from sdr_harvest.state import STAGES, StateStore
 
@@ -184,6 +187,44 @@ class RetryTest(unittest.TestCase):
             attempts = store.db.execute("SELECT status,transient FROM attempts ORDER BY id").fetchall()
             self.assertEqual([("failed", 1), ("succeeded", None)], [tuple(row) for row in attempts])
             store.close()
+
+
+class InterruptTest(unittest.TestCase):
+    def test_thread_pool_does_not_wait_after_keyboard_interrupt(self):
+        executor = Mock(spec=ThreadPoolExecutor)
+        with patch(
+            "sdr_harvest.pipeline.concurrent.futures.ThreadPoolExecutor",
+            return_value=executor,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                with interruptible_thread_pool(4):
+                    raise KeyboardInterrupt
+        executor.shutdown.assert_called_once_with(wait=False, cancel_futures=True)
+
+    def test_cli_exits_immediately_with_status_130(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "manifest.csv"
+            manifest.write_text(f"identifier\n{DRUID}\n")
+            with (
+                patch("sdr_harvest.cli.Pipeline.run", side_effect=KeyboardInterrupt),
+                patch("sdr_harvest.cli.os._exit", side_effect=SystemExit(130)) as exit_,
+                redirect_stdout(io.StringIO()),
+                redirect_stderr(io.StringIO()),
+                self.assertRaises(SystemExit) as raised,
+            ):
+                main(
+                    [
+                        "--state-dir",
+                        str(root / "state"),
+                        "run",
+                        "--manifest",
+                        str(manifest),
+                        "--no-progress",
+                    ]
+                )
+            self.assertEqual(130, raised.exception.code)
+            exit_.assert_called_once_with(130)
 
 
 class ResumeTest(unittest.TestCase):
