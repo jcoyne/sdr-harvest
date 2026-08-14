@@ -1,5 +1,8 @@
-import json
+from contextlib import redirect_stdout
+
 import hashlib
+import io
+import json
 import sqlite3
 import tempfile
 import unittest
@@ -9,7 +12,7 @@ from unittest.mock import Mock, patch
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from sdr_harvest.bootstrap import bootstrap
+from sdr_harvest.bootstrap import bootstrap, format_bootstrap_summary
 from sdr_harvest.pipeline import (
     SIGNATURES,
     Pipeline,
@@ -242,10 +245,18 @@ class OperationalTest(unittest.TestCase):
             }))
             state_dir = root / "state"
             store = StateStore(state_dir / "state.sqlite3")
-            stats = bootstrap(root, state_dir, store, manifest)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                stats = bootstrap(root, state_dir, store, manifest, show_progress=False)
             self.assertEqual(1, stats["documents"])
+            self.assertIn("Bootstrap: reading chunks.parquet", output.getvalue())
+            self.assertIn("Bootstrap: complete", output.getvalue())
             self.assertEqual("succeeded", store.stage(DRUID, "document").status)
             self.assertIsNone(store.stage(DRUID, "publish"))
+            summary = format_bootstrap_summary(stats)
+            self.assertIn("all counts are DRUIDs", summary)
+            self.assertIn("Solr JSON documents", summary)
+            self.assertIn("not necessarily published", summary)
             store.close()
 
 

@@ -7,9 +7,40 @@ from email.utils import format_datetime
 from pathlib import Path
 
 import pyarrow.parquet as pq
+from tqdm import tqdm
 
 from .pipeline import SIGNATURES, cocina_pdf_files, file_digest, file_sha256, fingerprint, parse_manifest, source_fingerprint
 from .state import StateStore
+
+
+BOOTSTRAP_SUMMARY_FIELDS = (
+    ("objects", "Manifest DRUIDs", "objects listed in the input manifest"),
+    ("sources", "Valid COCINA sources", "objects with valid legacy purl_data JSON"),
+    ("downloads", "Verified PDF sets", "objects whose expected PDFs passed size and checksum validation"),
+    ("metadata", "Metadata records", "objects with adoptable Traject/Solr metadata"),
+    ("extracts", "Markdown extraction sets", "objects with all expected extracted Markdown files"),
+    ("chunks", "Chunk datasets", "objects with internally consistent legacy chunk rows"),
+    ("embeddings", "Embedding datasets", "objects whose chunks have matching 768-dimensional vectors"),
+    ("documents", "Solr JSON documents", "objects with a validated parent/child JSON file; not necessarily published"),
+)
+
+
+def format_bootstrap_summary(stats: dict) -> str:
+    """Render object-level adoption counts with operator-friendly definitions."""
+    width = max(len(label) for _, label, _ in BOOTSTRAP_SUMMARY_FIELDS)
+    lines = [
+        "Bootstrap adoption summary (all counts are DRUIDs, not files or rows):"
+    ]
+    for key, label, description in BOOTSTRAP_SUMMARY_FIELDS:
+        lines.append(f"  {label:<{width}}  {stats[key]:>8,}  {description}")
+    lines.extend(
+        [
+            "",
+            "A lower count means adoption stopped at that checkpoint; the normal run",
+            "will resume that object at the first stage that was not adopted.",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def _directory_fingerprint(path: Path) -> str:
@@ -33,24 +64,71 @@ def _metadata_index(path: Path) -> dict[str, dict]:
     return result
 
 
-def bootstrap(root: Path, state_dir: Path, store: StateStore, manifest: Path) -> dict:
+def bootstrap(
+    root: Path,
+    state_dir: Path,
+    store: StateStore,
+    manifest: Path,
+    *,
+    show_progress: bool = True,
+) -> dict:
     """Adopt only legacy artifacts whose relationships can be validated."""
     druids = parse_manifest(manifest)
+    print(f"Bootstrap: found {len(druids):,} DRUIDs in {manifest}", flush=True)
     store.reconcile_manifest(druids)
+
+    print("Bootstrap: loading legacy metadata index...", flush=True)
     metadata = _metadata_index(root / "raw_solr_data.jsonl")
-    chunks = pq.read_table(root / "chunks.parquet") if (root / "chunks.parquet").exists() else None
-    embeddings = pq.read_table(root / "embeddings.parquet") if (root / "embeddings.parquet").exists() else None
+    print(f"Bootstrap: loaded metadata for {len(metadata):,} objects", flush=True)
+
+    chunks = None
+    if (root / "chunks.parquet").exists():
+        print("Bootstrap: reading chunks.parquet...", flush=True)
+        chunks = pq.read_table(root / "chunks.parquet")
+        print(f"Bootstrap: loaded {len(chunks):,} chunk rows", flush=True)
+
+    embeddings = None
+    if (root / "embeddings.parquet").exists():
+        print("Bootstrap: reading embeddings.parquet...", flush=True)
+        embeddings = pq.read_table(root / "embeddings.parquet")
+        print(f"Bootstrap: loaded {len(embeddings):,} embedding rows", flush=True)
+
     chunk_indices: dict[str, list[int]] = {}
     embedding_indices: dict[str, list[int]] = {}
     if chunks is not None:
-        for index, druid in enumerate(chunks.column("object_id").to_pylist()):
+        print("Bootstrap: building per-object chunk index...", flush=True)
+        for index, druid in enumerate(
+            tqdm(
+                chunks.column("object_id").to_pylist(),
+                desc="Indexing chunks",
+                unit="row",
+                disable=not show_progress,
+            )
+        ):
             chunk_indices.setdefault(druid, []).append(index)
     if embeddings is not None:
-        for index, druid in enumerate(embeddings.column("object_id").to_pylist()):
+        print("Bootstrap: building per-object embedding index...", flush=True)
+        for index, druid in enumerate(
+            tqdm(
+                embeddings.column("object_id").to_pylist(),
+                desc="Indexing embeddings",
+                unit="row",
+                disable=not show_progress,
+            )
+        ):
             embedding_indices.setdefault(druid, []).append(index)
     stats = {"objects": len(druids), "sources": 0, "downloads": 0, "metadata": 0, "extracts": 0, "chunks": 0, "embeddings": 0, "documents": 0}
 
-    for druid in sorted(druids):
+    print("Bootstrap: validating and adopting per-object artifacts...", flush=True)
+    object_progress = tqdm(
+        sorted(druids),
+        desc="Adopting objects",
+        unit="object",
+        disable=not show_progress,
+    )
+    for druid in object_progress:
+        if show_progress:
+            object_progress.set_postfix_str(druid, refresh=False)
         source = root / "purl_data" / f"{druid}.json"
         if not source.exists():
             continue
@@ -185,4 +263,11 @@ def bootstrap(root: Path, state_dir: Path, store: StateStore, manifest: Path) ->
         output_fp = file_sha256(doc_path)
         store.adopt_stage(druid, "document", input_fp, output_fp, SIGNATURES["document"], doc_path)
         stats["documents"] += 1
+    object_progress.close()
+    print(
+        "Bootstrap: complete — "
+        f"{stats['sources']:,} sources, {stats['downloads']:,} downloads, "
+        f"{stats['embeddings']:,} embedding sets, and {stats['documents']:,} Solr JSON files adopted",
+        flush=True,
+    )
     return stats

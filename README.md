@@ -40,8 +40,15 @@ First adopt the valid products of the older manual pipeline:
 
 ```shell
 uv sync
-uv run sdr-harvest bootstrap --manifest world-readable-document-type-with-pdf.csv
+uv run sdr-harvest bootstrap --manifest manifest.csv
 ```
+
+Bootstrap reports each loading and indexing phase and displays progress bars
+while it validates and adopts objects. Use `--no-progress` when running it from
+a scheduler or redirecting its output to a log file. Its final summary reports
+DRUID counts at each adoption checkpoint; “Solr JSON documents” means validated
+parent/child JSON files, not objects confirmed as published in Solr. Use
+`--json` when the summary will be consumed by another program.
 
 Preview manifest additions, removals, and known failures without changing
 pipeline state:
