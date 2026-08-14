@@ -41,6 +41,10 @@ CREATE TABLE IF NOT EXISTS objects (
   manifest_present INTEGER NOT NULL DEFAULT 1,
   source_fingerprint TEXT,
   source_version TEXT,
+  source_etag TEXT,
+  source_last_modified TEXT,
+  source_checked_at TEXT,
+  source_cache_sha256 TEXT,
   current_artifact_dir TEXT,
   published_fingerprint TEXT,
   created_at TEXT NOT NULL,
@@ -111,6 +115,21 @@ class StateStore:
         self.db = sqlite3.connect(path, timeout=30)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Add source validator fields to databases created by older versions."""
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(objects)")}
+        additions = {
+            "source_etag": "TEXT",
+            "source_last_modified": "TEXT",
+            "source_checked_at": "TEXT",
+            "source_cache_sha256": "TEXT",
+        }
+        for name, column_type in additions.items():
+            if name not in columns:
+                self.db.execute(f"ALTER TABLE objects ADD COLUMN {name} {column_type}")
+        self.db.commit()
 
     def close(self) -> None:
         self.db.close()
@@ -157,13 +176,25 @@ class StateStore:
     def object_row(self, druid: str) -> sqlite3.Row | None:
         return self.db.execute("SELECT * FROM objects WHERE druid=?", (druid,)).fetchone()
 
-    def set_source(self, druid: str, fingerprint: str, version: str | None, files: list[dict]) -> bool:
+    def set_source(
+        self,
+        druid: str,
+        fingerprint: str,
+        version: str | None,
+        files: list[dict],
+        *,
+        etag: str | None = None,
+        last_modified: str | None = None,
+        cache_sha256: str | None = None,
+    ) -> bool:
         old = self.object_row(druid)
         changed = not old or old["source_fingerprint"] != fingerprint
         with self.transaction():
             self.db.execute(
-                "UPDATE objects SET source_fingerprint=?, source_version=?, updated_at=? WHERE druid=?",
-                (fingerprint, version, now(), druid),
+                """UPDATE objects SET source_fingerprint=?, source_version=?, source_etag=?,
+                   source_last_modified=?, source_checked_at=?, source_cache_sha256=?, updated_at=?
+                   WHERE druid=?""",
+                (fingerprint, version, etag, last_modified, now(), cache_sha256, now(), druid),
             )
             self.db.execute("DELETE FROM source_files WHERE druid=?", (druid,))
             for f in files:
@@ -179,6 +210,23 @@ class StateStore:
                     (druid,),
                 )
         return changed
+
+    def touch_source(self, druid: str, *, etag: str | None, last_modified: str | None) -> None:
+        self.db.execute(
+            """UPDATE objects SET source_etag=COALESCE(?,source_etag),
+               source_last_modified=COALESCE(?,source_last_modified),source_checked_at=?,updated_at=?
+               WHERE druid=?""",
+            (etag, last_modified, now(), now(), druid),
+        )
+        self.db.commit()
+
+    def source_files(self, druid: str) -> list[dict]:
+        rows = self.db.execute(
+            """SELECT file_id,filename,size,sha1,md5,version FROM source_files
+               WHERE druid=? ORDER BY filename,file_id""",
+            (druid,),
+        ).fetchall()
+        return [dict(row) for row in rows]
 
     def stage(self, druid: str, stage: str) -> StageRecord | None:
         row = self.db.execute(

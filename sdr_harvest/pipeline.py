@@ -30,7 +30,7 @@ from .state import StateStore
 
 DRUID_RE = re.compile(r"^(?:druid:)?([a-z]{2}\d{3}[a-z]{2}\d{4})$", re.I)
 SIGNATURES = {
-    "cocina": "cocina-v1",
+    "cocina": "cocina-v2-conditional-get",
     "download": "download-v1-sha1",
     "metadata": "traject-sdr-config-v1",
     "extract": "pymupdf4llm-no-ocr-v1",
@@ -244,7 +244,7 @@ class Pipeline:
         return summary
 
     def run_object(self, run_id: int, druid: str) -> None:
-        cocina_path, data, files, source_fp = self._run_cocina(run_id, druid)
+        cocina_path, files, source_fp = self._run_cocina(run_id, druid)
         version_dir = self.settings.state_dir / "versions" / druid / source_fp
         version_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(cocina_path, version_dir / "cocina.json")
@@ -296,13 +296,39 @@ class Pipeline:
                 time.sleep(delay)
         raise AssertionError("unreachable")
 
-    def _run_cocina(self, run_id: int, druid: str) -> tuple[Path, dict, list[dict], str]:
+    def _run_cocina(self, run_id: int, druid: str) -> tuple[Path, list[dict], str]:
         cache_dir = self.settings.state_dir / "sources" / druid
         cache_dir.mkdir(parents=True, exist_ok=True)
         path = cache_dir / "cocina.json"
+        stored = self.store.object_row(druid)
+        cache_is_valid = bool(
+            stored
+            and path.exists()
+            and stored["source_fingerprint"]
+            and stored["source_cache_sha256"]
+            and file_sha256(path) == stored["source_cache_sha256"]
+        )
+        headers: dict[str, str] = {}
+        if cache_is_valid and stored["source_etag"]:
+            headers["If-None-Match"] = stored["source_etag"]
+        elif cache_is_valid and stored["source_last_modified"]:
+            headers["If-Modified-Since"] = stored["source_last_modified"]
+
+        outcome: dict[str, object] = {"not_modified": False}
 
         def fetch() -> Path:
-            response = self.http.get(f"https://purl.stanford.edu/{druid}.json", timeout=60)
+            response = self.http.get(
+                f"https://purl.stanford.edu/{druid}.json", headers=headers, timeout=60
+            )
+            if response.status_code == 304:
+                if not cache_is_valid:
+                    raise StageError("PURL returned 304 but no valid cached COCINA exists")
+                outcome.update(
+                    not_modified=True,
+                    etag=response.headers.get("ETag"),
+                    last_modified=response.headers.get("Last-Modified"),
+                )
+                return path
             if response.status_code == 429 or response.status_code >= 500:
                 raise TransientStageError(f"PURL HTTP {response.status_code}")
             if response.status_code != 200:
@@ -316,21 +342,67 @@ class Pipeline:
             temporary = path.with_suffix(".json.tmp")
             temporary.write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
             temporary.replace(path)
+            files = cocina_pdf_files(data)
+            outcome.update(
+                data=data,
+                files=files,
+                source_fingerprint=source_fingerprint(data, files),
+                etag=response.headers.get("ETag"),
+                last_modified=response.headers.get("Last-Modified"),
+                cache_sha256=file_sha256(path),
+            )
             return path
 
-        # Fetch is intentionally attempted every run so remote changes are observable.
+        # A conditional request keeps remote change detection while avoiding the
+        # response body and JSON parsing for unchanged objects.
         artifact, _ = self._attempt(run_id, druid, "cocina", druid, SIGNATURES["cocina"], fetch)
-        data = json.loads(artifact.read_text(encoding="utf-8"))
-        files = cocina_pdf_files(data)
-        source_fp = source_fingerprint(data, files)
-        self.store.set_source(druid, source_fp, str(data.get("version")), files)
+        source_log = EventLog(
+            self.settings.state_dir / "logs" / str(run_id) / druid / "cocina.jsonl"
+        )
+        if outcome["not_modified"]:
+            source_fp = stored["source_fingerprint"]
+            files = self.store.source_files(druid)
+            self.store.touch_source(
+                druid,
+                etag=outcome.get("etag"),
+                last_modified=outcome.get("last_modified"),
+            )
+            source_log.write(
+                run_id=run_id,
+                druid=druid,
+                stage="cocina",
+                event="source_not_modified",
+                etag=outcome.get("etag") or stored["source_etag"],
+            )
+        else:
+            data = outcome["data"]
+            files = outcome["files"]
+            source_fp = outcome["source_fingerprint"]
+            source_changed = self.store.set_source(
+                druid,
+                source_fp,
+                str(data.get("version")),
+                files,
+                etag=outcome.get("etag"),
+                last_modified=outcome.get("last_modified"),
+                cache_sha256=outcome.get("cache_sha256"),
+            )
+            source_log.write(
+                run_id=run_id,
+                druid=druid,
+                stage="cocina",
+                event="source_fetched",
+                etag=outcome.get("etag"),
+                source_fingerprint=source_fp,
+                source_changed=source_changed,
+            )
         # Replace the fetch-byte fingerprint with the canonical source fingerprint used downstream.
         self.store.db.execute(
             "UPDATE stage_state SET output_fingerprint=? WHERE druid=? AND stage='cocina'",
             (source_fp, druid),
         )
         self.store.db.commit()
-        return artifact, data, files, source_fp
+        return artifact, files, source_fp
 
     def _download(self, druid: str, files: list[dict], version_dir: Path) -> Path:
         output = version_dir / "pdfs"

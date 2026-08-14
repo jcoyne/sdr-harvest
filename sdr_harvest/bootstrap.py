@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import shutil
+from datetime import datetime
+from email.utils import format_datetime
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -60,10 +62,28 @@ def bootstrap(root: Path, state_dir: Path, store: StateStore, manifest: Path) ->
             continue
         files = cocina_pdf_files(data)
         source_fp = source_fingerprint(data, files)
-        store.set_source(druid, source_fp, str(data.get("version")), files)
+        source_cache = state_dir / "sources" / druid / "cocina.json"
+        source_cache.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, source_cache)
+        last_modified = None
+        if data.get("modified"):
+            try:
+                last_modified = format_datetime(
+                    datetime.fromisoformat(data["modified"]), usegmt=True
+                )
+            except (TypeError, ValueError):
+                pass
+        store.set_source(
+            druid,
+            source_fp,
+            str(data.get("version")),
+            files,
+            last_modified=last_modified,
+            cache_sha256=file_sha256(source_cache),
+        )
         version_dir = state_dir / "versions" / druid / source_fp
         version_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, version_dir / "cocina.json")
+        shutil.copy2(source_cache, version_dir / "cocina.json")
         store.adopt_stage(druid, "cocina", druid, source_fp, SIGNATURES["cocina"], version_dir / "cocina.json")
         stats["sources"] += 1
         input_fp = source_fp

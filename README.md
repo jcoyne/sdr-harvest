@@ -5,9 +5,17 @@
 
 The commands below are the supported way to run the complete pipeline on a
 managed host. State, per-attempt JSONL logs, and versioned per-DRUID artifacts
-are stored in `.sdr-harvest/`. A new run fetches COCINA for every manifest
+are stored in `.sdr-harvest/`. A new run checks COCINA for every manifest
 object, but skips later stages whose source fingerprint, input fingerprint,
 stage version, and artifact still match.
+
+After the first successful COCINA fetch, later runs send its stored `ETag` in
+a conditional request. PURL returns `304 Not Modified` for unchanged objects,
+so the pipeline reuses the stored fingerprint and PDF inventory without
+downloading or parsing the JSON again. `Last-Modified` is used when no ETag is
+available. A changed response is downloaded, validated, fingerprinted, and
+used to invalidate downstream stages. A missing or locally modified cache is
+repaired with an unconditional request.
 
 The pipeline currently supports one authoritative manifest at a time. Loading
 a different manifest marks objects found only in the previous manifest as

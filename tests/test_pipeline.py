@@ -1,5 +1,6 @@
 import json
 import hashlib
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -18,6 +19,7 @@ from sdr_harvest.pipeline import (
     merge_manifests,
     parse_manifest,
     source_fingerprint,
+    file_sha256,
 )
 from sdr_harvest.state import STAGES, StateStore
 
@@ -140,6 +142,25 @@ class StateTest(unittest.TestCase):
         self.assertEqual("pending", self.store.stage(DRUID, "chunk").status)
         self.assertEqual("pending", self.store.stage(DRUID, "publish").status)
 
+    def test_existing_database_is_migrated_with_source_validator_columns(self):
+        legacy_path = self.path / "legacy.sqlite3"
+        connection = sqlite3.connect(legacy_path)
+        connection.execute(
+            """CREATE TABLE objects (
+               druid TEXT PRIMARY KEY, manifest_present INTEGER NOT NULL DEFAULT 1,
+               source_fingerprint TEXT, source_version TEXT, current_artifact_dir TEXT,
+               published_fingerprint TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+            )"""
+        )
+        connection.commit()
+        connection.close()
+        migrated = StateStore(legacy_path)
+        columns = {row[1] for row in migrated.db.execute("PRAGMA table_info(objects)")}
+        self.assertTrue(
+            {"source_etag", "source_last_modified", "source_checked_at", "source_cache_sha256"}.issubset(columns)
+        )
+        migrated.close()
+
 
 class RetryTest(unittest.TestCase):
     def test_transient_failure_is_retried_and_logged(self):
@@ -184,7 +205,7 @@ class ResumeTest(unittest.TestCase):
                 store.adopt_stage(DRUID, stage, input_fp, output_fp, SIGNATURES[stage], artifact)
                 input_fp = output_fp
             pipeline = Pipeline(Settings(root, root), store)
-            pipeline._run_cocina = Mock(return_value=(cocina_path, source, files, source_fp))
+            pipeline._run_cocina = Mock(return_value=(cocina_path, files, source_fp))
             for method in ("_download", "_metadata", "_extract", "_chunk", "_embed", "_document", "_publish"):
                 setattr(pipeline, method, Mock(side_effect=AssertionError(f"{method} should be skipped")))
             pipeline.run_object(store.start_run("manifest.csv"), DRUID)
@@ -226,6 +247,87 @@ class OperationalTest(unittest.TestCase):
             self.assertEqual("succeeded", store.stage(DRUID, "document").status)
             self.assertIsNone(store.stage(DRUID, "publish"))
             store.close()
+
+
+class ConditionalCocinaTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.store = StateStore(self.root / "state.sqlite3")
+        self.store.reconcile_manifest({DRUID})
+        self.pipeline = Pipeline(Settings(self.root, self.root), self.store)
+        self.data = cocina()
+        self.files = cocina_pdf_files(self.data)
+        self.source_fp = source_fingerprint(self.data, self.files)
+        self.cache = self.root / "sources" / DRUID / "cocina.json"
+        self.cache.parent.mkdir(parents=True)
+        self.cache.write_text(json.dumps(self.data, sort_keys=True))
+
+    def tearDown(self):
+        self.store.close()
+        self.temp.cleanup()
+
+    def response(self, status, *, data=None, etag=None, last_modified=None):
+        response = Mock(status_code=status)
+        response.headers = {}
+        if etag:
+            response.headers["ETag"] = etag
+        if last_modified:
+            response.headers["Last-Modified"] = last_modified
+        response.json = Mock(side_effect=AssertionError("JSON must not be parsed")) if data is None else Mock(return_value=data)
+        return response
+
+    def seed_validators(self, *, etag='W/"old"', last_modified="Wed, 29 Jul 2026 19:04:31 GMT"):
+        self.store.set_source(
+            DRUID,
+            self.source_fp,
+            "1",
+            self.files,
+            etag=etag,
+            last_modified=last_modified,
+            cache_sha256=file_sha256(self.cache),
+        )
+
+    def test_etag_304_reuses_stored_fingerprint_and_files_without_parsing(self):
+        self.seed_validators()
+        response = self.response(304, etag='W/"old"', last_modified="Wed, 29 Jul 2026 19:04:31 GMT")
+        self.pipeline.http.get = Mock(return_value=response)
+        path, files, source_fp = self.pipeline._run_cocina(self.store.start_run("manifest.csv"), DRUID)
+        self.assertEqual(self.cache, path)
+        self.assertEqual(self.files, files)
+        self.assertEqual(self.source_fp, source_fp)
+        self.assertEqual('W/"old"', self.pipeline.http.get.call_args.kwargs["headers"]["If-None-Match"])
+        response.json.assert_not_called()
+        self.assertIsNotNone(self.store.object_row(DRUID)["source_checked_at"])
+
+    def test_last_modified_is_used_when_etag_is_unavailable(self):
+        self.seed_validators(etag=None)
+        response = self.response(304, last_modified="Wed, 29 Jul 2026 19:04:31 GMT")
+        self.pipeline.http.get = Mock(return_value=response)
+        self.pipeline._run_cocina(self.store.start_run("manifest.csv"), DRUID)
+        headers = self.pipeline.http.get.call_args.kwargs["headers"]
+        self.assertEqual({"If-Modified-Since": "Wed, 29 Jul 2026 19:04:31 GMT"}, headers)
+        response.json.assert_not_called()
+
+    def test_changed_response_is_parsed_and_updates_validators(self):
+        self.seed_validators()
+        changed = cocina(version=2, digest="changed")
+        response = self.response(200, data=changed, etag='W/"new"', last_modified="Thu, 30 Jul 2026 19:04:31 GMT")
+        self.pipeline.http.get = Mock(return_value=response)
+        _, files, source_fp = self.pipeline._run_cocina(self.store.start_run("manifest.csv"), DRUID)
+        self.assertNotEqual(self.source_fp, source_fp)
+        self.assertEqual("changed", files[0]["sha1"])
+        self.assertEqual('W/"new"', self.store.object_row(DRUID)["source_etag"])
+        response.json.assert_called_once()
+
+    def test_corrupt_cache_forces_unconditional_get(self):
+        self.seed_validators()
+        self.cache.write_text("corrupt")
+        response = self.response(200, data=self.data, etag='W/"repaired"')
+        self.pipeline.http.get = Mock(return_value=response)
+        self.pipeline._run_cocina(self.store.start_run("manifest.csv"), DRUID)
+        self.assertEqual({}, self.pipeline.http.get.call_args.kwargs["headers"])
+        self.assertEqual(self.data, json.loads(self.cache.read_text()))
 
     def test_publish_replaces_root_block_and_verifies_receipt(self):
         with tempfile.TemporaryDirectory() as directory:
