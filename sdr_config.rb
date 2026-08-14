@@ -1,20 +1,11 @@
 # frozen_string_literal: true
 
-# require_relative '../../../config/boot'
 require_relative 'traject/macros/cocina'
 require 'debug'
 require 'faraday'
 require_relative 'traject/json_directory_reader'
 
-# require_relative '../macros/extras'
-# require 'digest/md5'
-# require 'active_support'
-
-# Utils.logger = logger
-
-# extend Traject::SolrBetterJsonWriter::IndexerPatch
 extend Traject::Macros::Cocina
-# extend Traject::Macros::Extras
 def log_skip(context)
   writer.put(context)
 end

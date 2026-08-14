@@ -1,14 +1,3 @@
-combined_docs_feinstein.json
-world-readable-document-type-with-pdf.csv
-file_list.csv
-downloads/*
-purl_data/*
-extracted_texts/*
-embeddings.jsonl
-raw_solr_data.jsonl
-*.parquet*
-solr_documents/*
-solr_data/*
 *.log
 .sdr-harvest/
 *.egg-info/
