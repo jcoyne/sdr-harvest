@@ -226,13 +226,12 @@ class MetadataFetcher:
             ):
                 raise TransientStageError(f"Traject dependency failed: {detail}")
             raise StageError(f"Traject failed: {detail}")
-        lines = [line for line in result.stdout.splitlines() if line.strip()]
-        if len(lines) != 1:
-            raise StageError(f"Traject produced {len(lines)} records for {druid}")
         try:
-            metadata = json.loads(lines[0])
+            metadata = json.loads(result.stdout)
         except ValueError as exc:
-            raise StageError(f"Traject output was not JSON: {exc}") from exc
+            raise StageError(
+                f"Traject output was not one valid JSON record: {exc}"
+            ) from exc
         output = version_dir / "metadata.json"
         output.write_text(json.dumps(metadata, sort_keys=True), encoding="utf-8")
         shutil.rmtree(input_dir)

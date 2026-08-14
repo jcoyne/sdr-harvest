@@ -484,6 +484,23 @@ class ConditionalCocinaTest(unittest.TestCase):
         self.assertEqual({}, self.http.get.call_args.kwargs["headers"])
         self.assertEqual(self.data, json.loads(self.cache.read_text()))
 
+    def test_traject_output_with_unicode_line_separator_is_one_json_record(self):
+        version_dir = self.root / "version"
+        version_dir.mkdir()
+        (version_dir / "cocina.json").write_text(json.dumps(self.data))
+        metadata = {"id": [DRUID], "abstract_tesi": ["before\u2028after"]}
+        result = Mock(
+            returncode=0,
+            stdout=json.dumps(metadata, ensure_ascii=False),
+            stderr="",
+        )
+
+        with patch("sdr_harvest.metadata.subprocess.run", return_value=result):
+            output = self.metadata.create_search_metadata(DRUID, version_dir)
+
+        self.assertEqual(metadata, json.loads(output.read_text()))
+        self.assertFalse((version_dir / "traject-input").exists())
+
     def test_publish_replaces_root_block_and_verifies_receipt(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
