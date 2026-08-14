@@ -67,13 +67,16 @@ uv run sdr-harvest status --druid zd240tq9137
 
 Before processing, `run` inspects saved state and reports the estimated number
 of stage executions remaining if the remote COCINA records are unchanged. It
-then displays object progress, elapsed time, estimated time remaining, the
-stages currently active across workers, and success/failure counts. Every
-object still needs a conditional COCINA request, so `cocina` normally equals
-the manifest size; unchanged objects skip current downstream stages. A changed
-COCINA record can add downstream work after the estimate is printed. Use
-`--no-progress` for schedulers or redirected logs; the estimate and final JSON
-summary are still printed.
+then displays pipeline-object progress, elapsed time, estimated time remaining,
+the stages currently active across workers, and success/failure counts. Workers
+process different objects end-to-end, so some objects may already have Solr JSON
+documents while others still need embeddings. A document is only built after
+all chunks for that object have embeddings. Every object still needs a
+conditional COCINA request, so `cocina` normally equals the manifest size;
+unchanged objects skip current downstream stages. A changed COCINA record can
+add downstream work after the estimate is printed. Use `--no-progress` for
+schedulers or redirected logs; the estimate and final JSON summary are still
+printed.
 
 Pressing Ctrl-C once cancels work that has not started, records the run as
 interrupted, and exits immediately with status 130. The next invocation safely

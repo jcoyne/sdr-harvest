@@ -347,7 +347,7 @@ class Pipeline:
                 last_refresh = 0.0
                 with tqdm(
                     total=len(selected),
-                    desc="Building Solr documents",
+                    desc="Processing pipeline objects",
                     unit="object",
                     disable=not show_progress,
                 ) as progress:
