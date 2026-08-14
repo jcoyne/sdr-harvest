@@ -91,12 +91,16 @@ uv run sdr-harvest publish \
   --workers 4
 ```
 
-Publication progress and failures are tracked separately for each target URL.
-Repeating the command skips documents already published at the same source
-fingerprint and retries failed documents; use `--force` to republish successful
-ones. To promote the tested corpus,
-copy `manifest.csv` and `.sdr-harvest/` to the production machine along with
-this application, then run the same command with the production collection:
+Publication state is keyed by the object's DRUID and the exact target URL, and
+records the source fingerprint that was published. Repeating the staging
+command therefore skips an unchanged document that succeeded on staging and
+retries one that failed. A changed source fingerprint needs to be published to
+each target again. Use `--force` to republish documents that are already current
+on the selected target.
+
+To promote the tested corpus, copy `manifest.csv` and the complete
+`.sdr-harvest/` directory to the production machine along with this application,
+then run the same command with the production collection:
 
 ```shell
 uv run sdr-harvest publish \
@@ -105,9 +109,13 @@ uv run sdr-harvest publish \
   --workers 4
 ```
 
-The production target is distinct in pipeline state, so a successful staging
-publication does not cause production publishing to be skipped. Publishing
-does not require the Gemini key or rerun any build stage.
+Because the production URL has its own publication records, staging success
+does not cause production publishing to be skipped. Once production succeeds,
+later production runs skip unchanged documents independently of staging. The
+complete state directory is needed on the production machine because it
+contains both the generated artifacts and the SQLite state used to determine
+which documents are ready and current. Publishing does not require the Gemini
+key or rerun any build stage.
 
 Transient network, rate-limit, and server failures are retried automatically.
 Data and validation failures remain visible until explicitly retried or rebuilt:
