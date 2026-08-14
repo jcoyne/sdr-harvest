@@ -1,6 +1,5 @@
 from contextlib import redirect_stderr, redirect_stdout
 
-import hashlib
 import io
 import json
 import os
@@ -12,10 +11,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import pyarrow as pa
-import pyarrow.parquet as pq
-
-from sdr_harvest.bootstrap import bootstrap, format_bootstrap_summary
 from sdr_harvest.cli import (
     RESOURCE_TRACKER_WARNING_FILTER,
     _configure_child_warning_filters,
@@ -344,50 +339,6 @@ class ResumeTest(unittest.TestCase):
             self.assertEqual(1, estimate["chunk"])
             self.assertEqual(1, estimate["embed"])
             self.assertEqual(1, estimate["document"])
-            store.close()
-
-
-class OperationalTest(unittest.TestCase):
-    def test_adopts_a_structurally_complete_legacy_object_without_publishing(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            payload = b"pdf"
-            source = cocina(digest=hashlib.sha1(payload).hexdigest())
-            manifest = root / "manifest.csv"
-            manifest.write_text(f"identifier\n{DRUID}\n")
-            (root / "purl_data").mkdir()
-            (root / "purl_data" / f"{DRUID}.json").write_text(json.dumps(source))
-            pdf_dir = root / "downloads" / DRUID
-            pdf_dir.mkdir(parents=True)
-            (pdf_dir / "example.pdf").write_bytes(payload)
-            # Match the fixture payload size recorded in COCINA.
-            source["structural"]["contains"][0]["structural"]["contains"][0]["size"] = len(payload)
-            (root / "purl_data" / f"{DRUID}.json").write_text(json.dumps(source))
-            md_dir = root / "extracted_texts" / DRUID
-            md_dir.mkdir(parents=True)
-            (md_dir / "example.md").write_text("text")
-            (root / "raw_solr_data.jsonl").write_text(json.dumps({"id": [DRUID], "title_display_tesi": ["Example"]}) + "\n")
-            rows = [{"object_id": DRUID, "file": "_metadata_", "chunk_index": 0, "text": "metadata"}]
-            pq.write_table(pa.Table.from_pylist(rows), root / "chunks.parquet")
-            pq.write_table(pa.Table.from_pylist([{**rows[0], "embedding": [0.0] * 768}]), root / "embeddings.parquet")
-            (root / "solr_documents").mkdir()
-            (root / "solr_documents" / f"{DRUID}.json").write_text(json.dumps({
-                "id": DRUID, "_childDocuments_": [{"id": "child"}], "child_count_i": 1
-            }))
-            state_dir = root / "state"
-            store = StateStore(state_dir / "state.sqlite3")
-            output = io.StringIO()
-            with redirect_stdout(output):
-                stats = bootstrap(root, state_dir, store, manifest, show_progress=False)
-            self.assertEqual(1, stats["documents"])
-            self.assertIn("Bootstrap: reading chunks.parquet", output.getvalue())
-            self.assertIn("Bootstrap: complete", output.getvalue())
-            self.assertEqual("succeeded", store.stage(DRUID, "document").status)
-            self.assertIsNone(store.stage(DRUID, "publish"))
-            summary = format_bootstrap_summary(stats)
-            self.assertIn("all counts are DRUIDs", summary)
-            self.assertIn("Solr JSON documents", summary)
-            self.assertIn("not necessarily published", summary)
             store.close()
 
 

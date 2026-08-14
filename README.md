@@ -23,8 +23,8 @@ The pipeline currently supports one authoritative manifest at a time. Loading
 a different manifest marks objects found only in the previous manifest as
 absent, although it does not delete their artifacts or Solr documents. If the
 desired population comes from multiple exports, merge them before running
-`bootstrap`, `plan`, or `run` and continue using the merged file for later
-`retry` and `rebuild` commands.
+`plan` or `run` and continue using the merged file for later `retry` and
+`rebuild` commands.
 
 Merge two or more exported manifests into a sorted, deduplicated manifest:
 
@@ -38,19 +38,11 @@ uv run sdr-harvest merge-manifests \
 The command accepts additional input files, writes an `identifier` header, and
 reports the input count, unique output count, and number of duplicates removed.
 
-First adopt the valid products of the older manual pipeline:
+Install the application dependencies:
 
 ```shell
 uv sync
-uv run sdr-harvest bootstrap --manifest manifest.csv
 ```
-
-Bootstrap reports each loading and indexing phase and displays progress bars
-while it validates and adopts objects. Use `--no-progress` when running it from
-a scheduler or redirecting its output to a log file. Its final summary reports
-DRUID counts at each adoption checkpoint; “Solr JSON documents” means validated
-parent/child JSON files, not objects confirmed as published in Solr. Use
-`--json` when the summary will be consumed by another program.
 
 Preview manifest additions, removals, and known failures without changing
 pipeline state:

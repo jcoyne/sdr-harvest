@@ -10,7 +10,6 @@ from pathlib import Path
 
 import requests
 
-from .bootstrap import bootstrap, format_bootstrap_summary
 from .core import Settings, StageError
 from .manifests import merge_manifests, parse_manifest
 from .pipeline import Pipeline
@@ -54,7 +53,7 @@ def parser() -> argparse.ArgumentParser:
     publish.add_argument(
         "--no-progress", action="store_true", help="disable the publication progress bar"
     )
-    for name in ("run", "plan", "bootstrap"):
+    for name in ("run", "plan"):
         command = commands.add_parser(name)
         command.add_argument("--manifest", type=Path, required=True)
         if name == "run":
@@ -62,13 +61,6 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--workers", type=int, default=4)
             command.add_argument(
                 "--no-progress", action="store_true", help="disable progress bars"
-            )
-        elif name == "bootstrap":
-            command.add_argument(
-                "--no-progress", action="store_true", help="disable progress bars"
-            )
-            command.add_argument(
-                "--json", action="store_true", help="print the final summary as JSON"
             )
     status = commands.add_parser("status")
     status.add_argument("--failed", action="store_true")
@@ -209,19 +201,6 @@ def main(argv: list[str] | None = None) -> None:
             print(json.dumps(summary, indent=2, sort_keys=True))
             if summary["failed"]:
                 raise SystemExit(1)
-            return
-        if args.command == "bootstrap":
-            stats = bootstrap(
-                root,
-                args.state_dir,
-                store,
-                args.manifest,
-                show_progress=not args.no_progress,
-            )
-            if args.json:
-                print(json.dumps(stats, indent=2, sort_keys=True))
-            else:
-                print(format_bootstrap_summary(stats))
             return
         if args.command == "remove":
             response = requests.post(f"{args.solr_url}/update?commit=true", json={"delete": {"query": f'_root_:"{args.druid}"'}}, timeout=60)

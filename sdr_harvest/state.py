@@ -365,7 +365,7 @@ class StateStore:
 
     def latest_manifest(self) -> str | None:
         row = self.db.execute(
-            "SELECT manifest FROM runs WHERE manifest != '<bootstrap>' ORDER BY id DESC LIMIT 1"
+            "SELECT manifest FROM runs ORDER BY id DESC LIMIT 1"
         ).fetchone()
         return row[0] if row else None
 
