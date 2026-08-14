@@ -1,7 +1,42 @@
 #!/usr/bin/env python3
 """
 Extract PDFs to Markdown using pymupdf4llm with parallel processing
+
 Usage: python extract_pdfs.py [options]
+
+Options:
+  --input DIR       Input directory containing PDFs. Searched recursively for
+                    *.pdf files. (default: downloads)
+  --output DIR      Output directory for the generated markdown files. The
+                    input directory structure is mirrored here, and extraction
+                    logs are written here as extraction_TIMESTAMP.log.
+                    (default: extracted_texts)
+  --overwrite       Overwrite existing markdown files. By default, PDFs whose
+                    output .md file already exists are skipped.
+  --page-chunks     Split output into per-page chunks (pages are joined with a
+                    '---' separator) instead of one continuous document.
+  --save-metadata   Save extraction metadata (source path, output path, file
+                    size, page_chunks flag, timestamp) as a sibling .json file
+                    for each processed PDF.
+  --quiet           Suppress console output except errors. Logging to the log
+                    file is unaffected.
+  --workers N       Number of parallel worker processes to use. (default: 8)
+  --no-progress     Disable the tqdm progress bar.
+
+Press CTRL-C to stop gracefully; in-flight tasks finish and pending ones are
+cancelled.
+
+Exit codes:
+  0    All PDFs processed without failures.
+  1    One or more PDFs failed, or a fatal error occurred.
+  130  Processing was interrupted with CTRL-C (SIGINT).
+
+Examples:
+  python extract_pdfs.py
+  python extract_pdfs.py --input pdfs --output markdown
+  python extract_pdfs.py --page-chunks --overwrite
+  python extract_pdfs.py --save-metadata --workers 16
+  python extract_pdfs.py --no-progress
 """
 
 import argparse
