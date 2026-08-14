@@ -6,11 +6,13 @@ import fcntl
 import hashlib
 import json
 import os
+import queue
 import random
 import re
 import shutil
 import subprocess
 import time
+from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -190,12 +192,28 @@ class EventLog:
 
 
 class Pipeline:
-    def __init__(self, settings: Settings, store: StateStore):
+    def __init__(
+        self,
+        settings: Settings,
+        store: StateStore,
+        progress_callback: Callable[[str, str, str], None] | None = None,
+    ):
         self.settings = settings
         self.store = store
         self.http = requests.Session()
+        self.progress_callback = progress_callback
 
-    def run(self, manifest: Path, *, only: set[str] | None = None) -> dict:
+    def _progress(self, druid: str, stage: str, event: str) -> None:
+        if self.progress_callback:
+            self.progress_callback(druid, stage, event)
+
+    def run(
+        self,
+        manifest: Path,
+        *,
+        only: set[str] | None = None,
+        show_progress: bool = True,
+    ) -> dict:
         self.settings.state_dir.mkdir(parents=True, exist_ok=True)
         lock_stream = (self.settings.state_dir / "run.lock").open("w")
         try:
@@ -204,24 +222,105 @@ class Pipeline:
             lock_stream.close()
             raise StageError("Another sdr-harvest run is already active") from exc
         try:
-            return self._run_locked(manifest, only=only)
+            return self._run_locked(manifest, only=only, show_progress=show_progress)
         finally:
             fcntl.flock(lock_stream, fcntl.LOCK_UN)
             lock_stream.close()
 
-    def _run_locked(self, manifest: Path, *, only: set[str] | None = None) -> dict:
+    def _estimate_work(
+        self, druids: list[str], *, show_progress: bool = True
+    ) -> dict[str, int]:
+        """Conservatively estimate stage executions if remote sources are unchanged."""
+        counts = {
+            "cocina": len(druids),
+            **{stage: 0 for stage in SIGNATURES if stage != "cocina"},
+        }
+        selected = set(druids)
+        objects = {
+            row["druid"]: row["source_fingerprint"]
+            for row in self.store.db.execute(
+                "SELECT druid,source_fingerprint FROM objects WHERE manifest_present=1"
+            )
+            if row["druid"] in selected
+        }
+        stages = {
+            (row["druid"], row["stage"]): row
+            for row in self.store.db.execute(
+                """SELECT s.druid,s.stage,s.status,s.input_fingerprint,
+                          s.output_fingerprint,s.stage_signature,s.artifact_path
+                   FROM stage_state AS s
+                   JOIN objects AS o ON o.druid=s.druid
+                   WHERE o.manifest_present=1
+                     AND s.stage IN
+                       ('download','metadata','extract','chunk','embed','document')"""
+            )
+            if row["druid"] in selected
+        }
+        for druid in tqdm(
+            druids,
+            desc="Estimating remaining work",
+            unit="object",
+            disable=not show_progress,
+        ):
+            input_fp = objects.get(druid)
+            dirty = not input_fp
+            for stage in ("download", "metadata", "extract", "chunk", "embed", "document"):
+                record = stages.get((druid, stage))
+                current = bool(
+                    not dirty
+                    and record
+                    and record["status"] == "succeeded"
+                    and record["input_fingerprint"] == input_fp
+                    and record["stage_signature"] == SIGNATURES[stage]
+                    and record["artifact_path"]
+                    and Path(record["artifact_path"]).exists()
+                )
+                if current:
+                    input_fp = record["output_fingerprint"] or input_fp
+                else:
+                    counts[stage] += 1
+                    dirty = True
+        return counts
+
+    def _run_locked(
+        self,
+        manifest: Path,
+        *,
+        only: set[str] | None = None,
+        show_progress: bool = True,
+    ) -> dict:
         druids = parse_manifest(manifest)
         new, absent = self.store.reconcile_manifest(druids)
         selected = sorted(druids if only is None else druids & only)
         run_id = self.store.start_run(str(manifest.resolve()))
         summary = {"total": len(selected), "succeeded": 0, "failed": 0, "new": len(new), "absent": len(absent)}
         try:
+            estimate = self._estimate_work(selected, show_progress=show_progress)
+            print(
+                "Estimated work if remote COCINA is unchanged: "
+                + ", ".join(
+                    f"{stage}={count:,}" for stage, count in estimate.items()
+                ),
+                flush=True,
+            )
+            print(
+                "Changed COCINA records may increase downstream work during the run.",
+                flush=True,
+            )
+            progress_events: queue.Queue[tuple[str, str, str]] = queue.Queue()
+
             def process(druid: str) -> tuple[str, Exception | None]:
                 # Each worker owns its SQLite connection and HTTP session. WAL mode
                 # serializes the short state updates while expensive work overlaps.
                 worker_store = StateStore(self.store.path)
                 try:
-                    Pipeline(self.settings, worker_store).run_object(run_id, druid)
+                    Pipeline(
+                        self.settings,
+                        worker_store,
+                        progress_callback=lambda item, stage, event: progress_events.put(
+                            (item, stage, event)
+                        ),
+                    ).run_object(run_id, druid)
                     return druid, None
                 except Exception as exc:
                     return druid, exc
@@ -229,14 +328,52 @@ class Pipeline:
                     worker_store.close()
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.settings.workers) as executor:
-                futures = [executor.submit(process, druid) for druid in selected]
-                for future in concurrent.futures.as_completed(futures):
-                    druid, error = future.result()
-                    if error is None:
-                        summary["succeeded"] += 1
-                    else:
-                        summary["failed"] += 1
-                        print(f"FAIL {druid}: {error}")
+                pending = {executor.submit(process, druid) for druid in selected}
+                active: dict[str, str] = {}
+                last_refresh = 0.0
+                with tqdm(
+                    total=len(selected),
+                    desc="Building Solr documents",
+                    unit="object",
+                    disable=not show_progress,
+                ) as progress:
+                    while pending:
+                        done, pending = concurrent.futures.wait(
+                            pending,
+                            timeout=0.25,
+                            return_when=concurrent.futures.FIRST_COMPLETED,
+                        )
+                        while True:
+                            try:
+                                druid, stage, event = progress_events.get_nowait()
+                            except queue.Empty:
+                                break
+                            if event == "started":
+                                active[druid] = stage
+                            elif active.get(druid) == stage:
+                                active.pop(druid, None)
+                        for future in done:
+                            druid, error = future.result()
+                            active.pop(druid, None)
+                            if error is None:
+                                summary["succeeded"] += 1
+                            else:
+                                summary["failed"] += 1
+                                tqdm.write(f"FAIL {druid}: {error}")
+                            progress.update(1)
+                        active_counts = Counter(active.values())
+                        activity = ",".join(
+                            f"{stage}:{count}" for stage, count in sorted(active_counts.items())
+                        ) or "waiting"
+                        progress.set_postfix_str(
+                            f"remaining={len(pending):,} active={activity} "
+                            f"ok={summary['succeeded']:,} failed={summary['failed']:,}",
+                            refresh=False,
+                        )
+                        now = time.monotonic()
+                        if done or now - last_refresh >= 1:
+                            progress.refresh()
+                            last_refresh = now
             self.store.finish_run(run_id, "failed" if summary["failed"] else "succeeded", summary)
         except BaseException:
             self.store.finish_run(run_id, "interrupted", summary)
@@ -244,7 +381,13 @@ class Pipeline:
         return summary
 
     def run_object(self, run_id: int, druid: str) -> None:
-        cocina_path, files, source_fp = self._run_cocina(run_id, druid)
+        self._progress(druid, "cocina", "started")
+        try:
+            cocina_path, files, source_fp = self._run_cocina(run_id, druid)
+        except Exception:
+            self._progress(druid, "cocina", "failed")
+            raise
+        self._progress(druid, "cocina", "succeeded")
         version_dir = self.settings.state_dir / "versions" / druid / source_fp
         version_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(cocina_path, version_dir / "cocina.json")
@@ -263,8 +406,17 @@ class Pipeline:
             record = self.store.stage(druid, stage)
             if self.store.stage_is_current(druid, stage, input_fp, signature) and record and record.artifact_path and Path(record.artifact_path).exists():
                 input_fp = record.output_fingerprint or input_fp
+                self._progress(druid, stage, "skipped")
                 continue
-            artifact, output_fp = self._attempt(run_id, druid, stage, input_fp, signature, operation)
+            self._progress(druid, stage, "started")
+            try:
+                artifact, output_fp = self._attempt(
+                    run_id, druid, stage, input_fp, signature, operation
+                )
+            except Exception:
+                self._progress(druid, stage, "failed")
+                raise
+            self._progress(druid, stage, "succeeded")
             input_fp = output_fp
         self.store.mark_built(druid, str(version_dir))
 

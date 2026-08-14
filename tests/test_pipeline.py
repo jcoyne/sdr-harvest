@@ -207,13 +207,33 @@ class ResumeTest(unittest.TestCase):
                 output_fp = f"output-{stage}"
                 store.adopt_stage(DRUID, stage, input_fp, output_fp, SIGNATURES[stage], artifact)
                 input_fp = output_fp
-            pipeline = Pipeline(Settings(root, root), store)
+            progress_events = []
+            pipeline = Pipeline(
+                Settings(root, root),
+                store,
+                progress_callback=lambda druid, stage, event: progress_events.append(
+                    (druid, stage, event)
+                ),
+            )
             pipeline._run_cocina = Mock(return_value=(cocina_path, files, source_fp))
             for method in ("_download", "_metadata", "_extract", "_chunk", "_embed", "_document", "_publish"):
                 setattr(pipeline, method, Mock(side_effect=AssertionError(f"{method} should be skipped")))
             pipeline.run_object(store.start_run("manifest.csv"), DRUID)
             self.assertEqual(str(version_dir), store.object_row(DRUID)["current_artifact_dir"])
             pipeline._publish.assert_not_called()
+            self.assertIn((DRUID, "cocina", "started"), progress_events)
+            self.assertIn((DRUID, "cocina", "succeeded"), progress_events)
+            self.assertIn((DRUID, "document", "skipped"), progress_events)
+            estimate = pipeline._estimate_work([DRUID], show_progress=False)
+            self.assertEqual(1, estimate["cocina"])
+            self.assertTrue(all(estimate[stage] == 0 for stage in STAGES[1:]))
+
+            store.invalidate(DRUID, "chunk")
+            estimate = pipeline._estimate_work([DRUID], show_progress=False)
+            self.assertEqual(0, estimate["extract"])
+            self.assertEqual(1, estimate["chunk"])
+            self.assertEqual(1, estimate["embed"])
+            self.assertEqual(1, estimate["document"])
             store.close()
 
 

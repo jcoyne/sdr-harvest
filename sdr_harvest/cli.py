@@ -41,6 +41,9 @@ def parser() -> argparse.ArgumentParser:
         if name == "run":
             command.add_argument("--druid", action="append", default=[])
             command.add_argument("--workers", type=int, default=4)
+            command.add_argument(
+                "--no-progress", action="store_true", help="disable progress bars"
+            )
         elif name == "bootstrap":
             command.add_argument(
                 "--no-progress", action="store_true", help="disable progress bars"
@@ -57,11 +60,17 @@ def parser() -> argparse.ArgumentParser:
     retry.add_argument("--druid", action="append", default=[])
     retry.add_argument("--manifest", type=Path)
     retry.add_argument("--workers", type=int, default=4)
+    retry.add_argument(
+        "--no-progress", action="store_true", help="disable progress bars"
+    )
     rebuild = commands.add_parser("rebuild")
     rebuild.add_argument("--druid", required=True)
     rebuild.add_argument("--from", dest="from_stage", choices=STAGES, default="cocina")
     rebuild.add_argument("--manifest", type=Path)
     rebuild.add_argument("--workers", type=int, default=4)
+    rebuild.add_argument(
+        "--no-progress", action="store_true", help="disable progress bars"
+    )
     remove = commands.add_parser("remove")
     remove.add_argument("--druid", required=True)
     remove.add_argument("--from-solr", action="store_true", required=True)
@@ -110,7 +119,11 @@ def main(argv: list[str] | None = None) -> None:
             print(json.dumps({"manifest_objects": len(wanted), "new": sorted(wanted - known), "absent": sorted(known - wanted), "known_failures": sorted(wanted & failed)}, indent=2))
             return
         if args.command == "run":
-            summary = _pipeline(root, args, store).run(args.manifest, only=set(args.druid) or None)
+            summary = _pipeline(root, args, store).run(
+                args.manifest,
+                only=set(args.druid) or None,
+                show_progress=not args.no_progress,
+            )
             print(json.dumps(summary, indent=2, sort_keys=True))
             if summary["failed"]:
                 raise SystemExit(1)
@@ -139,7 +152,11 @@ def main(argv: list[str] | None = None) -> None:
                 selected |= store.failed_druids()
             if not selected:
                 raise SystemExit("Specify --failed or at least one --druid")
-            summary = _pipeline(root, args, store).run(_manifest(args, store), only=selected)
+            summary = _pipeline(root, args, store).run(
+                _manifest(args, store),
+                only=selected,
+                show_progress=not args.no_progress,
+            )
             print(json.dumps(summary, indent=2, sort_keys=True))
             if summary["failed"]:
                 raise SystemExit(1)
@@ -148,7 +165,11 @@ def main(argv: list[str] | None = None) -> None:
             if not store.object_row(args.druid):
                 raise SystemExit(f"Unknown DRUID: {args.druid}")
             store.invalidate(args.druid, args.from_stage)
-            summary = _pipeline(root, args, store).run(_manifest(args, store), only={args.druid})
+            summary = _pipeline(root, args, store).run(
+                _manifest(args, store),
+                only={args.druid},
+                show_progress=not args.no_progress,
+            )
             print(json.dumps(summary, indent=2, sort_keys=True))
             if summary["failed"]:
                 raise SystemExit(1)

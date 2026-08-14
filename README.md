@@ -65,6 +65,16 @@ uv run sdr-harvest status --failed
 uv run sdr-harvest status --druid zd240tq9137
 ```
 
+Before processing, `run` inspects saved state and reports the estimated number
+of stage executions remaining if the remote COCINA records are unchanged. It
+then displays object progress, elapsed time, estimated time remaining, the
+stages currently active across workers, and success/failure counts. Every
+object still needs a conditional COCINA request, so `cocina` normally equals
+the manifest size; unchanged objects skip current downstream stages. A changed
+COCINA record can add downstream work after the estimate is printed. Use
+`--no-progress` for schedulers or redirected logs; the estimate and final JSON
+summary are still printed.
+
 `run` builds and validates the per-object Solr JSON files but never contacts
 Solr. Publishing is a separate corpus-level operation with an explicit target:
 
