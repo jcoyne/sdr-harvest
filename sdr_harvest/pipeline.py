@@ -25,7 +25,7 @@ from .download import FileDownloader
 from .embed import Embedder
 from .extract_text import TextExtractor
 from .manifests import parse_manifest
-from .metadata import MetadataFetcher
+from .metadata import MetadataFetcher, cocina_checked_recently
 from .state import StateStore
 
 
@@ -75,14 +75,16 @@ class Pipeline:
     ) -> dict[str, int]:
         """Conservatively estimate stage executions if sources are unchanged."""
         counts = {
-            "cocina": len(druids),
+            "cocina": 0,
             **{stage: 0 for stage in SIGNATURES if stage != "cocina"},
         }
         selected = set(druids)
         objects = {
-            row["druid"]: row["source_fingerprint"]
+            row["druid"]: row
             for row in self.store.db.execute(
-                "SELECT druid,source_fingerprint FROM objects WHERE manifest_present=1"
+                """SELECT druid,source_fingerprint,source_checked_at,
+                          source_cache_sha256
+                   FROM objects WHERE manifest_present=1"""
             )
             if row["druid"] in selected
         }
@@ -106,7 +108,16 @@ class Pipeline:
             unit="object",
             disable=not show_progress,
         ):
-            input_fp = objects.get(druid)
+            obj = objects.get(druid)
+            input_fp = obj["source_fingerprint"] if obj else None
+            cache_path = self.settings.state_dir / "sources" / druid / "cocina.json"
+            if (
+                not obj
+                or not obj["source_cache_sha256"]
+                or not cache_path.exists()
+                or not cocina_checked_recently(obj["source_checked_at"])
+            ):
+                counts["cocina"] += 1
             dirty = not input_fp
             for stage in downstream:
                 record = stages.get((druid, stage))

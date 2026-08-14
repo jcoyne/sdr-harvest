@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import requests
@@ -19,6 +20,22 @@ from .core import (
 )
 from .manifests import cocina_pdf_files, source_fingerprint
 from .state import StateStore
+
+
+COCINA_MAX_AGE = timedelta(days=7)
+
+
+def cocina_checked_recently(checked_at: str | None) -> bool:
+    """Return whether a real PURL check occurred within the freshness window."""
+    if not checked_at:
+        return False
+    try:
+        checked = datetime.fromisoformat(checked_at)
+    except ValueError:
+        return False
+    if checked.tzinfo is None:
+        checked = checked.replace(tzinfo=UTC)
+    return checked >= datetime.now(UTC) - COCINA_MAX_AGE
 
 
 class MetadataFetcher:
@@ -50,6 +67,30 @@ class MetadataFetcher:
             and stored["source_cache_sha256"]
             and file_sha256(path) == stored["source_cache_sha256"]
         )
+        source_log = EventLog(
+            self.settings.state_dir / "logs" / str(run_id) / druid / "cocina.jsonl"
+        )
+        if cache_is_valid and cocina_checked_recently(stored["source_checked_at"]):
+            source_fp = stored["source_fingerprint"]
+            files = self.store.source_files(druid)
+            self.store.adopt_stage(
+                druid,
+                "cocina",
+                druid,
+                source_fp,
+                SIGNATURES["cocina"],
+                path,
+            )
+            source_log.write(
+                run_id=run_id,
+                druid=druid,
+                stage="cocina",
+                event="source_refresh_skipped",
+                source_checked_at=stored["source_checked_at"],
+                max_age_days=COCINA_MAX_AGE.days,
+            )
+            return path, files, source_fp
+
         headers: dict[str, str] = {}
         if cache_is_valid and stored["source_etag"]:
             headers["If-None-Match"] = stored["source_etag"]
@@ -108,9 +149,6 @@ class MetadataFetcher:
             druid,
             SIGNATURES["cocina"],
             fetch,
-        )
-        source_log = EventLog(
-            self.settings.state_dir / "logs" / str(run_id) / druid / "cocina.jsonl"
         )
         if outcome["not_modified"]:
             source_fp = stored["source_fingerprint"]

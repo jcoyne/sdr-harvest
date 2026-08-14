@@ -7,6 +7,7 @@ import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -374,7 +375,13 @@ class ConditionalCocinaTest(unittest.TestCase):
         response.json = Mock(side_effect=AssertionError("JSON must not be parsed")) if data is None else Mock(return_value=data)
         return response
 
-    def seed_validators(self, *, etag='W/"old"', last_modified="Wed, 29 Jul 2026 19:04:31 GMT"):
+    def seed_validators(
+        self,
+        *,
+        etag='W/"old"',
+        last_modified="Wed, 29 Jul 2026 19:04:31 GMT",
+        fresh=False,
+    ):
         self.store.set_source(
             DRUID,
             self.source_fp,
@@ -384,6 +391,39 @@ class ConditionalCocinaTest(unittest.TestCase):
             last_modified=last_modified,
             cache_sha256=file_sha256(self.cache),
         )
+        checked_at = datetime.now(UTC) - timedelta(days=1 if fresh else 8)
+        self.store.db.execute(
+            "UPDATE objects SET source_checked_at=? WHERE druid=?",
+            (checked_at.isoformat(), DRUID),
+        )
+        self.store.db.commit()
+
+    def test_recent_valid_cache_skips_purl_without_sliding_freshness_window(self):
+        self.seed_validators(fresh=True)
+        checked_at = self.store.object_row(DRUID)["source_checked_at"]
+        self.http.get = Mock(side_effect=AssertionError("PURL must not be called"))
+
+        path, files, source_fp = self.metadata.fetch_cocina(
+            self.store.start_run("manifest.csv"), DRUID
+        )
+
+        self.assertEqual(self.cache, path)
+        self.assertEqual(self.files, files)
+        self.assertEqual(self.source_fp, source_fp)
+        self.http.get.assert_not_called()
+        self.assertEqual(
+            checked_at, self.store.object_row(DRUID)["source_checked_at"]
+        )
+        self.assertEqual(
+            0,
+            self.store.db.execute(
+                "SELECT count(*) FROM attempts WHERE stage='cocina'"
+            ).fetchone()[0],
+        )
+        estimate = Pipeline(
+            Settings(self.root, self.root), self.store
+        )._estimate_work([DRUID], show_progress=False)
+        self.assertEqual(0, estimate["cocina"])
 
     def test_etag_304_reuses_stored_fingerprint_and_files_without_parsing(self):
         self.seed_validators()
@@ -422,7 +462,7 @@ class ConditionalCocinaTest(unittest.TestCase):
         response.json.assert_called_once()
 
     def test_corrupt_cache_forces_unconditional_get(self):
-        self.seed_validators()
+        self.seed_validators(fresh=True)
         self.cache.write_text("corrupt")
         response = self.response(200, data=self.data, etag='W/"repaired"')
         self.http.get = Mock(return_value=response)

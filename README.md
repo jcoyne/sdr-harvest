@@ -9,13 +9,15 @@ are stored in `.sdr-harvest/`. A new run checks COCINA for every manifest
 object, but skips later stages whose source fingerprint, input fingerprint,
 stage version, and artifact still match.
 
-After the first successful COCINA fetch, later runs send its stored `ETag` in
-a conditional request. PURL returns `304 Not Modified` for unchanged objects,
-so the pipeline reuses the stored fingerprint and PDF inventory without
-downloading or parsing the JSON again. `Last-Modified` is used when no ETag is
-available. A changed response is downloaded, validated, fingerprinted, and
-used to invalidate downstream stages. A missing or locally modified cache is
-repaired with an unconditional request.
+For seven days after a successful COCINA check, later runs reuse the checksummed
+cache, stored fingerprint, and PDF inventory without contacting PURL. Once the
+cache is stale, the pipeline sends its stored `ETag` in a conditional request.
+PURL returns `304 Not Modified` for unchanged objects, avoiding another body
+download or JSON parse, and the seven-day window starts again. `Last-Modified`
+is used when no ETag is available. A changed response is downloaded, validated,
+fingerprinted, and used to invalidate downstream stages. A missing or locally
+modified cache is repaired immediately with an unconditional request regardless
+of its age.
 
 The pipeline currently supports one authoritative manifest at a time. Loading
 a different manifest marks objects found only in the previous manifest as
@@ -71,12 +73,13 @@ then displays pipeline-object progress, elapsed time, estimated time remaining,
 the stages currently active across workers, and success/failure counts. Workers
 process different objects end-to-end, so some objects may already have Solr JSON
 documents while others still need embeddings. A document is only built after
-all chunks for that object have embeddings. Every object still needs a
-conditional COCINA request, so `cocina` normally equals the manifest size;
-unchanged objects skip current downstream stages. A changed COCINA record can
-add downstream work after the estimate is printed. Use `--no-progress` for
-schedulers or redirected logs; the estimate and final JSON summary are still
-printed.
+all chunks for that object have embeddings. An object needs a conditional
+COCINA request only when its cache is at least seven days old, so the `cocina`
+estimate counts stale or missing caches rather than the full manifest.
+Unchanged objects skip current downstream stages. A changed COCINA record can
+add downstream work after the estimate is printed. Use
+`--no-progress` for schedulers or redirected logs; the estimate and final JSON
+summary are still printed.
 
 Pressing Ctrl-C once cancels work that has not started, records the run as
 interrupted, and exits immediately with status 130. The next invocation safely
