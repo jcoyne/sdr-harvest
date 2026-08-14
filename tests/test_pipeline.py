@@ -279,6 +279,49 @@ class CliErrorTest(unittest.TestCase):
 
 
 class ResumeTest(unittest.TestCase):
+    def test_fully_current_objects_are_not_queued_for_processing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = StateStore(root / "state.sqlite3")
+            store.reconcile_manifest({DRUID})
+            source = cocina()
+            files = cocina_pdf_files(source)
+            source_fp = source_fingerprint(source, files)
+            cache = root / "sources" / DRUID / "cocina.json"
+            cache.parent.mkdir(parents=True)
+            cache.write_text(json.dumps(source, sort_keys=True))
+            store.set_source(
+                DRUID,
+                source_fp,
+                "1",
+                files,
+                cache_sha256=file_sha256(cache),
+            )
+            input_fp = source_fp
+            version_dir = root / "versions" / DRUID / source_fp
+            version_dir.mkdir(parents=True)
+            for stage in STAGES[1:]:
+                artifact = version_dir / stage
+                artifact.write_text(stage)
+                output_fp = f"output-{stage}"
+                store.adopt_stage(
+                    DRUID,
+                    stage,
+                    input_fp,
+                    output_fp,
+                    SIGNATURES[stage],
+                    artifact,
+                )
+                input_fp = output_fp
+
+            estimate, pending = Pipeline(
+                Settings(root, root), store
+            )._plan_work([DRUID], show_progress=False)
+
+            self.assertEqual([], pending)
+            self.assertTrue(all(count == 0 for count in estimate.values()))
+            store.close()
+
     def test_current_artifacts_are_skipped(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

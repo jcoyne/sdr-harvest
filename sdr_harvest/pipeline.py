@@ -74,10 +74,18 @@ class Pipeline:
         self, druids: list[str], *, show_progress: bool = True
     ) -> dict[str, int]:
         """Conservatively estimate stage executions if sources are unchanged."""
+        counts, _ = self._plan_work(druids, show_progress=show_progress)
+        return counts
+
+    def _plan_work(
+        self, druids: list[str], *, show_progress: bool = True
+    ) -> tuple[dict[str, int], list[str]]:
+        """Estimate stage work and select objects that need to enter the pool."""
         counts = {
             "cocina": 0,
             **{stage: 0 for stage in SIGNATURES if stage != "cocina"},
         }
+        pending: list[str] = []
         selected = set(druids)
         objects = {
             row["druid"]: row
@@ -111,12 +119,14 @@ class Pipeline:
             obj = objects.get(druid)
             input_fp = obj["source_fingerprint"] if obj else None
             cache_path = self.settings.state_dir / "sources" / druid / "cocina.json"
-            if (
+            needs_cocina = (
                 not obj
                 or not obj["source_cache_sha256"]
                 or not cache_path.exists()
                 or not cocina_checked_recently(obj["source_checked_at"])
-            ):
+            )
+            needs_work = needs_cocina
+            if needs_cocina:
                 counts["cocina"] += 1
             dirty = not input_fp
             for stage in downstream:
@@ -135,7 +145,10 @@ class Pipeline:
                 else:
                     counts[stage] += 1
                     dirty = True
-        return counts
+                    needs_work = True
+            if needs_work:
+                pending.append(druid)
+        return counts, pending
 
     def _run_locked(
         self,
@@ -156,7 +169,12 @@ class Pipeline:
             "absent": len(absent),
         }
         try:
-            estimate = self._estimate_work(selected, show_progress=show_progress)
+            estimate, pending_druids = self._plan_work(
+                selected, show_progress=show_progress
+            )
+            already_current = len(selected) - len(pending_druids)
+            summary["already_current"] = already_current
+            summary["succeeded"] = already_current
             print(
                 "Estimated work if remote COCINA is unchanged: "
                 + ", ".join(
@@ -187,11 +205,14 @@ class Pipeline:
                     worker_store.close()
 
             with interruptible_thread_pool(self.settings.workers) as executor:
-                pending = {executor.submit(process, druid) for druid in selected}
+                pending = {
+                    executor.submit(process, druid) for druid in pending_druids
+                }
                 active: dict[str, str] = {}
                 last_refresh = 0.0
                 with tqdm(
                     total=len(selected),
+                    initial=already_current,
                     desc="Processing pipeline objects",
                     unit="object",
                     disable=not show_progress,

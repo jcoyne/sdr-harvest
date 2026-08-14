@@ -68,7 +68,9 @@ documents while others still need embeddings. A document is only built after
 all chunks for that object have embeddings. An object needs a conditional
 COCINA request only when its cache is at least seven days old, so the `cocina`
 estimate counts stale or missing caches rather than the full manifest.
-Unchanged objects skip current downstream stages. A changed COCINA record can
+The processing bar starts with fully current objects already completed, and
+those objects are not submitted to the worker pool. Unchanged objects that need
+a COCINA freshness check skip current downstream stages. A changed COCINA record can
 add downstream work after the estimate is printed. Use
 `--no-progress` for schedulers or redirected logs; the estimate and final JSON
 summary are still printed.
