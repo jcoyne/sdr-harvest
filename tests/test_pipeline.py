@@ -15,18 +15,23 @@ import pyarrow.parquet as pq
 
 from sdr_harvest.bootstrap import bootstrap, format_bootstrap_summary
 from sdr_harvest.cli import main
-from sdr_harvest.pipeline import (
+from sdr_harvest.attempts import StageAttempts
+from sdr_harvest.core import (
     SIGNATURES,
-    Pipeline,
     Settings,
     TransientStageError,
+    file_sha256,
+    interruptible_thread_pool,
+)
+from sdr_harvest.manifests import (
     cocina_pdf_files,
     merge_manifests,
     parse_manifest,
     source_fingerprint,
-    file_sha256,
-    interruptible_thread_pool,
 )
+from sdr_harvest.metadata import MetadataFetcher
+from sdr_harvest.pipeline import Pipeline
+from sdr_harvest.publisher import CorpusPublisher, SolrPublisher
 from sdr_harvest.state import STAGES, StateStore
 
 
@@ -175,12 +180,14 @@ class RetryTest(unittest.TestCase):
             store = StateStore(root / "state.sqlite3")
             store.reconcile_manifest({DRUID})
             run_id = store.start_run("manifest.csv")
-            pipeline = Pipeline(Settings(root, root, max_retries=2), store)
+            attempts = StageAttempts(Settings(root, root, max_retries=2), store)
             artifact = root / "result"
             operation = Mock(side_effect=[TransientStageError("later"), artifact])
             artifact.write_text("ok")
-            with patch("sdr_harvest.pipeline.time.sleep"):
-                result, _ = pipeline._attempt(run_id, DRUID, "download", "input", "signature", operation)
+            with patch("sdr_harvest.attempts.time.sleep"):
+                result, _ = attempts.run(
+                    run_id, DRUID, "download", "input", "signature", operation
+                )
             self.assertEqual(artifact, result)
             self.assertEqual(2, operation.call_count)
             self.assertEqual("succeeded", store.stage(DRUID, "download").status)
@@ -256,12 +263,25 @@ class ResumeTest(unittest.TestCase):
                     (druid, stage, event)
                 ),
             )
-            pipeline._run_cocina = Mock(return_value=(cocina_path, files, source_fp))
-            for method in ("_download", "_metadata", "_extract", "_chunk", "_embed", "_document", "_publish"):
-                setattr(pipeline, method, Mock(side_effect=AssertionError(f"{method} should be skipped")))
-            pipeline.run_object(store.start_run("manifest.csv"), DRUID)
+            with (
+                patch("sdr_harvest.pipeline.StageAttempts") as attempts_class,
+                patch("sdr_harvest.pipeline.MetadataFetcher") as metadata_class,
+                patch("sdr_harvest.pipeline.FileDownloader"),
+                patch("sdr_harvest.pipeline.TextExtractor"),
+                patch("sdr_harvest.pipeline.Chunker"),
+                patch("sdr_harvest.pipeline.Embedder"),
+                patch("sdr_harvest.pipeline.SolrDocumentBuilder"),
+            ):
+                attempts = attempts_class.return_value
+                metadata = metadata_class.return_value
+                metadata.fetch_cocina.return_value = (
+                    cocina_path,
+                    files,
+                    source_fp,
+                )
+                pipeline.run_object(store.start_run("manifest.csv"), DRUID)
             self.assertEqual(str(version_dir), store.object_row(DRUID)["current_artifact_dir"])
-            pipeline._publish.assert_not_called()
+            attempts.run.assert_not_called()
             self.assertIn((DRUID, "cocina", "started"), progress_events)
             self.assertIn((DRUID, "cocina", "succeeded"), progress_events)
             self.assertIn((DRUID, "document", "skipped"), progress_events)
@@ -328,7 +348,11 @@ class ConditionalCocinaTest(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.store = StateStore(self.root / "state.sqlite3")
         self.store.reconcile_manifest({DRUID})
-        self.pipeline = Pipeline(Settings(self.root, self.root), self.store)
+        self.http = Mock()
+        settings = Settings(self.root, self.root)
+        self.metadata = MetadataFetcher(
+            settings, self.store, self.http, StageAttempts(settings, self.store)
+        )
         self.data = cocina()
         self.files = cocina_pdf_files(self.data)
         self.source_fp = source_fingerprint(self.data, self.files)
@@ -364,21 +388,23 @@ class ConditionalCocinaTest(unittest.TestCase):
     def test_etag_304_reuses_stored_fingerprint_and_files_without_parsing(self):
         self.seed_validators()
         response = self.response(304, etag='W/"old"', last_modified="Wed, 29 Jul 2026 19:04:31 GMT")
-        self.pipeline.http.get = Mock(return_value=response)
-        path, files, source_fp = self.pipeline._run_cocina(self.store.start_run("manifest.csv"), DRUID)
+        self.http.get = Mock(return_value=response)
+        path, files, source_fp = self.metadata.fetch_cocina(
+            self.store.start_run("manifest.csv"), DRUID
+        )
         self.assertEqual(self.cache, path)
         self.assertEqual(self.files, files)
         self.assertEqual(self.source_fp, source_fp)
-        self.assertEqual('W/"old"', self.pipeline.http.get.call_args.kwargs["headers"]["If-None-Match"])
+        self.assertEqual('W/"old"', self.http.get.call_args.kwargs["headers"]["If-None-Match"])
         response.json.assert_not_called()
         self.assertIsNotNone(self.store.object_row(DRUID)["source_checked_at"])
 
     def test_last_modified_is_used_when_etag_is_unavailable(self):
         self.seed_validators(etag=None)
         response = self.response(304, last_modified="Wed, 29 Jul 2026 19:04:31 GMT")
-        self.pipeline.http.get = Mock(return_value=response)
-        self.pipeline._run_cocina(self.store.start_run("manifest.csv"), DRUID)
-        headers = self.pipeline.http.get.call_args.kwargs["headers"]
+        self.http.get = Mock(return_value=response)
+        self.metadata.fetch_cocina(self.store.start_run("manifest.csv"), DRUID)
+        headers = self.http.get.call_args.kwargs["headers"]
         self.assertEqual({"If-Modified-Since": "Wed, 29 Jul 2026 19:04:31 GMT"}, headers)
         response.json.assert_not_called()
 
@@ -386,8 +412,10 @@ class ConditionalCocinaTest(unittest.TestCase):
         self.seed_validators()
         changed = cocina(version=2, digest="changed")
         response = self.response(200, data=changed, etag='W/"new"', last_modified="Thu, 30 Jul 2026 19:04:31 GMT")
-        self.pipeline.http.get = Mock(return_value=response)
-        _, files, source_fp = self.pipeline._run_cocina(self.store.start_run("manifest.csv"), DRUID)
+        self.http.get = Mock(return_value=response)
+        _, files, source_fp = self.metadata.fetch_cocina(
+            self.store.start_run("manifest.csv"), DRUID
+        )
         self.assertNotEqual(self.source_fp, source_fp)
         self.assertEqual("changed", files[0]["sha1"])
         self.assertEqual('W/"new"', self.store.object_row(DRUID)["source_etag"])
@@ -397,9 +425,9 @@ class ConditionalCocinaTest(unittest.TestCase):
         self.seed_validators()
         self.cache.write_text("corrupt")
         response = self.response(200, data=self.data, etag='W/"repaired"')
-        self.pipeline.http.get = Mock(return_value=response)
-        self.pipeline._run_cocina(self.store.start_run("manifest.csv"), DRUID)
-        self.assertEqual({}, self.pipeline.http.get.call_args.kwargs["headers"])
+        self.http.get = Mock(return_value=response)
+        self.metadata.fetch_cocina(self.store.start_run("manifest.csv"), DRUID)
+        self.assertEqual({}, self.http.get.call_args.kwargs["headers"])
         self.assertEqual(self.data, json.loads(self.cache.read_text()))
 
     def test_publish_replaces_root_block_and_verifies_receipt(self):
@@ -409,22 +437,21 @@ class ConditionalCocinaTest(unittest.TestCase):
             version_dir.mkdir()
             document = {"id": DRUID, "child_count_i": 1, "_childDocuments_": [{"id": "child"}]}
             (version_dir / "solr.json").write_text(json.dumps(document))
-            store = StateStore(root / "state.sqlite3")
-            pipeline = Pipeline(Settings(root, root), store)
+            http = Mock()
+            publisher = SolrPublisher(Settings(root, root), http)
             update = Mock(status_code=200)
             update.json.return_value = {"responseHeader": {"status": 0}}
             verify = Mock(status_code=200)
             verify.json.return_value = {"response": {"docs": [{
                 "id": DRUID, "pipeline_fingerprint_ss": "source", "child_count_i": 1
             }]}}
-            pipeline.http.post = Mock(return_value=update)
-            pipeline.http.get = Mock(return_value=verify)
-            receipt = pipeline._publish(DRUID, "source", version_dir)
-            payload = pipeline.http.post.call_args.kwargs["json"]
+            http.post = Mock(return_value=update)
+            http.get = Mock(return_value=verify)
+            receipt = publisher.publish_document(DRUID, "source", version_dir)
+            payload = http.post.call_args.kwargs["json"]
             self.assertEqual(["delete", "add", "commit"], list(payload))
             self.assertEqual(f'_root_:"{DRUID}"', payload["delete"]["query"])
             self.assertTrue(receipt.exists())
-            store.close()
 
     def test_corpus_publication_is_tracked_independently_per_target(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -450,16 +477,32 @@ class ConditionalCocinaTest(unittest.TestCase):
 
             receipt = version_dir / "receipt.json"
             receipt.write_text("{}")
-            with patch.object(Pipeline, "_publish", return_value=receipt) as publish:
-                staging = Pipeline(
-                    Settings(root, root, solr_url="https://staging.example/solr/core"), store
+            with patch.object(
+                SolrPublisher, "publish_document", return_value=receipt
+            ) as publish:
+                staging_settings = Settings(
+                    root, root, solr_url="https://staging.example/solr/core"
                 )
-                first = staging.publish(manifest, show_progress=False)
-                second = staging.publish(manifest, show_progress=False)
-                production = Pipeline(
-                    Settings(root, root, solr_url="https://production.example/solr/core"), store
+                staging = CorpusPublisher(staging_settings, store)
+                staging_document = SolrPublisher(
+                    staging_settings, Mock()
+                ).publish_document
+                first = staging.publish(
+                    manifest, staging_document, show_progress=False
                 )
-                third = production.publish(manifest, show_progress=False)
+                second = staging.publish(
+                    manifest, staging_document, show_progress=False
+                )
+                production_settings = Settings(
+                    root, root, solr_url="https://production.example/solr/core"
+                )
+                production = CorpusPublisher(production_settings, store)
+                production_document = SolrPublisher(
+                    production_settings, Mock()
+                ).publish_document
+                third = production.publish(
+                    manifest, production_document, show_progress=False
+                )
 
             self.assertEqual(1, first["published"])
             self.assertEqual(1, second["skipped"])
@@ -472,10 +515,17 @@ class ConditionalCocinaTest(unittest.TestCase):
             root = Path(directory)
             store = StateStore(root / "state.sqlite3")
             store.reconcile_manifest({DRUID})
-            pipeline = Pipeline(Settings(root, root, max_retries=5), store)
+            attempts = StageAttempts(Settings(root, root, max_retries=5), store)
             operation = Mock(side_effect=ValueError("bad data"))
             with self.assertRaises(ValueError):
-                pipeline._attempt(store.start_run("manifest.csv"), DRUID, "download", "input", "signature", operation)
+                attempts.run(
+                    store.start_run("manifest.csv"),
+                    DRUID,
+                    "download",
+                    "input",
+                    "signature",
+                    operation,
+                )
             self.assertEqual(1, operation.call_count)
             self.assertEqual("failed", store.stage(DRUID, "download").status)
             store.close()

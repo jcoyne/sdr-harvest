@@ -9,7 +9,8 @@ from pathlib import Path
 import pyarrow.parquet as pq
 from tqdm import tqdm
 
-from .pipeline import SIGNATURES, cocina_pdf_files, file_digest, file_sha256, fingerprint, parse_manifest, source_fingerprint
+from .core import SIGNATURES, file_digest, file_sha256, fingerprint
+from .manifests import cocina_pdf_files, parse_manifest, source_fingerprint
 from .state import StateStore
 
 

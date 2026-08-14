@@ -11,7 +11,10 @@ from pathlib import Path
 import requests
 
 from .bootstrap import bootstrap, format_bootstrap_summary
-from .pipeline import Pipeline, Settings, merge_manifests, parse_manifest
+from .core import Settings
+from .manifests import merge_manifests, parse_manifest
+from .pipeline import Pipeline
+from .publisher import CorpusPublisher, SolrPublisher
 from .state import STAGES, StateStore
 
 
@@ -91,14 +94,17 @@ def _manifest(args, store: StateStore) -> Path:
     return path
 
 
-def _pipeline(root: Path, args, store: StateStore) -> Pipeline:
-    settings = Settings(
+def _settings(root: Path, args) -> Settings:
+    return Settings(
         root=root,
         state_dir=args.state_dir.resolve(),
         solr_url=getattr(args, "target", None) or args.solr_url,
         workers=max(1, getattr(args, "workers", 4)),
     )
-    return Pipeline(settings, store)
+
+
+def _pipeline(root: Path, args, store: StateStore) -> Pipeline:
+    return Pipeline(_settings(root, args), store)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -131,8 +137,19 @@ def main(argv: list[str] | None = None) -> None:
                 raise SystemExit(1)
             return
         if args.command == "publish":
-            summary = _pipeline(root, args, store).publish(
+            settings = _settings(root, args)
+
+            def publish_document(
+                druid: str, source_fp: str, version_dir: Path
+            ) -> Path:
+                with requests.Session() as http:
+                    return SolrPublisher(settings, http).publish_document(
+                        druid, source_fp, version_dir
+                    )
+
+            summary = CorpusPublisher(settings, store).publish(
                 args.manifest,
+                publish_document,
                 force=args.force,
                 show_progress=not args.no_progress,
             )
