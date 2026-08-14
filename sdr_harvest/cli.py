@@ -11,7 +11,7 @@ from pathlib import Path
 import requests
 
 from .bootstrap import bootstrap, format_bootstrap_summary
-from .core import Settings
+from .core import Settings, StageError
 from .manifests import merge_manifests, parse_manifest
 from .pipeline import Pipeline
 from .publisher import CorpusPublisher, SolrPublisher
@@ -243,6 +243,9 @@ def main(argv: list[str] | None = None) -> None:
                         shutil.rmtree(version)
                         removed += 1
             print(f"Removed {removed} old non-current artifact directories.")
+    except StageError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from None
     except KeyboardInterrupt:
         # ThreadPoolExecutor registers an interpreter-exit hook that otherwise
         # waits for active workers. State has already been marked interrupted by

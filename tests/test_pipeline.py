@@ -25,6 +25,7 @@ from sdr_harvest.attempts import StageAttempts
 from sdr_harvest.core import (
     SIGNATURES,
     Settings,
+    StageError,
     TransientStageError,
     file_sha256,
     interruptible_thread_pool,
@@ -247,6 +248,39 @@ class InterruptTest(unittest.TestCase):
                 )
             self.assertEqual(130, raised.exception.code)
             exit_.assert_called_once_with(130)
+
+
+class CliErrorTest(unittest.TestCase):
+    def test_stage_error_is_printed_without_an_exception_chain(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "manifest.csv"
+            manifest.write_text(f"identifier\n{DRUID}\n")
+            stderr = io.StringIO()
+            with (
+                patch(
+                    "sdr_harvest.cli.Pipeline.run",
+                    side_effect=StageError("Another sdr-harvest run is already active"),
+                ),
+                redirect_stderr(stderr),
+                self.assertRaises(SystemExit) as raised,
+            ):
+                main(
+                    [
+                        "--state-dir",
+                        str(root / "state"),
+                        "run",
+                        "--manifest",
+                        str(manifest),
+                        "--no-progress",
+                    ]
+                )
+
+            self.assertEqual(1, raised.exception.code)
+            self.assertEqual(
+                "Error: Another sdr-harvest run is already active\n",
+                stderr.getvalue(),
+            )
 
 
 class ResumeTest(unittest.TestCase):
