@@ -54,17 +54,44 @@ Preview manifest additions, removals, and known failures without changing
 pipeline state:
 
 ```shell
-uv run sdr-harvest plan --manifest world-readable-document-type-with-pdf.csv
+uv run sdr-harvest plan --manifest manifest.csv
 ```
 
 Run or inspect the pipeline:
 
 ```shell
-GEMINI_API_KEY=<key> uv run sdr-harvest run \
-  --manifest world-readable-document-type-with-pdf.csv --workers 4
+GEMINI_API_KEY=<key> uv run sdr-harvest run --manifest manifest.csv --workers 4
 uv run sdr-harvest status --failed
 uv run sdr-harvest status --druid zd240tq9137
 ```
+
+`run` builds and validates the per-object Solr JSON files but never contacts
+Solr. Publishing is a separate corpus-level operation with an explicit target:
+
+```shell
+uv run sdr-harvest publish \
+  --manifest manifest.csv \
+  --target https://solr-stage.example.edu/solr/sdr-search \
+  --workers 4
+```
+
+Publication progress and failures are tracked separately for each target URL.
+Repeating the command skips documents already published at the same source
+fingerprint and retries failed documents; use `--force` to republish successful
+ones. To promote the tested corpus,
+copy `manifest.csv` and `.sdr-harvest/` to the production machine along with
+this application, then run the same command with the production collection:
+
+```shell
+uv run sdr-harvest publish \
+  --manifest manifest.csv \
+  --target https://solr-prod.example.edu/solr/sdr-search \
+  --workers 4
+```
+
+The production target is distinct in pipeline state, so a successful staging
+publication does not cause production publishing to be skipped. Publishing
+does not require the Gemini key or rerun any build stage.
 
 Transient network, rate-limit, and server failures are retried automatically.
 Data and validation failures remain visible until explicitly retried or rebuilt:

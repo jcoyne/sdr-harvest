@@ -143,7 +143,7 @@ class StateTest(unittest.TestCase):
         self.store.invalidate(DRUID, "chunk")
         self.assertEqual("succeeded", self.store.stage(DRUID, "extract").status)
         self.assertEqual("pending", self.store.stage(DRUID, "chunk").status)
-        self.assertEqual("pending", self.store.stage(DRUID, "publish").status)
+        self.assertEqual("pending", self.store.stage(DRUID, "document").status)
 
     def test_existing_database_is_migrated_with_source_validator_columns(self):
         legacy_path = self.path / "legacy.sqlite3"
@@ -212,7 +212,8 @@ class ResumeTest(unittest.TestCase):
             for method in ("_download", "_metadata", "_extract", "_chunk", "_embed", "_document", "_publish"):
                 setattr(pipeline, method, Mock(side_effect=AssertionError(f"{method} should be skipped")))
             pipeline.run_object(store.start_run("manifest.csv"), DRUID)
-            self.assertEqual(source_fp, store.object_row(DRUID)["published_fingerprint"])
+            self.assertEqual(str(version_dir), store.object_row(DRUID)["current_artifact_dir"])
+            pipeline._publish.assert_not_called()
             store.close()
 
 
@@ -362,6 +363,47 @@ class ConditionalCocinaTest(unittest.TestCase):
             self.assertEqual(["delete", "add", "commit"], list(payload))
             self.assertEqual(f'_root_:"{DRUID}"', payload["delete"]["query"])
             self.assertTrue(receipt.exists())
+            store.close()
+
+    def test_corpus_publication_is_tracked_independently_per_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "manifest.csv"
+            manifest.write_text(f"identifier\n{DRUID}\n")
+            store = StateStore(root / "state.sqlite3")
+            store.reconcile_manifest({DRUID})
+            store.set_source(DRUID, "source", "1", [])
+            version_dir = root / "versions" / DRUID / "source"
+            version_dir.mkdir(parents=True)
+            document = version_dir / "solr.json"
+            document.write_text(json.dumps({"id": DRUID}))
+            store.adopt_stage(
+                DRUID,
+                "document",
+                "input",
+                "output",
+                SIGNATURES["document"],
+                Path("/old-machine/.sdr-harvest/versions") / DRUID / "source" / "solr.json",
+            )
+            store.mark_built(DRUID, str(version_dir))
+
+            receipt = version_dir / "receipt.json"
+            receipt.write_text("{}")
+            with patch.object(Pipeline, "_publish", return_value=receipt) as publish:
+                staging = Pipeline(
+                    Settings(root, root, solr_url="https://staging.example/solr/core"), store
+                )
+                first = staging.publish(manifest, show_progress=False)
+                second = staging.publish(manifest, show_progress=False)
+                production = Pipeline(
+                    Settings(root, root, solr_url="https://production.example/solr/core"), store
+                )
+                third = production.publish(manifest, show_progress=False)
+
+            self.assertEqual(1, first["published"])
+            self.assertEqual(1, second["skipped"])
+            self.assertEqual(1, third["published"])
+            self.assertEqual(2, publish.call_count)
             store.close()
 
     def test_deterministic_failure_is_not_retried(self):

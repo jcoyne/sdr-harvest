@@ -21,6 +21,20 @@ def parser() -> argparse.ArgumentParser:
     merge = commands.add_parser("merge-manifests", help="merge and deduplicate DRUID manifests")
     merge.add_argument("inputs", type=Path, nargs="+")
     merge.add_argument("--output", type=Path, default=Path("manifest.csv"))
+    publish = commands.add_parser(
+        "publish", help="publish all ready Solr JSON documents to one target"
+    )
+    publish.add_argument("--manifest", type=Path, required=True)
+    publish.add_argument(
+        "--target", required=True, help="full Solr collection URL"
+    )
+    publish.add_argument("--workers", type=int, default=4)
+    publish.add_argument(
+        "--force", action="store_true", help="republish documents already current on this target"
+    )
+    publish.add_argument(
+        "--no-progress", action="store_true", help="disable the publication progress bar"
+    )
     for name in ("run", "plan", "bootstrap"):
         command = commands.add_parser(name)
         command.add_argument("--manifest", type=Path, required=True)
@@ -70,7 +84,7 @@ def _pipeline(root: Path, args, store: StateStore) -> Pipeline:
     settings = Settings(
         root=root,
         state_dir=args.state_dir.resolve(),
-        solr_url=args.solr_url,
+        solr_url=getattr(args, "target", None) or args.solr_url,
         workers=max(1, getattr(args, "workers", 4)),
     )
     return Pipeline(settings, store)
@@ -99,6 +113,16 @@ def main(argv: list[str] | None = None) -> None:
             summary = _pipeline(root, args, store).run(args.manifest, only=set(args.druid) or None)
             print(json.dumps(summary, indent=2, sort_keys=True))
             if summary["failed"]:
+                raise SystemExit(1)
+            return
+        if args.command == "publish":
+            summary = _pipeline(root, args, store).publish(
+                args.manifest,
+                force=args.force,
+                show_progress=not args.no_progress,
+            )
+            print(json.dumps(summary, indent=2, sort_keys=True))
+            if summary["failed"] or summary["not_ready"]:
                 raise SystemExit(1)
             return
         if args.command == "status":

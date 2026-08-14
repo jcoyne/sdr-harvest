@@ -17,7 +17,6 @@ STAGES = (
     "chunk",
     "embed",
     "document",
-    "publish",
 )
 
 
@@ -89,8 +88,22 @@ CREATE TABLE IF NOT EXISTS attempts (
   error_message TEXT,
   log_path TEXT
 );
+CREATE TABLE IF NOT EXISTS publications (
+  druid TEXT NOT NULL REFERENCES objects(druid) ON DELETE CASCADE,
+  target_url TEXT NOT NULL,
+  source_fingerprint TEXT NOT NULL,
+  status TEXT NOT NULL,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
+  started_at TEXT,
+  finished_at TEXT,
+  error_category TEXT,
+  error_message TEXT,
+  receipt_path TEXT,
+  PRIMARY KEY (druid, target_url)
+);
 CREATE INDEX IF NOT EXISTS idx_stage_status ON stage_state(status, stage);
 CREATE INDEX IF NOT EXISTS idx_attempt_object ON attempts(druid, stage);
+CREATE INDEX IF NOT EXISTS idx_publication_status ON publications(target_url, status);
 """
 
 
@@ -129,6 +142,9 @@ class StateStore:
         for name, column_type in additions.items():
             if name not in columns:
                 self.db.execute(f"ALTER TABLE objects ADD COLUMN {name} {column_type}")
+        # Older releases tracked publication as a build stage without recording
+        # its Solr target. It cannot safely suppress a target-specific publish.
+        self.db.execute("DELETE FROM stage_state WHERE stage='publish'")
         self.db.commit()
 
     def close(self) -> None:
@@ -295,10 +311,55 @@ class StateStore:
             )
         self.db.commit()
 
-    def mark_published(self, druid: str, fingerprint: str, artifact_dir: str) -> None:
+    def mark_built(self, druid: str, artifact_dir: str) -> None:
         self.db.execute(
-            "UPDATE objects SET published_fingerprint=?,current_artifact_dir=?,updated_at=? WHERE druid=?",
-            (fingerprint, artifact_dir, now(), druid),
+            "UPDATE objects SET current_artifact_dir=?,updated_at=? WHERE druid=?",
+            (artifact_dir, now(), druid),
+        )
+        self.db.commit()
+
+    def publication_is_current(self, druid: str, target_url: str, fingerprint: str) -> bool:
+        row = self.db.execute(
+            """SELECT status,source_fingerprint FROM publications
+               WHERE druid=? AND target_url=?""",
+            (druid, target_url),
+        ).fetchone()
+        return bool(
+            row and row["status"] == "succeeded" and row["source_fingerprint"] == fingerprint
+        )
+
+    def begin_publication(self, druid: str, target_url: str, fingerprint: str) -> int:
+        with self.transaction():
+            row = self.db.execute(
+                "SELECT attempt_count FROM publications WHERE druid=? AND target_url=?",
+                (druid, target_url),
+            ).fetchone()
+            attempt = (row[0] if row else 0) + 1
+            self.db.execute(
+                """INSERT INTO publications(druid,target_url,source_fingerprint,status,attempt_count,started_at)
+                   VALUES(?,?,?,'running',?,?)
+                   ON CONFLICT(druid,target_url) DO UPDATE SET
+                     source_fingerprint=excluded.source_fingerprint,status='running',
+                     attempt_count=excluded.attempt_count,started_at=excluded.started_at,
+                     finished_at=NULL,error_category=NULL,error_message=NULL,receipt_path=NULL""",
+                (druid, target_url, fingerprint, attempt, now()),
+            )
+        return attempt
+
+    def finish_publication(
+        self,
+        druid: str,
+        target_url: str,
+        status: str,
+        *,
+        receipt_path: str | None = None,
+        category: str | None = None,
+        message: str | None = None,
+    ) -> None:
+        self.db.execute(
+            """UPDATE publications SET status=?,finished_at=?,receipt_path=?,
+               error_category=?,error_message=? WHERE druid=? AND target_url=?""",
+            (status, now(), receipt_path, category, message, druid, target_url),
         )
         self.db.commit()
 
