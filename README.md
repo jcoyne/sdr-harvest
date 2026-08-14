@@ -1,6 +1,85 @@
 # SDR Harvest
 *REMEMBER TO UNSET `GOOGLE_GEMINI_BASE_URL` environment variable before running this script*
 
+## Operational pipeline
+
+The commands below are the supported way to run the complete pipeline on a
+managed host. State, per-attempt JSONL logs, and versioned per-DRUID artifacts
+are stored in `.sdr-harvest/`. A new run fetches COCINA for every manifest
+object, but skips later stages whose source fingerprint, input fingerprint,
+stage version, and artifact still match.
+
+The pipeline currently supports one authoritative manifest at a time. Loading
+a different manifest marks objects found only in the previous manifest as
+absent, although it does not delete their artifacts or Solr documents. If the
+desired population comes from multiple exports, merge them before running
+`bootstrap`, `plan`, or `run` and continue using the merged file for later
+`retry` and `rebuild` commands.
+
+Merge two or more exported manifests into a sorted, deduplicated manifest:
+
+```shell
+uv run sdr-harvest merge-manifests \
+  world-readable-document-type-with-pdf.csv \
+  oral-history-ts561xq4138-druids.csv \
+  --output manifest.csv
+```
+
+The command accepts additional input files, writes an `identifier` header, and
+reports the input count, unique output count, and number of duplicates removed.
+
+First adopt the valid products of the older manual pipeline:
+
+```shell
+uv sync
+uv run sdr-harvest bootstrap --manifest world-readable-document-type-with-pdf.csv
+```
+
+Preview manifest additions, removals, and known failures without changing
+pipeline state:
+
+```shell
+uv run sdr-harvest plan --manifest world-readable-document-type-with-pdf.csv
+```
+
+Run or inspect the pipeline:
+
+```shell
+GEMINI_API_KEY=<key> uv run sdr-harvest run \
+  --manifest world-readable-document-type-with-pdf.csv --workers 4
+uv run sdr-harvest status --failed
+uv run sdr-harvest status --druid zd240tq9137
+```
+
+Transient network, rate-limit, and server failures are retried automatically.
+Data and validation failures remain visible until explicitly retried or rebuilt:
+
+```shell
+GEMINI_API_KEY=<key> uv run sdr-harvest retry --failed
+GEMINI_API_KEY=<key> uv run sdr-harvest rebuild \
+  --druid zd240tq9137 --from extract
+```
+
+A DRUID missing from a new manifest is reported as absent and is not removed
+from Solr. Removal is deliberately separate:
+
+```shell
+uv run sdr-harvest remove --druid zd240tq9137 --from-solr
+```
+
+Run the normal `run` command from cron or a systemd timer. It exits nonzero if
+any object fails, so the host scheduler can alert on the result. Do not overlap
+scheduled invocations; object workers within one invocation already provide
+bounded concurrency. Old unsuccessful artifact versions can be pruned after a
+retention window:
+
+```shell
+uv run sdr-harvest prune --failed-before 2026-07-01
+```
+
+The remainder of this README documents the original individual steps, which
+remain useful for diagnosis and development.
+
 ## Get DRUIDs
 ### Getting DRUIDs from Searchworks
 Start by going to Searchworks and pasting the contents of `harvest.js` into the javascript console. Download the combined_docs_feinstein.json file. We're doing this in the browser to get around F5 bot detection.

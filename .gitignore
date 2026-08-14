@@ -10,3 +10,7 @@ raw_solr_data.jsonl
 solr_documents/*
 solr_data/*
 *.log
+.sdr-harvest/
+*.egg-info/
+__pycache__/
+*.py[cod]

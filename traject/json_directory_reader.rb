@@ -18,7 +18,8 @@ class Traject::JsonDirectoryReader
       return enum_for(:each)
     end
 
-    Dir.glob('purl_data/*.json').each_with_index do |filename, i|
+    input_dir = ENV.fetch('PURL_DATA_DIR', 'purl_data')
+    Dir.glob(File.join(input_dir, '*.json')).each_with_index do |filename, i|
       json = File.read(filename)
       begin
         yield Record.new(json)
