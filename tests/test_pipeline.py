@@ -3,6 +3,7 @@ from contextlib import redirect_stderr, redirect_stdout
 import hashlib
 import io
 import json
+import os
 import sqlite3
 import tempfile
 import unittest
@@ -15,7 +16,11 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from sdr_harvest.bootstrap import bootstrap, format_bootstrap_summary
-from sdr_harvest.cli import main
+from sdr_harvest.cli import (
+    RESOURCE_TRACKER_WARNING_FILTER,
+    _configure_child_warning_filters,
+    main,
+)
 from sdr_harvest.attempts import StageAttempts
 from sdr_harvest.core import (
     SIGNATURES,
@@ -198,6 +203,15 @@ class RetryTest(unittest.TestCase):
 
 
 class InterruptTest(unittest.TestCase):
+    def test_resource_tracker_filter_is_targeted_preserved_and_idempotent(self):
+        existing = "default::DeprecationWarning"
+        with patch.dict(os.environ, {"PYTHONWARNINGS": existing}):
+            _configure_child_warning_filters()
+            _configure_child_warning_filters()
+            filters = os.environ["PYTHONWARNINGS"].split(",")
+            self.assertIn(existing, filters)
+            self.assertEqual(1, filters.count(RESOURCE_TRACKER_WARNING_FILTER))
+
     def test_thread_pool_does_not_wait_after_keyboard_interrupt(self):
         executor = Mock(spec=ThreadPoolExecutor)
         with patch(

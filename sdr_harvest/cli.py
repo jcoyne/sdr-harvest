@@ -18,6 +18,20 @@ from .publisher import CorpusPublisher, SolrPublisher
 from .state import STAGES, StateStore
 
 
+RESOURCE_TRACKER_WARNING_FILTER = (
+    "ignore:resource_tracker:UserWarning:multiprocessing.resource_tracker"
+)
+
+
+def _configure_child_warning_filters() -> None:
+    """Hide the harmless semaphore cleanup warning after an immediate exit."""
+    existing = os.environ.get("PYTHONWARNINGS", "")
+    filters = [item for item in existing.split(",") if item]
+    if RESOURCE_TRACKER_WARNING_FILTER not in filters:
+        filters.append(RESOURCE_TRACKER_WARNING_FILTER)
+        os.environ["PYTHONWARNINGS"] = ",".join(filters)
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="sdr-harvest", description="Resumable SDR-to-Solr pipeline")
     result.add_argument("--state-dir", type=Path, default=Path(".sdr-harvest"))
@@ -108,6 +122,9 @@ def _pipeline(root: Path, args, store: StateStore) -> Pipeline:
 
 
 def main(argv: list[str] | None = None) -> None:
+    # PyMuPDF may start multiprocessing's resource tracker during extraction.
+    # It inherits this targeted filter before any worker creates a semaphore.
+    _configure_child_warning_filters()
     args = parser().parse_args(argv)
     root = Path.cwd()
     args.state_dir = args.state_dir.resolve()

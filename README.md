@@ -83,7 +83,9 @@ summary are still printed.
 
 Pressing Ctrl-C once cancels work that has not started, records the run as
 interrupted, and exits immediately with status 130. The next invocation safely
-resumes from completed stage artifacts.
+resumes from completed stage artifacts. PyMuPDF may leave an IPC semaphore for
+Python's resource tracker to unlink during this immediate exit; its harmless
+cleanup warning is suppressed without hiding warnings from other modules.
 
 `run` builds and validates the per-object Solr JSON files but never contacts
 Solr. Publishing is a separate corpus-level operation with an explicit target:
