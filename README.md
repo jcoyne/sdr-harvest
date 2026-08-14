@@ -1,32 +1,35 @@
 # SDR Harvest
-*REMEMBER TO UNSET `GOOGLE_GEMINI_BASE_URL` environment variable before running this script*
 
-## Operational pipeline
+SDR Harvest builds searchable Solr documents from Stanford Digital Repository
+objects. Builds are resumable and stored locally; publishing to Solr is a
+separate command.
 
-The commands below are the supported way to run the complete pipeline on a
-managed host. State, per-attempt JSONL logs, and versioned per-DRUID artifacts
-are stored in `.sdr-harvest/`. A new run checks COCINA for every manifest
-object, but skips later stages whose source fingerprint, input fingerprint,
-stage version, and artifact still match.
+## Quick start
 
-For seven days after a successful COCINA check, later runs reuse the checksummed
-cache, stored fingerprint, and PDF inventory without contacting PURL. Once the
-cache is stale, the pipeline sends its stored `ETag` in a conditional request.
-PURL returns `304 Not Modified` for unchanged objects, avoiding another body
-download or JSON parse, and the seven-day window starts again. `Last-Modified`
-is used when no ETag is available. A changed response is downloaded, validated,
-fingerprinted, and used to invalidate downstream stages. A missing or locally
-modified cache is repaired immediately with an unconditional request regardless
-of its age.
+Install dependencies and make sure requests use the normal Gemini endpoint:
 
-The pipeline currently supports one authoritative manifest at a time. Loading
-a different manifest marks objects found only in the previous manifest as
-absent, although it does not delete their artifacts or Solr documents. If the
-desired population comes from multiple exports, merge them before running
-`plan` or `run` and continue using the merged file for later `retry` and
-`rebuild` commands.
+```shell
+uv sync
+unset GOOGLE_GEMINI_BASE_URL
+```
 
-Merge two or more exported manifests into a sorted, deduplicated manifest:
+Build the corpus, inspect failures, and retry them:
+
+```shell
+GEMINI_API_KEY=<key> uv run sdr-harvest run \
+  --manifest manifest.csv --workers 4
+
+uv run sdr-harvest status --failed
+GEMINI_API_KEY=<key> uv run sdr-harvest retry --failed
+```
+
+Building creates local Solr JSON documents. It does not write to Solr. Use the
+separate `publish` command after reviewing the build results.
+
+## Prepare the manifest
+
+The pipeline accepts one authoritative manifest. If the desired corpus comes
+from multiple CSV exports, merge them into a sorted, deduplicated manifest:
 
 ```shell
 uv run sdr-harvest merge-manifests \
@@ -35,54 +38,61 @@ uv run sdr-harvest merge-manifests \
   --output manifest.csv
 ```
 
-The command accepts additional input files, writes an `identifier` header, and
-reports the input count, unique output count, and number of duplicates removed.
+Use the same merged manifest for later build and publish commands. Switching to
+a different manifest marks objects omitted from it as absent, but does not
+delete their local artifacts or their documents in Solr.
 
-Install the application dependencies:
-
-```shell
-uv sync
-```
-
-Preview manifest additions, removals, and known failures without changing
-pipeline state:
+To preview additions, omissions, and known failures:
 
 ```shell
 uv run sdr-harvest plan --manifest manifest.csv
 ```
 
-Run or inspect the pipeline:
+## Build Solr documents
+
+The main build command is:
 
 ```shell
-GEMINI_API_KEY=<key> uv run sdr-harvest run --manifest manifest.csv --workers 4
+GEMINI_API_KEY=<key> uv run sdr-harvest run \
+  --manifest manifest.csv --workers 4
+```
+
+The progress display begins with fully current objects already counted as
+complete and queues only objects that may need work. The command safely reuses
+completed downloads, extracted text, chunks, embeddings, and Solr documents.
+When an SDR object changes, a new version is built without overwriting its
+previous artifacts.
+
+Press Ctrl-C once to cancel queued work and exit. Running the command again
+resumes from completed stages. Use `--no-progress` for redirected logs or a
+scheduler.
+
+## Inspect and retry failures
+
+Show every failure or inspect one object:
+
+```shell
 uv run sdr-harvest status --failed
 uv run sdr-harvest status --druid zd240tq9137
 ```
 
-Before processing, `run` inspects saved state and reports the estimated number
-of stage executions remaining if the remote COCINA records are unchanged. It
-then displays pipeline-object progress, elapsed time, estimated time remaining,
-the stages currently active across workers, and success/failure counts. Workers
-process different objects end-to-end, so some objects may already have Solr JSON
-documents while others still need embeddings. A document is only built after
-all chunks for that object have embeddings. An object needs a conditional
-COCINA request only when its cache is at least seven days old, so the `cocina`
-estimate counts stale or missing caches rather than the full manifest.
-The processing bar starts with fully current objects already completed, and
-those objects are not submitted to the worker pool. Unchanged objects that need
-a COCINA freshness check skip current downstream stages. A changed COCINA record can
-add downstream work after the estimate is printed. Use
-`--no-progress` for schedulers or redirected logs; the estimate and final JSON
-summary are still printed.
+Transient service and network failures are retried automatically. Remaining
+failures can be retried together:
 
-Pressing Ctrl-C once cancels work that has not started, records the run as
-interrupted, and exits immediately with status 130. The next invocation safely
-resumes from completed stage artifacts. PyMuPDF may leave an IPC semaphore for
-Python's resource tracker to unlink during this immediate exit; its harmless
-cleanup warning is suppressed without hiding warnings from other modules.
+```shell
+GEMINI_API_KEY=<key> uv run sdr-harvest retry --failed
+```
 
-`run` builds and validates the per-object Solr JSON files but never contacts
-Solr. Publishing is a separate corpus-level operation with an explicit target:
+To deliberately rebuild one object from a particular stage:
+
+```shell
+GEMINI_API_KEY=<key> uv run sdr-harvest rebuild \
+  --druid zd240tq9137 --from extract
+```
+
+## Publish to Solr
+
+Publish completed documents to staging only after the build has been reviewed:
 
 ```shell
 uv run sdr-harvest publish \
@@ -91,16 +101,13 @@ uv run sdr-harvest publish \
   --workers 4
 ```
 
-Publication state is keyed by the object's DRUID and the exact target URL, and
-records the source fingerprint that was published. Repeating the staging
-command therefore skips an unchanged document that succeeded on staging and
-retries one that failed. A changed source fingerprint needs to be published to
-each target again. Use `--force` to republish documents that are already current
-on the selected target.
+Publication state is tracked by both DRUID and target URL. Repeating this
+command skips unchanged documents already published successfully to that
+target, retries failures, and publishes changed documents. Use `--force` to
+republish documents that are already current.
 
-To promote the tested corpus, copy `manifest.csv` and the complete
-`.sdr-harvest/` directory to the production machine along with this application,
-then run the same command with the production collection:
+To publish from another machine, copy the application, `manifest.csv`, and the
+complete `.sdr-harvest/` directory to it. Then publish to production:
 
 ```shell
 uv run sdr-harvest publish \
@@ -109,59 +116,51 @@ uv run sdr-harvest publish \
   --workers 4
 ```
 
-Because the production URL has its own publication records, staging success
-does not cause production publishing to be skipped. Once production succeeds,
-later production runs skip unchanged documents independently of staging. The
-complete state directory is needed on the production machine because it
-contains both the generated artifacts and the SQLite state used to determine
-which documents are ready and current. Publishing does not require the Gemini
-key or rerun any build stage.
+Staging and production have independent publication records, so success on
+staging does not cause production to be skipped. Publishing uses the documents
+already built and does not require a Gemini key.
 
-Transient network, rate-limit, and server failures are retried automatically.
-Data and validation failures remain visible until explicitly retried or rebuilt:
+## State and intermediate data
+
+By default, all managed state is stored in `.sdr-harvest/`, including:
+
+- the SQLite resume and publication database;
+- cached COCINA and versioned per-object artifacts;
+- stage and publication logs.
+
+Recently checked COCINA is reused for up to seven days. Older entries are
+checked with PURL, and unchanged objects continue using their existing build
+artifacts.
+
+To store this data elsewhere, place the global option before the command:
 
 ```shell
-GEMINI_API_KEY=<key> uv run sdr-harvest retry --failed
-GEMINI_API_KEY=<key> uv run sdr-harvest rebuild \
-  --druid zd240tq9137 --from extract
+uv run sdr-harvest --state-dir /data/sdr-harvest run \
+  --manifest manifest.csv --workers 4
 ```
 
-A DRUID missing from a new manifest is reported as absent and is not removed
-from Solr. Removal is deliberately separate:
+Only one build or publish process may use a state directory at a time.
+
+## Maintenance and scheduling
+
+The `run` command exits nonzero when an object fails, making it suitable for
+cron or a systemd timer. Do not overlap scheduled runs; use `--workers` for
+concurrency within one run.
+
+Removing an object from a manifest does not remove it from Solr. Removal is an
+explicit operation:
 
 ```shell
 uv run sdr-harvest remove --druid zd240tq9137 --from-solr
 ```
 
-Run the normal `run` command from cron or a systemd timer. It exits nonzero if
-any object fails, so the host scheduler can alert on the result. Do not overlap
-scheduled invocations; object workers within one invocation already provide
-bounded concurrency. Old unsuccessful artifact versions can be pruned after a
-retention window:
+Old non-current artifact versions can be pruned after a retention period:
 
 ```shell
 uv run sdr-harvest prune --failed-before 2026-07-01
 ```
 
-## Code organization
+## Developer documentation
 
-The Python implementation is separated by responsibility:
-
-| Module | Interface | Responsibility |
-| --- | --- | --- |
-| `pipeline.py` | `Pipeline` | Coordinates resumable object builds without knowing about Solr. |
-| `attempts.py` | `StageAttempts` | Runs operations with durable attempt logs, failure classification, and retry policy. |
-| `metadata.py` | `MetadataFetcher` | Fetches COCINA and derives searchable metadata with Traject. |
-| `download.py` | `FileDownloader` | Downloads and validates the PDF inventory declared by COCINA. |
-| `extract_text.py` | `TextExtractor` | Converts downloaded PDFs into Markdown. |
-| `chunk.py` | `Chunker` | Splits extracted text and searchable metadata into chunk rows. |
-| `embed.py` | `Embedder` | Adds Gemini vectors to all chunks for one object. |
-| `create_solr_document.py` | `SolrDocumentBuilder` | Creates a nested parent/child Solr JSON document from embedded chunks. |
-| `publisher.py` | `CorpusPublisher`, `SolrPublisher` | Selects ready documents, tracks target-specific state, sends them to Solr, and verifies them. |
-| `manifests.py` | Manifest and COCINA helper functions | Parses and merges manifests and derives source file identities. |
-| `core.py` | Settings, errors, fingerprints, logging | Provides shared domain types and infrastructure without pipeline orchestration. |
-| `state.py` | `StateStore` | Owns the SQLite schema and all persistent resume state. |
-
-The CLI uses `Pipeline` for builds and composes `CorpusPublisher` with
-`SolrPublisher` for publication. These flows therefore have no dependency on
-one another.
+Implementation details and module responsibilities are documented in
+[`sdr_harvest/README.md`](sdr_harvest/README.md).
