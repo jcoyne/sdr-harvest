@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS publications (
   druid TEXT NOT NULL REFERENCES objects(druid) ON DELETE CASCADE,
   target_url TEXT NOT NULL,
   source_fingerprint TEXT NOT NULL,
+  document_fingerprint TEXT,
   status TEXT NOT NULL,
   attempt_count INTEGER NOT NULL DEFAULT 0,
   started_at TEXT,
@@ -142,6 +143,13 @@ class StateStore:
         for name, column_type in additions.items():
             if name not in columns:
                 self.db.execute(f"ALTER TABLE objects ADD COLUMN {name} {column_type}")
+        publication_columns = {
+            row[1] for row in self.db.execute("PRAGMA table_info(publications)")
+        }
+        if "document_fingerprint" not in publication_columns:
+            self.db.execute(
+                "ALTER TABLE publications ADD COLUMN document_fingerprint TEXT"
+            )
         # Older releases tracked publication as a build stage without recording
         # its Solr target. It cannot safely suppress a target-specific publish.
         self.db.execute("DELETE FROM stage_state WHERE stage='publish'")
@@ -318,17 +326,27 @@ class StateStore:
         )
         self.db.commit()
 
-    def publication_is_current(self, druid: str, target_url: str, fingerprint: str) -> bool:
+    def publication_is_current(
+        self, druid: str, target_url: str, document_fingerprint: str
+    ) -> bool:
         row = self.db.execute(
-            """SELECT status,source_fingerprint FROM publications
+            """SELECT status,document_fingerprint FROM publications
                WHERE druid=? AND target_url=?""",
             (druid, target_url),
         ).fetchone()
         return bool(
-            row and row["status"] == "succeeded" and row["source_fingerprint"] == fingerprint
+            row
+            and row["status"] == "succeeded"
+            and row["document_fingerprint"] == document_fingerprint
         )
 
-    def begin_publication(self, druid: str, target_url: str, fingerprint: str) -> int:
+    def begin_publication(
+        self,
+        druid: str,
+        target_url: str,
+        source_fingerprint: str,
+        document_fingerprint: str,
+    ) -> int:
         with self.transaction():
             row = self.db.execute(
                 "SELECT attempt_count FROM publications WHERE druid=? AND target_url=?",
@@ -336,13 +354,23 @@ class StateStore:
             ).fetchone()
             attempt = (row[0] if row else 0) + 1
             self.db.execute(
-                """INSERT INTO publications(druid,target_url,source_fingerprint,status,attempt_count,started_at)
-                   VALUES(?,?,?,'running',?,?)
+                """INSERT INTO publications(
+                     druid,target_url,source_fingerprint,document_fingerprint,
+                     status,attempt_count,started_at
+                   ) VALUES(?,?,?,?,'running',?,?)
                    ON CONFLICT(druid,target_url) DO UPDATE SET
-                     source_fingerprint=excluded.source_fingerprint,status='running',
+                     source_fingerprint=excluded.source_fingerprint,
+                     document_fingerprint=excluded.document_fingerprint,status='running',
                      attempt_count=excluded.attempt_count,started_at=excluded.started_at,
                      finished_at=NULL,error_category=NULL,error_message=NULL,receipt_path=NULL""",
-                (druid, target_url, fingerprint, attempt, now()),
+                (
+                    druid,
+                    target_url,
+                    source_fingerprint,
+                    document_fingerprint,
+                    attempt,
+                    now(),
+                ),
             )
         return attempt
 

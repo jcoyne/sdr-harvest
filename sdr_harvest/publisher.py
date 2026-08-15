@@ -33,6 +33,7 @@ COMMIT_WITHIN_MS = 60_000
 class PublicationItem:
     druid: str
     source_fp: str
+    document_fp: str
     version_dir: Path
 
     @property
@@ -100,7 +101,8 @@ class SolrPublisher:
                     {
                         "druid": item.druid,
                         "target": target_url,
-                        "fingerprint": item.source_fp,
+                        "source_fingerprint": item.source_fp,
+                        "document_fingerprint": item.document_fp,
                         "child_count": documents[item.druid]["child_count_i"],
                         "published_at": published_at,
                         "commit_within_ms": COMMIT_WITHIN_MS,
@@ -262,17 +264,25 @@ class CorpusPublisher:
                 or not source_fp
                 or not document
                 or document.status != "succeeded"
+                or not document.output_fingerprint
                 or not document_path
                 or not document_path.exists()
             ):
                 summary["not_ready"] += 1
                 continue
             if not force and self.store.publication_is_current(
-                druid, target_url, source_fp
+                druid, target_url, document.output_fingerprint
             ):
                 summary["skipped"] += 1
                 continue
-            ready.append(PublicationItem(druid, source_fp, document_path.parent))
+            ready.append(
+                PublicationItem(
+                    druid,
+                    source_fp,
+                    document.output_fingerprint,
+                    document_path.parent,
+                )
+            )
         return ready
 
     def _batches(
@@ -321,7 +331,10 @@ class CorpusPublisher:
             attempts: dict[str, int] = {}
             for item in items:
                 attempt = store.begin_publication(
-                    item.druid, target_url, item.source_fp
+                    item.druid,
+                    target_url,
+                    item.source_fp,
+                    item.document_fp,
                 )
                 attempts[item.druid] = attempt
                 logs[item.druid].write(

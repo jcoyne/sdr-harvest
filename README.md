@@ -103,8 +103,11 @@ uv run sdr-harvest publish \
 
 Publication state is tracked by both DRUID and target URL. Repeating this
 command skips unchanged documents already published successfully to that
-target, retries failures, and publishes changed documents. Use `--force` to
-republish documents that are already current.
+target, retries failures, and publishes changed documents. Currency is based on
+the generated `solr.json` fingerprint, so changes to metadata, chunking,
+embeddings, or document construction require publication even when the SDR
+source itself is unchanged. Use `--force` to republish documents that are
+already current.
 
 Documents are sent in batches of up to 25 objects or 25 MB, whichever limit is
 reached first. Each successful update uses `commitWithin=60000`, so the client

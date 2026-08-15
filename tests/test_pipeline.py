@@ -163,7 +163,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual("pending", self.store.stage(DRUID, "chunk").status)
         self.assertEqual("pending", self.store.stage(DRUID, "document").status)
 
-    def test_existing_database_is_migrated_with_source_validator_columns(self):
+    def test_existing_database_is_migrated_with_current_fingerprint_columns(self):
         legacy_path = self.path / "legacy.sqlite3"
         connection = sqlite3.connect(legacy_path)
         connection.execute(
@@ -173,6 +173,16 @@ class StateTest(unittest.TestCase):
                published_fingerprint TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
             )"""
         )
+        connection.execute(
+            """CREATE TABLE publications (
+               druid TEXT NOT NULL REFERENCES objects(druid) ON DELETE CASCADE,
+               target_url TEXT NOT NULL, source_fingerprint TEXT NOT NULL,
+               status TEXT NOT NULL, attempt_count INTEGER NOT NULL DEFAULT 0,
+               started_at TEXT, finished_at TEXT, error_category TEXT,
+               error_message TEXT, receipt_path TEXT,
+               PRIMARY KEY (druid, target_url)
+            )"""
+        )
         connection.commit()
         connection.close()
         migrated = StateStore(legacy_path)
@@ -180,6 +190,11 @@ class StateTest(unittest.TestCase):
         self.assertTrue(
             {"source_etag", "source_last_modified", "source_checked_at", "source_cache_sha256"}.issubset(columns)
         )
+        publication_columns = {
+            row[1]
+            for row in migrated.db.execute("PRAGMA table_info(publications)")
+        }
+        self.assertIn("document_fingerprint", publication_columns)
         migrated.close()
 
 
@@ -567,7 +582,14 @@ class ConditionalCocinaTest(unittest.TestCase):
                     "_childDocuments_": [{"id": f"{druid}-child"}],
                 }
                 (version_dir / "solr.json").write_text(json.dumps(document))
-                items.append(PublicationItem(druid, f"source-{druid}", version_dir))
+                items.append(
+                    PublicationItem(
+                        druid,
+                        f"source-{druid}",
+                        f"document-{druid}",
+                        version_dir,
+                    )
+                )
             http = Mock()
             publisher = SolrPublisher(Settings(root, root, verify_tls=False), http)
             self.assertFalse(http.verify)
@@ -628,6 +650,17 @@ class ConditionalCocinaTest(unittest.TestCase):
                 second = staging.publish(
                     manifest, staging_batch, show_progress=False
                 )
+                store.adopt_stage(
+                    DRUID,
+                    "document",
+                    "input",
+                    "changed-output",
+                    SIGNATURES["document"],
+                    document,
+                )
+                changed = staging.publish(
+                    manifest, staging_batch, show_progress=False
+                )
                 production_settings = Settings(
                     root, root, solr_url="https://production.example/solr/core"
                 )
@@ -641,8 +674,9 @@ class ConditionalCocinaTest(unittest.TestCase):
 
             self.assertEqual(1, first["published"])
             self.assertEqual(1, second["skipped"])
+            self.assertEqual(1, changed["published"])
             self.assertEqual(1, third["published"])
-            self.assertEqual(2, publish.call_count)
+            self.assertEqual(3, publish.call_count)
             store.close()
 
     def test_document_error_splits_batch_and_preserves_per_object_state(self):
