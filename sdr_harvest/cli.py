@@ -5,10 +5,12 @@ import json
 import os
 import shutil
 import sys
+import warnings
 from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
+from urllib3.exceptions import InsecureRequestWarning
 
 from .core import Settings, StageError
 from .manifests import merge_manifests, parse_manifest
@@ -52,6 +54,11 @@ def parser() -> argparse.ArgumentParser:
     )
     publish.add_argument(
         "--no-progress", action="store_true", help="disable the publication progress bar"
+    )
+    publish.add_argument(
+        "--insecure",
+        action="store_true",
+        help="disable TLS certificate verification (only for a trusted local tunnel)",
     )
     for name in ("run", "plan"):
         command = commands.add_parser(name)
@@ -105,6 +112,7 @@ def _settings(root: Path, args) -> Settings:
         root=root,
         state_dir=args.state_dir.resolve(),
         solr_url=getattr(args, "target", None) or args.solr_url,
+        verify_tls=not getattr(args, "insecure", False),
         workers=max(1, getattr(args, "workers", 4)),
     )
 
@@ -147,6 +155,14 @@ def main(argv: list[str] | None = None) -> None:
             return
         if args.command == "publish":
             settings = _settings(root, args)
+            if not settings.verify_tls:
+                warnings.filterwarnings("ignore", category=InsecureRequestWarning)
+                print(
+                    "Warning: TLS certificate verification is disabled for "
+                    f"{settings.solr_url}",
+                    file=sys.stderr,
+                    flush=True,
+                )
 
             def publish_document(
                 druid: str, source_fp: str, version_dir: Path

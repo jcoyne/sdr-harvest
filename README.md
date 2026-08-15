@@ -120,6 +120,27 @@ Staging and production have independent publication records, so success on
 staging does not cause production to be skipped. Publishing uses the documents
 already built and does not require a Gemini key.
 
+When publishing through a trusted local SSH tunnel, a `localhost` URL will not
+match the certificate issued to the remote Solr hostname. TLS verification can
+be disabled explicitly for that tunnel:
+
+```shell
+uv run sdr-harvest publish \
+  --manifest manifest.csv \
+  --target https://localhost:8983/solr/semantic-search-demo \
+  --workers 4 \
+  --insecure
+```
+
+`--insecure` accepts any certificate presented through the connection. Use it
+only with a tunnel you created and trust; normal publication keeps certificate
+verification enabled.
+
+We often use:
+```shell
+ssh -N -L 8983:<remote_host>:443 semantic-search-demo.stanford.edu
+```
+
 ## State and intermediate data
 
 By default, all managed state is stored in `.sdr-harvest/`, including:

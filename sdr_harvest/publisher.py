@@ -34,6 +34,7 @@ class SolrPublisher:
     def __init__(self, settings: Settings, http: requests.Session) -> None:
         self.settings = settings
         self.http = http
+        self.http.verify = settings.verify_tls
 
     def publish_document(
         self, druid: str, source_fp: str, version_dir: Path

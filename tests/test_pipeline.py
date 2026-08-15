@@ -14,7 +14,9 @@ from unittest.mock import Mock, patch
 from sdr_harvest.cli import (
     RESOURCE_TRACKER_WARNING_FILTER,
     _configure_child_warning_filters,
+    _settings,
     main,
+    parser,
 )
 from sdr_harvest.attempts import StageAttempts
 from sdr_harvest.core import (
@@ -246,6 +248,23 @@ class InterruptTest(unittest.TestCase):
 
 
 class CliErrorTest(unittest.TestCase):
+    def test_publish_insecure_disables_tls_verification(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args = parser().parse_args(
+                [
+                    "publish",
+                    "--manifest",
+                    "manifest.csv",
+                    "--target",
+                    "https://localhost:8983/solr/collection",
+                    "--insecure",
+                ]
+            )
+            args.state_dir = root / "state"
+
+            self.assertFalse(_settings(root, args).verify_tls)
+
     def test_stage_error_is_printed_without_an_exception_chain(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -537,7 +556,8 @@ class ConditionalCocinaTest(unittest.TestCase):
             document = {"id": DRUID, "child_count_i": 1, "_childDocuments_": [{"id": "child"}]}
             (version_dir / "solr.json").write_text(json.dumps(document))
             http = Mock()
-            publisher = SolrPublisher(Settings(root, root), http)
+            publisher = SolrPublisher(Settings(root, root, verify_tls=False), http)
+            self.assertFalse(http.verify)
             update = Mock(status_code=200)
             update.json.return_value = {"responseHeader": {"status": 0}}
             verify = Mock(status_code=200)

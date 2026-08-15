@@ -69,6 +69,7 @@ class Settings:
     root: Path
     state_dir: Path
     solr_url: str = "http://localhost:8983/solr/sdr-search"
+    verify_tls: bool = True
     workers: int = 4
     max_retries: int = 5
 
