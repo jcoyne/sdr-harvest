@@ -106,6 +106,13 @@ command skips unchanged documents already published successfully to that
 target, retries failures, and publishes changed documents. Use `--force` to
 republish documents that are already current.
 
+Documents are sent in batches of up to 25 objects or 25 MB, whichever limit is
+reached first. Each successful update uses `commitWithin=60000`, so the client
+does not issue hard commits and documents may take up to one minute to become
+searchable. Solr's successful HTTP response is treated as acceptance; the
+publisher does not query each document afterward. Use `--batch-size` and
+`--max-batch-mb` to tune the limits for a particular Solr installation.
+
 To publish from another machine, copy the application, `manifest.csv`, and the
 complete `.sdr-harvest/` directory to it. Then publish to production:
 

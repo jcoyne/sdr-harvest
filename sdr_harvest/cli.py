@@ -50,6 +50,15 @@ def parser() -> argparse.ArgumentParser:
     )
     publish.add_argument("--workers", type=int, default=4)
     publish.add_argument(
+        "--batch-size", type=int, default=25, help="maximum objects per Solr update"
+    )
+    publish.add_argument(
+        "--max-batch-mb",
+        type=float,
+        default=25,
+        help="maximum uncompressed Solr JSON per update",
+    )
+    publish.add_argument(
         "--force", action="store_true", help="republish documents already current on this target"
     )
     publish.add_argument(
@@ -114,6 +123,10 @@ def _settings(root: Path, args) -> Settings:
         solr_url=getattr(args, "target", None) or args.solr_url,
         verify_tls=not getattr(args, "insecure", False),
         workers=max(1, getattr(args, "workers", 4)),
+        publish_batch_size=max(1, getattr(args, "batch_size", 25)),
+        publish_max_batch_bytes=max(
+            1, int(getattr(args, "max_batch_mb", 25) * 1024 * 1024)
+        ),
     )
 
 
@@ -164,17 +177,13 @@ def main(argv: list[str] | None = None) -> None:
                     flush=True,
                 )
 
-            def publish_document(
-                druid: str, source_fp: str, version_dir: Path
-            ) -> Path:
+            def publish_batch(items):
                 with requests.Session() as http:
-                    return SolrPublisher(settings, http).publish_document(
-                        druid, source_fp, version_dir
-                    )
+                    return SolrPublisher(settings, http).publish_batch(items)
 
             summary = CorpusPublisher(settings, store).publish(
                 args.manifest,
-                publish_document,
+                publish_batch,
                 force=args.force,
                 show_progress=not args.no_progress,
             )

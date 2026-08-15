@@ -35,7 +35,13 @@ from sdr_harvest.manifests import (
 )
 from sdr_harvest.metadata import MetadataFetcher
 from sdr_harvest.pipeline import Pipeline
-from sdr_harvest.publisher import CorpusPublisher, SolrPublisher
+from sdr_harvest.publisher import (
+    COMMIT_WITHIN_MS,
+    BatchPublishError,
+    CorpusPublisher,
+    PublicationItem,
+    SolrPublisher,
+)
 from sdr_harvest.state import STAGES, StateStore
 
 
@@ -548,29 +554,36 @@ class ConditionalCocinaTest(unittest.TestCase):
         self.assertEqual(metadata, json.loads(output.read_text()))
         self.assertFalse((version_dir / "traject-input").exists())
 
-    def test_publish_replaces_root_block_and_verifies_receipt(self):
+    def test_publish_batches_documents_without_a_hard_commit(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            version_dir = root / "version"
-            version_dir.mkdir()
-            document = {"id": DRUID, "child_count_i": 1, "_childDocuments_": [{"id": "child"}]}
-            (version_dir / "solr.json").write_text(json.dumps(document))
+            items = []
+            for druid in (DRUID, "bb005wc0080"):
+                version_dir = root / druid
+                version_dir.mkdir()
+                document = {
+                    "id": druid,
+                    "child_count_i": 1,
+                    "_childDocuments_": [{"id": f"{druid}-child"}],
+                }
+                (version_dir / "solr.json").write_text(json.dumps(document))
+                items.append(PublicationItem(druid, f"source-{druid}", version_dir))
             http = Mock()
             publisher = SolrPublisher(Settings(root, root, verify_tls=False), http)
             self.assertFalse(http.verify)
             update = Mock(status_code=200)
             update.json.return_value = {"responseHeader": {"status": 0}}
-            verify = Mock(status_code=200)
-            verify.json.return_value = {"response": {"docs": [{
-                "id": DRUID, "pipeline_fingerprint_ss": "source", "child_count_i": 1
-            }]}}
             http.post = Mock(return_value=update)
-            http.get = Mock(return_value=verify)
-            receipt = publisher.publish_document(DRUID, "source", version_dir)
-            payload = http.post.call_args.kwargs["json"]
-            self.assertEqual(["delete", "add", "commit"], list(payload))
-            self.assertEqual(f'_root_:"{DRUID}"', payload["delete"]["query"])
-            self.assertTrue(receipt.exists())
+            receipts = publisher.publish_batch(items)
+            request = http.post.call_args.kwargs
+            payload = request["data"].decode()
+            self.assertEqual(2, payload.count('"delete":'))
+            self.assertEqual(2, payload.count('"add":'))
+            self.assertNotIn('"commit":', payload)
+            self.assertEqual(COMMIT_WITHIN_MS, request["params"]["commitWithin"])
+            self.assertEqual(set(receipts), {item.druid for item in items})
+            self.assertTrue(all(receipt.exists() for receipt in receipts.values()))
+            http.get.assert_not_called()
 
     def test_corpus_publication_is_tracked_independently_per_target(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -596,37 +609,88 @@ class ConditionalCocinaTest(unittest.TestCase):
 
             receipt = version_dir / "receipt.json"
             receipt.write_text("{}")
+            def publish_items(items):
+                return {item.druid: receipt for item in items}
+
             with patch.object(
-                SolrPublisher, "publish_document", return_value=receipt
+                SolrPublisher, "publish_batch", side_effect=publish_items
             ) as publish:
                 staging_settings = Settings(
                     root, root, solr_url="https://staging.example/solr/core"
                 )
                 staging = CorpusPublisher(staging_settings, store)
-                staging_document = SolrPublisher(
+                staging_batch = SolrPublisher(
                     staging_settings, Mock()
-                ).publish_document
+                ).publish_batch
                 first = staging.publish(
-                    manifest, staging_document, show_progress=False
+                    manifest, staging_batch, show_progress=False
                 )
                 second = staging.publish(
-                    manifest, staging_document, show_progress=False
+                    manifest, staging_batch, show_progress=False
                 )
                 production_settings = Settings(
                     root, root, solr_url="https://production.example/solr/core"
                 )
                 production = CorpusPublisher(production_settings, store)
-                production_document = SolrPublisher(
+                production_batch = SolrPublisher(
                     production_settings, Mock()
-                ).publish_document
+                ).publish_batch
                 third = production.publish(
-                    manifest, production_document, show_progress=False
+                    manifest, production_batch, show_progress=False
                 )
 
             self.assertEqual(1, first["published"])
             self.assertEqual(1, second["skipped"])
             self.assertEqual(1, third["published"])
             self.assertEqual(2, publish.call_count)
+            store.close()
+
+    def test_document_error_splits_batch_and_preserves_per_object_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            druids = (DRUID, "bb005wc0080")
+            manifest = root / "manifest.csv"
+            manifest.write_text("identifier\n" + "\n".join(druids) + "\n")
+            store = StateStore(root / "state.sqlite3")
+            store.reconcile_manifest(set(druids))
+            for druid in druids:
+                store.set_source(druid, f"source-{druid}", "1", [])
+                version_dir = root / "versions" / druid / f"source-{druid}"
+                version_dir.mkdir(parents=True)
+                document = version_dir / "solr.json"
+                document.write_text(json.dumps({"id": druid, "child_count_i": 0}))
+                store.adopt_stage(
+                    druid,
+                    "document",
+                    "input",
+                    "output",
+                    SIGNATURES["document"],
+                    document,
+                )
+
+            batch_sizes = []
+
+            def publish_items(items):
+                batch_sizes.append(len(items))
+                if len(items) > 1:
+                    raise BatchPublishError("bad document", splittable=True)
+                receipt = items[0].version_dir / "receipt.json"
+                receipt.write_text("{}")
+                return {items[0].druid: receipt}
+
+            summary = CorpusPublisher(Settings(root, root), store).publish(
+                manifest, publish_items, show_progress=False
+            )
+
+            self.assertEqual([2, 1, 1], batch_sizes)
+            self.assertEqual(2, summary["published"])
+            self.assertEqual(0, summary["failed"])
+            for druid in druids:
+                publication = store.db.execute(
+                    "SELECT status,attempt_count FROM publications WHERE druid=?",
+                    (druid,),
+                ).fetchone()
+                self.assertEqual(("succeeded", 2), tuple(publication))
             store.close()
 
     def test_deterministic_failure_is_not_retried(self):
