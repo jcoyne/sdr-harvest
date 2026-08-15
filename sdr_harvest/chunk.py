@@ -9,13 +9,17 @@ import pyarrow.parquet as pq
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
+CHUNK_SIZE = 1_500
+CHUNK_OVERLAP = 200
+
+
 class Chunker:
     """Split extracted text and searchable metadata into Parquet rows."""
 
     def run(self, druid: str, version_dir: Path) -> Path:
         splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=50,
+            chunk_size=CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP,
             separators=["\n## ", "\n### ", "\n#### ", "\n\n", "\n", " ", ""],
         )
         rows: list[dict] = []

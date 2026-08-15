@@ -16,7 +16,7 @@ SIGNATURES = {
     "download": "download-v1-sha1",
     "metadata": "traject-sdr-config-v1",
     "extract": "pymupdf4llm-no-ocr-v1",
-    "chunk": "recursive-500-50-v1",
+    "chunk": "recursive-1500-200-v2",
     "embed": "gemini-embedding-2-768-v1",
     "document": "nested-solr-document-v1",
 }

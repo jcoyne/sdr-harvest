@@ -11,6 +11,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pyarrow.parquet as pq
+
 from sdr_harvest.cli import (
     RESOURCE_TRACKER_WARNING_FILTER,
     _configure_child_warning_filters,
@@ -19,6 +21,7 @@ from sdr_harvest.cli import (
     parser,
 )
 from sdr_harvest.attempts import StageAttempts
+from sdr_harvest.chunk import CHUNK_OVERLAP, CHUNK_SIZE, Chunker
 from sdr_harvest.core import (
     SIGNATURES,
     Settings,
@@ -110,6 +113,12 @@ class ManifestTest(unittest.TestCase):
 
 
 class FingerprintTest(unittest.TestCase):
+    def test_chunk_signature_records_current_splitter_parameters(self):
+        self.assertEqual(
+            f"recursive-{CHUNK_SIZE}-{CHUNK_OVERLAP}-v2",
+            SIGNATURES["chunk"],
+        )
+
     def test_extracts_pdf_identity_and_digests(self):
         files = cocina_pdf_files(cocina())
         self.assertEqual("example.pdf", files[0]["filename"])
@@ -122,6 +131,38 @@ class FingerprintTest(unittest.TestCase):
         changed_file = cocina(digest="def")
         self.assertNotEqual(source_fingerprint(first, cocina_pdf_files(first)), source_fingerprint(changed_metadata, cocina_pdf_files(changed_metadata)))
         self.assertNotEqual(source_fingerprint(first, cocina_pdf_files(first)), source_fingerprint(changed_file, cocina_pdf_files(changed_file)))
+
+
+class ChunkerTest(unittest.TestCase):
+    def test_uses_larger_overlapping_chunks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            (version_dir / "metadata.json").write_text(
+                json.dumps({"title_tesi": "Example"})
+            )
+            markdown = version_dir / "markdown"
+            markdown.mkdir()
+            markdown.joinpath("example.md").write_text(
+                " ".join(f"word-{index:04d}" for index in range(600))
+            )
+
+            table = Chunker().run(DRUID, version_dir)
+            rows = pq.read_table(table).to_pylist()
+            text_rows = [row for row in rows if row["file"] == "example.md"]
+
+            self.assertGreater(len(text_rows), 1)
+            self.assertTrue(
+                all(len(row["text"]) <= CHUNK_SIZE for row in text_rows)
+            )
+            self.assertTrue(
+                all(len(row["text"]) > CHUNK_OVERLAP for row in text_rows)
+            )
+            self.assertGreater(max(len(row["text"]) for row in text_rows), 1_000)
+            for first, second in zip(text_rows, text_rows[1:], strict=False):
+                self.assertTrue(
+                    set(first["text"].split()[-30:])
+                    & set(second["text"].split()[:30])
+                )
 
 
 class StateTest(unittest.TestCase):
