@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -11,6 +12,26 @@ from google.genai import types
 from .core import StageError, TransientStageError
 
 
+def retrieval_title(metadata: dict) -> str:
+    """Return the primary display title used to contextualize embeddings."""
+    value = metadata.get("title_display_tesi")
+    if isinstance(value, list):
+        value = next(
+            (
+                str(item).strip()
+                for item in value
+                if item is not None and str(item).strip()
+            ),
+            None,
+        )
+    return str(value).strip() if value else "none"
+
+
+def retrieval_document(title: str, text: str) -> str:
+    """Format text for gemini-embedding-2 asymmetric retrieval."""
+    return f"title: {title} | text: {text}"
+
+
 class Embedder:
     """Add Gemini embedding vectors to every chunk in an object."""
 
@@ -19,7 +40,13 @@ class Embedder:
         if not key:
             raise StageError("GEMINI_API_KEY is not set")
         table = pq.read_table(version_dir / "chunks.parquet")
-        texts = table.column("text").to_pylist()
+        title = retrieval_title(
+            json.loads((version_dir / "metadata.json").read_text())
+        )
+        texts = [
+            retrieval_document(title, text)
+            for text in table.column("text").to_pylist()
+        ]
         client = genai.Client(api_key=key)
         vectors: list[list[float]] = []
         for start in range(0, len(texts), 50):

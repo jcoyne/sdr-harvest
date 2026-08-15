@@ -67,6 +67,11 @@ Press Ctrl-C once to cancel queued work and exit. Running the command again
 resumes from completed stages. Use `--no-progress` for redirected logs or a
 scheduler.
 
+Document vectors use `gemini-embedding-2` at 768 dimensions and are formatted
+as `title: <title> | text: <chunk>`. A question-answering client must use the
+same model and dimensions and format query text as
+`task: question answering | query: <question>`.
+
 ## Inspect and retry failures
 
 Show every failure or inspect one object:

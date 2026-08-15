@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from sdr_harvest.cli import (
@@ -30,6 +31,7 @@ from sdr_harvest.core import (
     file_sha256,
     interruptible_thread_pool,
 )
+from sdr_harvest.embed import Embedder, retrieval_document, retrieval_title
 from sdr_harvest.manifests import (
     cocina_pdf_files,
     merge_manifests,
@@ -119,6 +121,23 @@ class FingerprintTest(unittest.TestCase):
             SIGNATURES["chunk"],
         )
 
+    def test_embedding_signature_records_retrieval_format(self):
+        self.assertEqual(
+            "gemini-embedding-2-768-retrieval-document-v2",
+            SIGNATURES["embed"],
+        )
+
+    def test_formats_embedding_text_for_asymmetric_retrieval(self):
+        metadata = {"title_display_tesi": ["Interview with John Lynch"]}
+        title = retrieval_title(metadata)
+
+        self.assertEqual("Interview with John Lynch", title)
+        self.assertEqual(
+            "title: Interview with John Lynch | text: Bill Walsh reviewed the film.",
+            retrieval_document(title, "Bill Walsh reviewed the film."),
+        )
+        self.assertEqual("none", retrieval_title({}))
+
     def test_extracts_pdf_identity_and_digests(self):
         files = cocina_pdf_files(cocina())
         self.assertEqual("example.pdf", files[0]["filename"])
@@ -163,6 +182,54 @@ class ChunkerTest(unittest.TestCase):
                     set(first["text"].split()[-30:])
                     & set(second["text"].split()[:30])
                 )
+
+
+class EmbedderTest(unittest.TestCase):
+    def test_sends_retrieval_formatted_text_and_preserves_raw_chunk_text(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            (version_dir / "metadata.json").write_text(
+                json.dumps({"title_display_tesi": ["Example title"]})
+            )
+            raw_texts = ["First raw chunk", "Second raw chunk"]
+            pq.write_table(
+                pa.Table.from_pylist(
+                    [
+                        {
+                            "object_id": DRUID,
+                            "file": "example.md",
+                            "chunk_index": index,
+                            "text": text,
+                        }
+                        for index, text in enumerate(raw_texts)
+                    ]
+                ),
+                version_dir / "chunks.parquet",
+            )
+            client = Mock()
+            client.models.embed_content.return_value = Mock(
+                embeddings=[Mock(values=[0.1] * 768) for _ in raw_texts]
+            )
+
+            with (
+                patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}),
+                patch("sdr_harvest.embed.genai.Client", return_value=client),
+            ):
+                output = Embedder().run(version_dir)
+
+            request = client.models.embed_content.call_args.kwargs
+            sent_texts = [content.parts[0].text for content in request["contents"]]
+            self.assertEqual(
+                [
+                    "title: Example title | text: First raw chunk",
+                    "title: Example title | text: Second raw chunk",
+                ],
+                sent_texts,
+            )
+            self.assertEqual(
+                raw_texts,
+                pq.read_table(output).column("text").to_pylist(),
+            )
 
 
 class StateTest(unittest.TestCase):

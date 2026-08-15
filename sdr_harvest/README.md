@@ -10,7 +10,7 @@ The Python implementation is separated by responsibility:
 | `download.py` | `FileDownloader` | Downloads and validates the PDF inventory declared by COCINA. |
 | `extract_text.py` | `TextExtractor` | Converts downloaded PDFs into Markdown. |
 | `chunk.py` | `Chunker` | Splits extracted text and searchable metadata into chunk rows. |
-| `embed.py` | `Embedder` | Adds Gemini vectors to all chunks for one object. |
+| `embed.py` | `Embedder` | Formats chunks for asymmetric retrieval and adds Gemini vectors. |
 | `create_solr_document.py` | `SolrDocumentBuilder` | Creates a nested parent/child Solr JSON document from embedded chunks. |
 | `publisher.py` | `CorpusPublisher`, `SolrPublisher` | Batches ready documents, tracks target-specific state, and sends accepted updates to Solr. |
 | `manifests.py` | Manifest and COCINA helper functions | Parses and merges manifests and derives source file identities. |
