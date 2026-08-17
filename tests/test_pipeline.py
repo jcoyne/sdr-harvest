@@ -206,30 +206,51 @@ class EmbedderTest(unittest.TestCase):
                 ),
                 version_dir / "chunks.parquet",
             )
-            client = Mock()
-            client.models.embed_content.return_value = Mock(
-                embeddings=[Mock(values=[0.1] * 768) for _ in raw_texts]
+            response = Mock(
+                status_code=200,
+                **{
+                    "json.return_value": {
+                        "data": [
+                            {"index": index, "embedding": [0.1] * 768}
+                            for index, _text in enumerate(raw_texts)
+                        ]
+                    }
+                },
             )
 
             with (
-                patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}),
-                patch("sdr_harvest.embed.genai.Client", return_value=client),
+                patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
+                patch("sdr_harvest.embed.requests.post", return_value=response) as post,
             ):
                 output = Embedder().run(version_dir)
 
-            request = client.models.embed_content.call_args.kwargs
-            sent_texts = [content.parts[0].text for content in request["contents"]]
+            request = post.call_args.kwargs
+            self.assertEqual(
+                "https://dlss-aigateway-prod.stanford.edu/v1/embeddings",
+                post.call_args.args[0],
+            )
+            self.assertEqual(
+                {"Authorization": "Bearer test-key"}, request["headers"]
+            )
+            self.assertEqual("gemini-embedding-2", request["json"]["model"])
+            self.assertEqual(768, request["json"]["dimensions"])
             self.assertEqual(
                 [
                     "title: Example title | text: First raw chunk",
                     "title: Example title | text: Second raw chunk",
                 ],
-                sent_texts,
+                request["json"]["input"],
             )
             self.assertEqual(
                 raw_texts,
                 pq.read_table(output).column("text").to_pylist(),
             )
+
+    def test_requires_litellm_api_key(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(StageError, "LITELLM_API_KEY is not set"):
+                    Embedder().run(Path(directory))
 
 
 class StateTest(unittest.TestCase):

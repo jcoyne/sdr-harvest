@@ -6,21 +6,20 @@ separate command.
 
 ## Quick start
 
-Install dependencies and make sure requests use the normal Gemini endpoint:
+Install dependencies:
 
 ```shell
 uv sync
-unset GOOGLE_GEMINI_BASE_URL
 ```
 
 Build the corpus, inspect failures, and retry them:
 
 ```shell
-GEMINI_API_KEY=<key> uv run sdr-harvest run \
+LITELLM_API_KEY=<key> uv run sdr-harvest run \
   --manifest manifest.csv --workers 7
 
 uv run sdr-harvest status --failed
-GEMINI_API_KEY=<key> uv run sdr-harvest retry --failed
+LITELLM_API_KEY=<key> uv run sdr-harvest retry --failed
 ```
 
 Building creates local Solr JSON documents. It does not write to Solr. Use the
@@ -53,7 +52,7 @@ uv run sdr-harvest plan --manifest manifest.csv
 The main build command is:
 
 ```shell
-GEMINI_API_KEY=<key> uv run sdr-harvest run \
+LITELLM_API_KEY=<key> uv run sdr-harvest run \
   --manifest manifest.csv --workers 7
 ```
 
@@ -67,9 +66,10 @@ Press Ctrl-C once to cancel queued work and exit. Running the command again
 resumes from completed stages. Use `--no-progress` for redirected logs or a
 scheduler.
 
-Document vectors use `gemini-embedding-2` at 768 dimensions and are formatted
-as `title: <title> | text: <chunk>`. A question-answering client must use the
-same model and dimensions and format query text as
+Document vectors are requested from the Stanford LiteLLM gateway using
+`gemini-embedding-2` at 768 dimensions and are formatted as
+`title: <title> | text: <chunk>`. A question-answering client must use the same
+model and dimensions and format query text as
 `task: question answering | query: <question>`.
 
 ## Inspect and retry failures
@@ -85,13 +85,13 @@ Transient service and network failures are retried automatically. Remaining
 failures can be retried together:
 
 ```shell
-GEMINI_API_KEY=<key> uv run sdr-harvest retry --failed
+LITELLM_API_KEY=<key> uv run sdr-harvest retry --failed
 ```
 
 To deliberately rebuild one object from a particular stage:
 
 ```shell
-GEMINI_API_KEY=<key> uv run sdr-harvest rebuild \
+LITELLM_API_KEY=<key> uv run sdr-harvest rebuild \
   --druid zd240tq9137 --from extract
 ```
 
@@ -133,7 +133,7 @@ uv run sdr-harvest publish \
 
 Staging and production have independent publication records, so success on
 staging does not cause production to be skipped. Publishing uses the documents
-already built and does not require a Gemini key.
+already built and does not require a LiteLLM key.
 
 When publishing through a trusted local SSH tunnel, a `localhost` URL will not
 match the certificate issued to the remote Solr hostname. TLS verification can
