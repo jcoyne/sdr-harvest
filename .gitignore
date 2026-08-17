@@ -1,3 +1,4 @@
+solr_data/
 *.log
 .sdr-harvest/
 *.egg-info/
