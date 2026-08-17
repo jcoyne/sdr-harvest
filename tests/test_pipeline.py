@@ -31,7 +31,13 @@ from sdr_harvest.core import (
     file_sha256,
     interruptible_thread_pool,
 )
-from sdr_harvest.embed import Embedder, retrieval_document, retrieval_title
+from sdr_harvest.embed import (
+    ERROR_BODY_LIMIT,
+    Embedder,
+    http_error_message,
+    retrieval_document,
+    retrieval_title,
+)
 from sdr_harvest.manifests import (
     cocina_pdf_files,
     merge_manifests,
@@ -185,6 +191,36 @@ class ChunkerTest(unittest.TestCase):
 
 
 class EmbedderTest(unittest.TestCase):
+    def test_http_error_includes_body_and_rate_limit_headers(self):
+        response = Mock(
+            status_code=429,
+            headers={
+                "Retry-After": "30",
+                "X-Request-ID": "request-123",
+                "X-LiteLLM-Call-ID": "call-456",
+            },
+            text='{"error":{"message":"rate limit exceeded"}}',
+        )
+
+        self.assertEqual(
+            "LiteLLM HTTP 429; Retry-After=30; X-Request-ID=request-123; "
+            "X-LiteLLM-Call-ID=call-456; "
+            'body={"error":{"message":"rate limit exceeded"}}',
+            http_error_message(response),
+        )
+
+    def test_http_error_truncates_large_response_body(self):
+        response = Mock(
+            status_code=500,
+            headers={},
+            text="x" * (ERROR_BODY_LIMIT + 1),
+        )
+
+        message = http_error_message(response)
+
+        self.assertIn("x" * ERROR_BODY_LIMIT, message)
+        self.assertTrue(message.endswith("... [truncated]"))
+
     def test_sends_retrieval_formatted_text_and_preserves_raw_chunk_text(self):
         with tempfile.TemporaryDirectory() as directory:
             version_dir = Path(directory)

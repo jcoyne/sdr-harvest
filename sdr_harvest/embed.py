@@ -14,6 +14,28 @@ from .core import StageError, TransientStageError
 LITELLM_BASE_URL = "https://dlss-aigateway-prod.stanford.edu/v1"
 EMBEDDING_MODEL = "gemini-embedding-2"
 EMBEDDING_DIMENSIONS = 768
+ERROR_BODY_LIMIT = 2_000
+
+
+def http_error_message(response: requests.Response) -> str:
+    """Describe a LiteLLM error without allowing an unbounded log entry."""
+    details = [f"LiteLLM HTTP {response.status_code}"]
+    for header in (
+        "Retry-After",
+        "X-Request-ID",
+        "X-LiteLLM-Request-ID",
+        "X-LiteLLM-Call-ID",
+        "X-Correlation-ID",
+    ):
+        if value := response.headers.get(header):
+            details.append(f"{header}={value}")
+
+    body = response.text.strip()
+    if len(body) > ERROR_BODY_LIMIT:
+        body = f"{body[:ERROR_BODY_LIMIT]}... [truncated]"
+    if body:
+        details.append(f"body={body}")
+    return "; ".join(details)
 
 
 def retrieval_title(metadata: dict) -> str:
@@ -68,9 +90,9 @@ class Embedder:
                 raise TransientStageError(str(exc)) from exc
 
             if response.status_code == 429 or response.status_code >= 500:
-                raise TransientStageError(f"LiteLLM HTTP {response.status_code}")
+                raise TransientStageError(http_error_message(response))
             if response.status_code >= 400:
-                raise StageError(f"LiteLLM HTTP {response.status_code}")
+                raise StageError(http_error_message(response))
 
             try:
                 data = response.json()["data"]
