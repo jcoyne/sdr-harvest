@@ -76,6 +76,11 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--druid", action="append", default=[])
             command.add_argument("--workers", type=int, default=4)
             command.add_argument(
+                "--keep-failed-downloads",
+                action="store_true",
+                help="retain downloads that fail integrity checks as .invalid files",
+            )
+            command.add_argument(
                 "--no-progress", action="store_true", help="disable progress bars"
             )
     status = commands.add_parser("status")
@@ -88,6 +93,11 @@ def parser() -> argparse.ArgumentParser:
     retry.add_argument("--manifest", type=Path)
     retry.add_argument("--workers", type=int, default=4)
     retry.add_argument(
+        "--keep-failed-downloads",
+        action="store_true",
+        help="retain downloads that fail integrity checks as .invalid files",
+    )
+    retry.add_argument(
         "--no-progress", action="store_true", help="disable progress bars"
     )
     rebuild = commands.add_parser("rebuild")
@@ -95,6 +105,11 @@ def parser() -> argparse.ArgumentParser:
     rebuild.add_argument("--from", dest="from_stage", choices=STAGES, default="cocina")
     rebuild.add_argument("--manifest", type=Path)
     rebuild.add_argument("--workers", type=int, default=4)
+    rebuild.add_argument(
+        "--keep-failed-downloads",
+        action="store_true",
+        help="retain downloads that fail integrity checks as .invalid files",
+    )
     rebuild.add_argument(
         "--no-progress", action="store_true", help="disable progress bars"
     )
@@ -123,6 +138,7 @@ def _settings(root: Path, args) -> Settings:
         solr_url=getattr(args, "target", None) or args.solr_url,
         verify_tls=not getattr(args, "insecure", False),
         workers=max(1, getattr(args, "workers", 4)),
+        keep_failed_downloads=getattr(args, "keep_failed_downloads", False),
         publish_batch_size=max(1, getattr(args, "batch_size", 25)),
         publish_max_batch_bytes=max(
             1, int(getattr(args, "max_batch_mb", 25) * 1024 * 1024)

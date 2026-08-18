@@ -76,6 +76,7 @@ class Settings:
     verify_tls: bool = True
     workers: int = 4
     max_retries: int = 5
+    keep_failed_downloads: bool = False
     publish_batch_size: int = 25
     publish_max_batch_bytes: int = 25 * 1024 * 1024
 

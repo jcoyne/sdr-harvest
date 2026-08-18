@@ -1,5 +1,6 @@
 from contextlib import redirect_stderr, redirect_stdout
 
+import hashlib
 import io
 import json
 import os
@@ -33,6 +34,7 @@ from sdr_harvest.core import (
     file_sha256,
     interruptible_thread_pool,
 )
+from sdr_harvest.download import FileDownloader
 from sdr_harvest.embed import (
     EMBEDDING_CONCURRENCY,
     ERROR_BODY_LIMIT,
@@ -205,6 +207,104 @@ class FingerprintTest(unittest.TestCase):
         changed_file = cocina(digest="def")
         self.assertNotEqual(source_fingerprint(first, cocina_pdf_files(first)), source_fingerprint(changed_metadata, cocina_pdf_files(changed_metadata)))
         self.assertNotEqual(source_fingerprint(first, cocina_pdf_files(first)), source_fingerprint(changed_file, cocina_pdf_files(changed_file)))
+
+
+class StreamingResponse:
+    def __init__(self, content: bytes, status_code: int = 200):
+        self.content = content
+        self.status_code = status_code
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def iter_content(self, chunk_size: int):
+        for start in range(0, len(self.content), chunk_size):
+            yield self.content[start : start + chunk_size]
+
+
+class FileDownloaderTest(unittest.TestCase):
+    def file_info(self, content: bytes) -> dict:
+        return {
+            "filename": "example.pdf",
+            "size": len(content),
+            "sha1": hashlib.sha1(content).hexdigest(),
+            "md5": hashlib.md5(content).hexdigest(),
+        }
+
+    def test_streams_and_validates_download(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            content = b"pdf content"
+            http = Mock()
+            http.get.return_value = StreamingResponse(content)
+
+            output = FileDownloader(http).run(
+                DRUID, [self.file_info(content)], version_dir
+            )
+
+            self.assertEqual(content, output.joinpath("example.pdf").read_bytes())
+            http.get.assert_called_once_with(
+                f"https://stacks.stanford.edu/file/{DRUID}/example.pdf",
+                timeout=120,
+                stream=True,
+            )
+
+    def test_mismatch_reports_all_expected_and_actual_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            expected = b"expected"
+            actual = b"different content"
+            http = Mock()
+            http.get.return_value = StreamingResponse(actual)
+
+            with self.assertRaisesRegex(
+                StageError, "Download integrity mismatch"
+            ) as raised:
+                FileDownloader(http).run(
+                    DRUID, [self.file_info(expected)], version_dir
+                )
+
+            message = str(raised.exception)
+            self.assertIn(
+                f"size expected={len(expected)} actual={len(actual)}", message
+            )
+            self.assertIn(
+                f"SHA-1 expected={hashlib.sha1(expected).hexdigest()} "
+                f"actual={hashlib.sha1(actual).hexdigest()}",
+                message,
+            )
+            self.assertIn(
+                f"MD5 expected={hashlib.md5(expected).hexdigest()} "
+                f"actual={hashlib.md5(actual).hexdigest()}",
+                message,
+            )
+            self.assertIn("invalid_file=deleted", message)
+            self.assertFalse(
+                version_dir.joinpath("pdfs", "example.pdf.tmp").exists()
+            )
+            self.assertFalse(
+                version_dir.joinpath("pdfs", "example.pdf.invalid").exists()
+            )
+
+    def test_can_retain_invalid_download(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            expected = b"expected"
+            actual = b"different content"
+            http = Mock()
+            http.get.return_value = StreamingResponse(actual)
+
+            with self.assertRaises(StageError) as raised:
+                FileDownloader(http, keep_failed_downloads=True).run(
+                    DRUID, [self.file_info(expected)], version_dir
+                )
+
+            invalid = version_dir / "pdfs" / "example.pdf.invalid"
+            self.assertEqual(actual, invalid.read_bytes())
+            self.assertIn(f"invalid_file={invalid}", str(raised.exception))
 
 
 class ChunkerTest(unittest.TestCase):
@@ -680,6 +780,21 @@ class InterruptTest(unittest.TestCase):
 
 
 class CliErrorTest(unittest.TestCase):
+    def test_build_can_retain_failed_downloads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args = parser().parse_args(
+                [
+                    "run",
+                    "--manifest",
+                    "manifest.csv",
+                    "--keep-failed-downloads",
+                ]
+            )
+            args.state_dir = root / "state"
+
+            self.assertTrue(_settings(root, args).keep_failed_downloads)
+
     def test_publish_insecure_disables_tls_verification(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

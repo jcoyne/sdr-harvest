@@ -93,6 +93,13 @@ failures can be retried together:
 LITELLM_API_KEY=<key> uv run sdr-harvest retry --failed
 ```
 
+PDF downloads are streamed to disk and checked against the size, SHA-1, and
+MD5 declared by COCINA. Integrity failures report every expected and calculated
+value. The invalid download is deleted by default; retain it for diagnosis by
+adding `--keep-failed-downloads` to `run`, `retry`, or `rebuild`. Retained files
+are stored beside the intended PDF with an `.invalid` suffix and can be very
+large.
+
 To deliberately rebuild one object from a particular stage:
 
 ```shell

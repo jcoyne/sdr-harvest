@@ -269,7 +269,10 @@ class Pipeline:
         metadata = MetadataFetcher(
             self.settings, self.store, self.http, attempts
         )
-        downloader = FileDownloader(self.http)
+        downloader = FileDownloader(
+            self.http,
+            keep_failed_downloads=self.settings.keep_failed_downloads,
+        )
         extractor = TextExtractor()
         chunker = Chunker()
         embedder = Embedder()
