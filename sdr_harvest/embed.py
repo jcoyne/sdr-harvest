@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from pathlib import Path
+from threading import BoundedSemaphore
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -14,7 +16,9 @@ from .core import StageError, TransientStageError
 LITELLM_BASE_URL = "https://dlss-aigateway-prod.stanford.edu/v1"
 EMBEDDING_MODEL = "gemini-embedding-2"
 EMBEDDING_DIMENSIONS = 768
+EMBEDDING_CONCURRENCY = 4
 ERROR_BODY_LIMIT = 2_000
+_embedding_slots = BoundedSemaphore(EMBEDDING_CONCURRENCY)
 
 
 def http_error_message(response: requests.Response) -> str:
@@ -61,20 +65,9 @@ def retrieval_document(title: str, text: str) -> str:
 class Embedder:
     """Add Gemini embedding vectors to every chunk in an object."""
 
-    def run(self, version_dir: Path) -> Path:
-        key = os.environ.get("LITELLM_API_KEY")
-        if not key:
-            raise StageError("LITELLM_API_KEY is not set")
-        table = pq.read_table(version_dir / "chunks.parquet")
-        title = retrieval_title(
-            json.loads((version_dir / "metadata.json").read_text())
-        )
-        texts = [
-            retrieval_document(title, text)
-            for text in table.column("text").to_pylist()
-        ]
-        vectors: list[list[float]] = []
-        for text in texts:
+    def embed_text(self, text: str, key: str) -> list[float]:
+        """Request and validate one embedding while respecting the global limit."""
+        with _embedding_slots:
             try:
                 response = requests.post(
                     f"{LITELLM_BASE_URL}/embeddings",
@@ -94,22 +87,44 @@ class Embedder:
             if response.status_code >= 400:
                 raise StageError(http_error_message(response))
 
-            try:
-                data = response.json()["data"]
-                if len(data) != 1:
-                    raise StageError(
-                        "LiteLLM returned "
-                        f"{len(data)} embeddings for one input"
-                    )
-                vector = list(map(float, data[0]["embedding"]))
-            except (KeyError, TypeError, ValueError) as exc:
-                raise StageError("LiteLLM embedding response was invalid") from exc
-            if len(vector) != EMBEDDING_DIMENSIONS:
+        try:
+            data = response.json()["data"]
+            if len(data) != 1:
                 raise StageError(
-                    f"LiteLLM returned a {len(vector)}-dimensional embedding; "
-                    f"expected {EMBEDDING_DIMENSIONS}"
+                    "LiteLLM returned "
+                    f"{len(data)} embeddings for one input"
                 )
-            vectors.append(vector)
+            vector = list(map(float, data[0]["embedding"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise StageError("LiteLLM embedding response was invalid") from exc
+        if len(vector) != EMBEDDING_DIMENSIONS:
+            raise StageError(
+                f"LiteLLM returned a {len(vector)}-dimensional embedding; "
+                f"expected {EMBEDDING_DIMENSIONS}"
+            )
+        return vector
+
+    def run(self, version_dir: Path) -> Path:
+        key = os.environ.get("LITELLM_API_KEY")
+        if not key:
+            raise StageError("LITELLM_API_KEY is not set")
+        table = pq.read_table(version_dir / "chunks.parquet")
+        title = retrieval_title(
+            json.loads((version_dir / "metadata.json").read_text())
+        )
+        texts = [
+            retrieval_document(title, text)
+            for text in table.column("text").to_pylist()
+        ]
+        executor = ThreadPoolExecutor(max_workers=EMBEDDING_CONCURRENCY)
+        futures = [executor.submit(self.embed_text, text, key) for text in texts]
+        try:
+            done, _pending = wait(futures, return_when=FIRST_EXCEPTION)
+            for future in done:
+                future.result()
+            vectors = [future.result() for future in futures]
+        finally:
+            executor.shutdown(wait=True, cancel_futures=True)
 
         output = version_dir / "embeddings.parquet"
         output_table = table.append_column(

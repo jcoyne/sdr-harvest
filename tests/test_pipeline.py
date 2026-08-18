@@ -5,6 +5,8 @@ import json
 import os
 import sqlite3
 import tempfile
+import threading
+import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
@@ -32,6 +34,7 @@ from sdr_harvest.core import (
     interruptible_thread_pool,
 )
 from sdr_harvest.embed import (
+    EMBEDDING_CONCURRENCY,
     ERROR_BODY_LIMIT,
     Embedder,
     http_error_message,
@@ -302,28 +305,28 @@ class EmbedderTest(unittest.TestCase):
             ):
                 output = Embedder().run(version_dir)
 
-            requests = post.call_args_list
-            self.assertEqual(2, len(requests))
+            calls = post.call_args_list
+            self.assertEqual(2, len(calls))
             self.assertEqual(
                 "https://dlss-aigateway-prod.stanford.edu/v1/embeddings",
-                requests[0].args[0],
+                calls[0].args[0],
             )
             self.assertEqual(
                 {"Authorization": "Bearer test-key"},
-                requests[0].kwargs["headers"],
+                calls[0].kwargs["headers"],
             )
-            self.assertEqual(
+            self.assertCountEqual(
                 [
                     "title: Example title | text: First raw chunk",
                     "title: Example title | text: Second raw chunk",
                 ],
-                [request.kwargs["json"]["input"] for request in requests],
+                [call.kwargs["json"]["input"] for call in calls],
             )
-            for request in requests:
+            for call in calls:
                 self.assertEqual(
-                    "gemini-embedding-2", request.kwargs["json"]["model"]
+                    "gemini-embedding-2", call.kwargs["json"]["model"]
                 )
-                self.assertEqual(768, request.kwargs["json"]["dimensions"])
+                self.assertEqual(768, call.kwargs["json"]["dimensions"])
             self.assertEqual(
                 raw_texts,
                 pq.read_table(output).column("text").to_pylist(),
@@ -357,6 +360,49 @@ class EmbedderTest(unittest.TestCase):
                 ),
             ):
                 Embedder().run(version_dir)
+
+    def test_limits_embedding_concurrency_across_objects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            roots = [Path(directory) / name for name in ("first", "second")]
+            for root in roots:
+                root.mkdir()
+                (root / "metadata.json").write_text("{}")
+                pq.write_table(
+                    pa.Table.from_pylist(
+                        [{"text": f"chunk-{index}"} for index in range(8)]
+                    ),
+                    root / "chunks.parquet",
+                )
+
+            lock = threading.Lock()
+            active = 0
+            maximum_active = 0
+
+            def post(*_args, **_kwargs):
+                nonlocal active, maximum_active
+                with lock:
+                    active += 1
+                    maximum_active = max(maximum_active, active)
+                time.sleep(0.01)
+                with lock:
+                    active -= 1
+                return Mock(
+                    status_code=200,
+                    **{
+                        "json.return_value": {
+                            "data": [{"index": 0, "embedding": [0.1] * 768}]
+                        }
+                    },
+                )
+
+            with (
+                patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
+                patch("sdr_harvest.embed.requests.post", side_effect=post),
+                ThreadPoolExecutor(max_workers=2) as executor,
+            ):
+                list(executor.map(Embedder().run, roots))
+
+            self.assertEqual(EMBEDDING_CONCURRENCY, maximum_active)
 
     def test_requires_litellm_api_key(self):
         with tempfile.TemporaryDirectory() as directory:
