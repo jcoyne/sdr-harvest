@@ -149,6 +149,51 @@ class FingerprintTest(unittest.TestCase):
         self.assertEqual("example.pdf", files[0]["filename"])
         self.assertEqual("abc", files[0]["sha1"])
 
+    def test_prefers_object_pdf_over_page_pdfs(self):
+        data = cocina()
+        data["structural"]["contains"] = [
+            {
+                "type": "https://cocina.sul.stanford.edu/models/resources/page",
+                "structural": {
+                    "contains": [
+                        {
+                            "externalIdentifier": "file:page-1",
+                            "filename": "page-1.pdf",
+                            "hasMimeType": "application/pdf",
+                        }
+                    ]
+                },
+            },
+            {
+                "type": "https://cocina.sul.stanford.edu/models/resources/object",
+                "structural": {
+                    "contains": [
+                        {
+                            "externalIdentifier": "file:full",
+                            "filename": "full-document.pdf",
+                            "hasMimeType": "application/pdf",
+                        }
+                    ]
+                },
+            },
+        ]
+
+        self.assertEqual(
+            ["full-document.pdf"],
+            [file["filename"] for file in cocina_pdf_files(data)],
+        )
+
+    def test_keeps_page_pdfs_when_no_object_pdf_exists(self):
+        data = cocina()
+        data["structural"]["contains"][0]["type"] = (
+            "https://cocina.sul.stanford.edu/models/resources/page"
+        )
+
+        self.assertEqual(
+            ["example.pdf"],
+            [file["filename"] for file in cocina_pdf_files(data)],
+        )
+
     def test_metadata_and_file_changes_alter_source_fingerprint(self):
         first = cocina()
         changed_metadata = cocina()

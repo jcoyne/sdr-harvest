@@ -70,9 +70,31 @@ class MetadataFetcher:
         source_log = EventLog(
             self.settings.state_dir / "logs" / str(run_id) / druid / "cocina.jsonl"
         )
+
+        def read_cached_source() -> tuple[dict, list[dict], str]:
+            data = json.loads(path.read_text())
+            files = cocina_pdf_files(data)
+            return data, files, source_fingerprint(data, files)
+
         if cache_is_valid and cocina_checked_recently(stored["source_checked_at"]):
-            source_fp = stored["source_fingerprint"]
-            files = self.store.source_files(druid)
+            data, files, source_fp = read_cached_source()
+            if source_fp != stored["source_fingerprint"]:
+                self.store.set_source(
+                    druid,
+                    source_fp,
+                    str(data.get("version")),
+                    files,
+                    etag=stored["source_etag"],
+                    last_modified=stored["source_last_modified"],
+                    cache_sha256=stored["source_cache_sha256"],
+                )
+                source_log.write(
+                    run_id=run_id,
+                    druid=druid,
+                    stage="cocina",
+                    event="source_inventory_changed",
+                    source_fingerprint=source_fp,
+                )
             self.store.adopt_stage(
                 druid,
                 "cocina",
@@ -151,12 +173,15 @@ class MetadataFetcher:
             fetch,
         )
         if outcome["not_modified"]:
-            source_fp = stored["source_fingerprint"]
-            files = self.store.source_files(druid)
-            self.store.touch_source(
+            data, files, source_fp = read_cached_source()
+            source_changed = self.store.set_source(
                 druid,
+                source_fp,
+                str(data.get("version")),
+                files,
                 etag=outcome.get("etag"),
                 last_modified=outcome.get("last_modified"),
+                cache_sha256=stored["source_cache_sha256"],
             )
             source_log.write(
                 run_id=run_id,
@@ -164,6 +189,7 @@ class MetadataFetcher:
                 stage="cocina",
                 event="source_not_modified",
                 etag=outcome.get("etag") or stored["source_etag"],
+                source_changed=source_changed,
             )
         else:
             data = outcome["data"]

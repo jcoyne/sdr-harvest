@@ -59,8 +59,11 @@ def merge_manifests(inputs: list[Path], output: Path) -> dict:
 def cocina_pdf_files(data: dict) -> list[dict]:
     found: list[dict] = []
 
-    def visit(node: object) -> None:
+    def visit(node: object, resource_type: str | None = None) -> None:
         if isinstance(node, dict):
+            node_type = str(node.get("type", ""))
+            if "/models/resources/" in node_type:
+                resource_type = node_type.rsplit("/", 1)[-1]
             if node.get("hasMimeType", "").lower() == "application/pdf" and node.get(
                 "filename"
             ):
@@ -82,15 +85,20 @@ def cocina_pdf_files(data: dict) -> list[dict]:
                         ),
                         "sha1": digests.get("sha1"),
                         "md5": digests.get("md5"),
+                        "_resource_type": resource_type,
                     }
                 )
             for value in node.values():
-                visit(value)
+                visit(value, resource_type)
         elif isinstance(node, list):
             for value in node:
-                visit(value)
+                visit(value, resource_type)
 
     visit(data.get("structural", {}))
+    if any(item["_resource_type"] == "object" for item in found):
+        found = [item for item in found if item["_resource_type"] != "page"]
+    for item in found:
+        del item["_resource_type"]
     return sorted(found, key=lambda item: (item["filename"], item["file_id"]))
 
 
