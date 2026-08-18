@@ -66,10 +66,10 @@ Press Ctrl-C once to cancel queued work and exit. Running the command again
 resumes from completed stages. Use `--no-progress` for redirected logs or a
 scheduler.
 
-Document vectors are requested from the Stanford LiteLLM gateway using
-`gemini-embedding-2` at 768 dimensions and are formatted as
-`title: <title> | text: <chunk>`. A question-answering client must use the same
-model and dimensions and format query text as
+Document vectors are requested in batches of up to 100 from the Stanford
+LiteLLM Gemini API passthrough using `gemini-embedding-2` at 768 dimensions.
+Inputs are formatted as `title: <title> | text: <chunk>`. A question-answering
+client must use the same model and dimensions and format query text as
 `task: question answering | query: <question>`.
 
 Each completed vector is checkpointed in the object's version directory. If an

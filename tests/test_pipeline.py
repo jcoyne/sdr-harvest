@@ -36,6 +36,7 @@ from sdr_harvest.core import (
 )
 from sdr_harvest.download import FileDownloader
 from sdr_harvest.embed import (
+    EMBEDDING_BATCH_SIZE,
     EMBEDDING_CONCURRENCY,
     ERROR_BODY_LIMIT,
     Embedder,
@@ -407,7 +408,10 @@ class EmbedderTest(unittest.TestCase):
                 status_code=200,
                 **{
                     "json.return_value": {
-                        "data": [{"index": 0, "embedding": [0.1] * 768}]
+                        "embeddings": [
+                            {"values": [0.1] * 768},
+                            {"values": [0.2] * 768},
+                        ]
                     }
                 },
             )
@@ -419,33 +423,47 @@ class EmbedderTest(unittest.TestCase):
                 output = Embedder().run(version_dir)
 
             calls = post.call_args_list
-            self.assertEqual(2, len(calls))
+            self.assertEqual(1, len(calls))
             self.assertEqual(
-                "https://dlss-aigateway-prod.stanford.edu/v1/embeddings",
+                "https://dlss-aigateway-prod.stanford.edu/gemini/v1beta/models/"
+                "gemini-embedding-2:batchEmbedContents",
                 calls[0].args[0],
             )
             self.assertEqual(
-                {"Authorization": "Bearer test-key"},
+                {"key": "test-key"},
+                calls[0].kwargs["params"],
+            )
+            self.assertEqual(
+                {"Content-Type": "application/json"},
                 calls[0].kwargs["headers"],
             )
-            self.assertCountEqual(
+            requests = calls[0].kwargs["json"]["requests"]
+            self.assertEqual(
                 [
                     "title: Example title | text: First raw chunk",
                     "title: Example title | text: Second raw chunk",
                 ],
-                [call.kwargs["json"]["input"] for call in calls],
+                [item["content"]["parts"][0]["text"] for item in requests],
             )
-            for call in calls:
+            for item in requests:
                 self.assertEqual(
-                    "gemini-embedding-2", call.kwargs["json"]["model"]
+                    "models/gemini-embedding-2", item["model"]
                 )
-                self.assertEqual(768, call.kwargs["json"]["dimensions"])
+                self.assertEqual(768, item["outputDimensionality"])
             self.assertEqual(
                 raw_texts,
                 pq.read_table(output).column("text").to_pylist(),
             )
+            vector_starts = [
+                vector[0]
+                for vector in pq.read_table(output)
+                .column("embedding")
+                .to_pylist()
+            ]
+            self.assertAlmostEqual(0.1, vector_starts[0])
+            self.assertAlmostEqual(0.2, vector_starts[1])
 
-    def test_rejects_multiple_embeddings_for_one_input(self):
+    def test_rejects_wrong_embedding_count_for_batch(self):
         with tempfile.TemporaryDirectory() as directory:
             version_dir = Path(directory)
             (version_dir / "metadata.json").write_text("{}")
@@ -457,9 +475,9 @@ class EmbedderTest(unittest.TestCase):
                 status_code=200,
                 **{
                     "json.return_value": {
-                        "data": [
-                            {"index": 0, "embedding": [0.1] * 768},
-                            {"index": 1, "embedding": [0.2] * 768},
+                        "embeddings": [
+                            {"values": [0.1] * 768},
+                            {"values": [0.2] * 768},
                         ]
                     }
                 },
@@ -469,10 +487,36 @@ class EmbedderTest(unittest.TestCase):
                 patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
                 patch("sdr_harvest.embed.requests.post", return_value=response),
                 self.assertRaisesRegex(
-                    StageError, "LiteLLM returned 2 embeddings for one input"
+                    StageError, "LiteLLM returned 2 embeddings for 1 inputs"
                 ),
             ):
                 Embedder().run(version_dir)
+
+    def test_splits_missing_embeddings_into_bounded_batches(self):
+        texts = [f"chunk-{index}" for index in range(EMBEDDING_BATCH_SIZE * 2 + 1)]
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            (version_dir / "metadata.json").write_text("{}")
+            pq.write_table(
+                pa.Table.from_pylist([{"text": text} for text in texts]),
+                version_dir / "chunks.parquet",
+            )
+
+            def embed_batch(batch, _key):
+                return [[0.1] * 768 for _text in batch]
+
+            with (
+                patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
+                patch.object(
+                    Embedder, "embed_batch", side_effect=embed_batch
+                ) as embed_batch_call,
+            ):
+                Embedder().run(version_dir)
+
+            self.assertCountEqual(
+                [EMBEDDING_BATCH_SIZE, EMBEDDING_BATCH_SIZE, 1],
+                [len(call.args[0]) for call in embed_batch_call.call_args_list],
+            )
 
     def test_limits_embedding_concurrency_across_objects(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -503,7 +547,10 @@ class EmbedderTest(unittest.TestCase):
                     status_code=200,
                     **{
                         "json.return_value": {
-                            "data": [{"index": 0, "embedding": [0.1] * 768}]
+                            "embeddings": [
+                                {"values": [0.1] * 768}
+                                for _text in _kwargs["json"]["requests"]
+                            ]
                         }
                     },
                 )
@@ -511,6 +558,7 @@ class EmbedderTest(unittest.TestCase):
             with (
                 patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
                 patch("sdr_harvest.embed.requests.post", side_effect=post),
+                patch("sdr_harvest.embed.EMBEDDING_BATCH_SIZE", 2),
                 ThreadPoolExecutor(max_workers=2) as executor,
             ):
                 list(executor.map(Embedder().run, roots))
@@ -528,34 +576,36 @@ class EmbedderTest(unittest.TestCase):
                 version_dir / "chunks.parquet",
             )
 
-            def fail_last(text, _key):
-                index = int(text.rsplit("-", 1)[-1])
+            def fail_last(texts, _key):
+                index = int(texts[0].rsplit("-", 1)[-1])
                 if index == 2:
                     time.sleep(0.03)
                     raise TransientStageError("try again")
-                return [float(index)] * 768
+                return [[float(index)] * 768]
 
             with (
                 patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
-                patch.object(Embedder, "embed_text", side_effect=fail_last),
+                patch("sdr_harvest.embed.EMBEDDING_BATCH_SIZE", 1),
+                patch.object(Embedder, "embed_batch", side_effect=fail_last),
                 self.assertRaises(TransientStageError),
             ):
                 Embedder().run(version_dir)
 
-            def complete(text, _key):
-                index = int(text.rsplit("-", 1)[-1])
-                return [float(index)] * 768
+            def complete(texts, _key):
+                index = int(texts[0].rsplit("-", 1)[-1])
+                return [[float(index)] * 768]
 
             with (
                 patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
+                patch("sdr_harvest.embed.EMBEDDING_BATCH_SIZE", 1),
                 patch.object(
-                    Embedder, "embed_text", side_effect=complete
-                ) as embed_text,
+                    Embedder, "embed_batch", side_effect=complete
+                ) as embed_batch,
             ):
                 output = Embedder().run(version_dir)
 
-            embed_text.assert_called_once()
-            self.assertIn("chunk-2", embed_text.call_args.args[0])
+            embed_batch.assert_called_once()
+            self.assertIn("chunk-2", embed_batch.call_args.args[0][0])
             vectors = pq.read_table(output).column("embedding").to_pylist()
             self.assertEqual([0.0, 1.0, 2.0], [vector[0] for vector in vectors])
 
@@ -576,7 +626,9 @@ class EmbedderTest(unittest.TestCase):
             with (
                 patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
                 patch.object(
-                    Embedder, "embed_text", return_value=[0.1] * 768
+                    Embedder,
+                    "embed_batch",
+                    return_value=[[0.1] * 768, [0.1] * 768],
                 ),
             ):
                 Embedder().run(version_dir)
@@ -585,12 +637,15 @@ class EmbedderTest(unittest.TestCase):
             with (
                 patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
                 patch.object(
-                    Embedder, "embed_text", return_value=[0.2] * 768
-                ) as embed_text,
+                    Embedder,
+                    "embed_batch",
+                    return_value=[[0.2] * 768, [0.2] * 768],
+                ) as embed_batch,
             ):
                 Embedder().run(version_dir)
 
-            self.assertEqual(2, embed_text.call_count)
+            embed_batch.assert_called_once()
+            self.assertEqual(2, len(embed_batch.call_args.args[0]))
 
     def test_requires_litellm_api_key(self):
         with tempfile.TemporaryDirectory() as directory:

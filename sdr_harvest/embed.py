@@ -19,9 +19,13 @@ import requests
 from .core import StageError, TransientStageError
 
 
-LITELLM_BASE_URL = "https://dlss-aigateway-prod.stanford.edu/v1"
+GEMINI_BATCH_URL = (
+    "https://dlss-aigateway-prod.stanford.edu/gemini/v1beta/models/"
+    "gemini-embedding-2:batchEmbedContents"
+)
 EMBEDDING_MODEL = "gemini-embedding-2"
 EMBEDDING_DIMENSIONS = 768
+EMBEDDING_BATCH_SIZE = 100
 EMBEDDING_CONCURRENCY = 4
 ERROR_BODY_LIMIT = 2_000
 CHECKPOINT_FILENAME = "embeddings.checkpoint.sqlite3"
@@ -166,22 +170,28 @@ class EmbeddingCheckpoint:
 class Embedder:
     """Add Gemini embedding vectors to every chunk in an object."""
 
-    def embed_text(self, text: str, key: str) -> list[float]:
-        """Request and validate one embedding while respecting the global limit."""
+    def embed_batch(self, texts: list[str], key: str) -> list[list[float]]:
+        """Request and validate one embedding batch under the global limit."""
         with _embedding_slots:
             try:
                 response = requests.post(
-                    f"{LITELLM_BASE_URL}/embeddings",
-                    headers={"Authorization": f"Bearer {key}"},
+                    GEMINI_BATCH_URL,
+                    params={"key": key},
+                    headers={"Content-Type": "application/json"},
                     json={
-                        "model": EMBEDDING_MODEL,
-                        "input": text,
-                        "dimensions": EMBEDDING_DIMENSIONS,
+                        "requests": [
+                            {
+                                "model": f"models/{EMBEDDING_MODEL}",
+                                "content": {"parts": [{"text": text}]},
+                                "outputDimensionality": EMBEDDING_DIMENSIONS,
+                            }
+                            for text in texts
+                        ]
                     },
                     timeout=120,
                 )
             except (requests.Timeout, requests.ConnectionError) as exc:
-                raise TransientStageError(str(exc)) from exc
+                raise TransientStageError(str(exc).replace(key, "[REDACTED]")) from exc
 
             if response.status_code == 429 or response.status_code >= 500:
                 raise TransientStageError(
@@ -192,21 +202,22 @@ class Embedder:
                 raise StageError(http_error_message(response))
 
         try:
-            data = response.json()["data"]
-            if len(data) != 1:
+            data = response.json()["embeddings"]
+            if len(data) != len(texts):
                 raise StageError(
                     "LiteLLM returned "
-                    f"{len(data)} embeddings for one input"
+                    f"{len(data)} embeddings for {len(texts)} inputs"
                 )
-            vector = list(map(float, data[0]["embedding"]))
+            vectors = [list(map(float, item["values"])) for item in data]
         except (KeyError, TypeError, ValueError) as exc:
             raise StageError("LiteLLM embedding response was invalid") from exc
-        if len(vector) != EMBEDDING_DIMENSIONS:
-            raise StageError(
-                f"LiteLLM returned a {len(vector)}-dimensional embedding; "
-                f"expected {EMBEDDING_DIMENSIONS}"
-            )
-        return vector
+        for index, vector in enumerate(vectors):
+            if len(vector) != EMBEDDING_DIMENSIONS:
+                raise StageError(
+                    f"LiteLLM embedding {index} had {len(vector)} dimensions; "
+                    f"expected {EMBEDDING_DIMENSIONS}"
+                )
+        return vectors
 
     def run(self, version_dir: Path) -> Path:
         key = os.environ.get("LITELLM_API_KEY")
@@ -228,17 +239,26 @@ class Embedder:
         try:
             vectors = checkpoint.load()
             missing = [index for index, vector in enumerate(vectors) if vector is None]
+            batches = [
+                missing[start : start + EMBEDDING_BATCH_SIZE]
+                for start in range(0, len(missing), EMBEDDING_BATCH_SIZE)
+            ]
             executor = ThreadPoolExecutor(max_workers=EMBEDDING_CONCURRENCY)
             futures = {
-                executor.submit(self.embed_text, texts[index], key): index
-                for index in missing
+                executor.submit(
+                    self.embed_batch,
+                    [texts[index] for index in indices],
+                    key,
+                ): indices
+                for indices in batches
             }
             try:
                 for future in as_completed(futures):
-                    index = futures[future]
-                    vector = future.result()
-                    checkpoint.save(index, vector)
-                    vectors[index] = vector
+                    indices = futures[future]
+                    batch_vectors = future.result()
+                    for index, vector in zip(indices, batch_vectors, strict=True):
+                        checkpoint.save(index, vector)
+                        vectors[index] = vector
             finally:
                 for future in futures:
                     future.cancel()
