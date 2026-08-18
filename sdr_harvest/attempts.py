@@ -104,7 +104,9 @@ class StageAttempts:
                 )
                 if not transient or retry + 1 >= self.settings.max_retries:
                     raise
-                delay = min(60.0, 2**retry + random.random())
+                backoff = min(60.0, 2**retry + random.random())
+                retry_after = getattr(exc, "retry_after", None)
+                delay = max(backoff, retry_after or 0.0)
                 event_log.write(
                     run_id=run_id,
                     druid=druid,
@@ -112,6 +114,7 @@ class StageAttempts:
                     attempt=attempt_num,
                     event="retrying",
                     delay_seconds=delay,
+                    retry_after_seconds=retry_after,
                 )
                 time.sleep(delay)
         raise AssertionError("unreachable")

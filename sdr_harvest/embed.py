@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from threading import BoundedSemaphore
 
@@ -40,6 +42,26 @@ def http_error_message(response: requests.Response) -> str:
     if body:
         details.append(f"body={body}")
     return "; ".join(details)
+
+
+def retry_after_seconds(
+    response: requests.Response, *, now: datetime | None = None
+) -> float | None:
+    """Parse Retry-After as seconds or an HTTP date."""
+    value = response.headers.get("Retry-After")
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        try:
+            retry_at = parsedate_to_datetime(value)
+        except (TypeError, ValueError):
+            return None
+        if retry_at.tzinfo is None:
+            retry_at = retry_at.replace(tzinfo=UTC)
+        current = now or datetime.now(UTC)
+        return max(0.0, (retry_at - current).total_seconds())
 
 
 def retrieval_title(metadata: dict) -> str:
@@ -83,7 +105,10 @@ class Embedder:
                 raise TransientStageError(str(exc)) from exc
 
             if response.status_code == 429 or response.status_code >= 500:
-                raise TransientStageError(http_error_message(response))
+                raise TransientStageError(
+                    http_error_message(response),
+                    retry_after=retry_after_seconds(response),
+                )
             if response.status_code >= 400:
                 raise StageError(http_error_message(response))
 

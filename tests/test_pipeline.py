@@ -38,6 +38,7 @@ from sdr_harvest.embed import (
     ERROR_BODY_LIMIT,
     Embedder,
     http_error_message,
+    retry_after_seconds,
     retrieval_document,
     retrieval_title,
 )
@@ -268,6 +269,18 @@ class EmbedderTest(unittest.TestCase):
 
         self.assertIn("x" * ERROR_BODY_LIMIT, message)
         self.assertTrue(message.endswith("... [truncated]"))
+
+    def test_parses_retry_after_seconds_and_http_date(self):
+        response = Mock(headers={"Retry-After": "12.5"})
+        self.assertEqual(12.5, retry_after_seconds(response))
+
+        response.headers = {"Retry-After": "Tue, 18 Aug 2026 17:00:30 GMT"}
+        self.assertEqual(
+            30.0,
+            retry_after_seconds(
+                response, now=datetime(2026, 8, 18, 17, 0, tzinfo=UTC)
+            ),
+        )
 
     def test_sends_retrieval_formatted_text_and_preserves_raw_chunk_text(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -505,6 +518,42 @@ class RetryTest(unittest.TestCase):
             self.assertEqual("succeeded", store.stage(DRUID, "download").status)
             attempts = store.db.execute("SELECT status,transient FROM attempts ORDER BY id").fetchall()
             self.assertEqual([("failed", 1), ("succeeded", None)], [tuple(row) for row in attempts])
+            store.close()
+
+    def test_retry_after_overrides_exponential_delay(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = StateStore(root / "state.sqlite3")
+            store.reconcile_manifest({DRUID})
+            run_id = store.start_run("manifest.csv")
+            attempts = StageAttempts(Settings(root, root, max_retries=2), store)
+            artifact = root / "result"
+            artifact.write_text("ok")
+            operation = Mock(
+                side_effect=[
+                    TransientStageError("rate limited", retry_after=30),
+                    artifact,
+                ]
+            )
+
+            with (
+                patch("sdr_harvest.attempts.random.random", return_value=0),
+                patch("sdr_harvest.attempts.time.sleep") as sleep,
+            ):
+                attempts.run(
+                    run_id, DRUID, "download", "input", "signature", operation
+                )
+
+            sleep.assert_called_once_with(30)
+            events = [
+                json.loads(line)
+                for line in (root / "logs" / str(run_id) / DRUID / "download.jsonl")
+                .read_text()
+                .splitlines()
+            ]
+            retrying = next(event for event in events if event["event"] == "retrying")
+            self.assertEqual(30, retrying["retry_after_seconds"])
+            self.assertEqual(30, retrying["delay_seconds"])
             store.close()
 
 
