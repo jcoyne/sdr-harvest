@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import sys
 from array import array
@@ -25,8 +26,8 @@ GEMINI_BATCH_URL = (
 )
 EMBEDDING_MODEL = "gemini-embedding-2"
 EMBEDDING_DIMENSIONS = 768
-EMBEDDING_BATCH_SIZE = 100
-EMBEDDING_CONCURRENCY = 4
+EMBEDDING_BATCH_SIZE = 50
+EMBEDDING_CONCURRENCY = 2
 ERROR_BODY_LIMIT = 2_000
 CHECKPOINT_FILENAME = "embeddings.checkpoint.sqlite3"
 _embedding_slots = BoundedSemaphore(EMBEDDING_CONCURRENCY)
@@ -56,21 +57,33 @@ def http_error_message(response: requests.Response) -> str:
 def retry_after_seconds(
     response: requests.Response, *, now: datetime | None = None
 ) -> float | None:
-    """Parse Retry-After as seconds or an HTTP date."""
+    """Parse Retry-After or LiteLLM's quota-reset timestamp."""
     value = response.headers.get("Retry-After")
-    if not value:
-        return None
-    try:
-        return max(0.0, float(value))
-    except ValueError:
+    if value:
         try:
-            retry_at = parsedate_to_datetime(value)
-        except (TypeError, ValueError):
-            return None
-        if retry_at.tzinfo is None:
-            retry_at = retry_at.replace(tzinfo=UTC)
-        current = now or datetime.now(UTC)
-        return max(0.0, (retry_at - current).total_seconds())
+            return max(0.0, float(value))
+        except ValueError:
+            try:
+                retry_at = parsedate_to_datetime(value)
+            except (TypeError, ValueError):
+                pass
+            else:
+                if retry_at.tzinfo is None:
+                    retry_at = retry_at.replace(tzinfo=UTC)
+                current = now or datetime.now(UTC)
+                return max(0.0, (retry_at - current).total_seconds())
+
+    match = re.search(
+        r"Limit resets at:\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC",
+        response.text,
+    )
+    if not match:
+        return None
+    retry_at = datetime.strptime(match.group(1), "%Y-%m-%d %H:%M:%S").replace(
+        tzinfo=UTC
+    )
+    current = now or datetime.now(UTC)
+    return max(0.0, (retry_at - current).total_seconds())
 
 
 def retrieval_title(metadata: dict) -> str:

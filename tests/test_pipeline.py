@@ -341,6 +341,10 @@ class ChunkerTest(unittest.TestCase):
 
 
 class EmbedderTest(unittest.TestCase):
+    def test_uses_reduced_batch_size_and_concurrency(self):
+        self.assertEqual(50, EMBEDDING_BATCH_SIZE)
+        self.assertEqual(2, EMBEDDING_CONCURRENCY)
+
     def test_http_error_includes_body_and_rate_limit_headers(self):
         response = Mock(
             status_code=429,
@@ -380,6 +384,26 @@ class EmbedderTest(unittest.TestCase):
             30.0,
             retry_after_seconds(
                 response, now=datetime(2026, 8, 18, 17, 0, tzinfo=UTC)
+            ),
+        )
+
+    def test_parses_litellm_limit_reset_from_error_body(self):
+        response = Mock(
+            headers={},
+            text=json.dumps(
+                {
+                    "error": {
+                        "message": "Rate limit exceeded. Limit resets at: "
+                        "2026-08-18 21:17:58 UTC"
+                    }
+                }
+            ),
+        )
+
+        self.assertEqual(
+            58.0,
+            retry_after_seconds(
+                response, now=datetime(2026, 8, 18, 21, 17, tzinfo=UTC)
             ),
         )
 
