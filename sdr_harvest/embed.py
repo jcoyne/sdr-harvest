@@ -74,14 +74,14 @@ class Embedder:
             for text in table.column("text").to_pylist()
         ]
         vectors: list[list[float]] = []
-        for start in range(0, len(texts), 50):
+        for text in texts:
             try:
                 response = requests.post(
                     f"{LITELLM_BASE_URL}/embeddings",
                     headers={"Authorization": f"Bearer {key}"},
                     json={
                         "model": EMBEDDING_MODEL,
-                        "input": texts[start : start + 50],
+                        "input": text,
                         "dimensions": EMBEDDING_DIMENSIONS,
                     },
                     timeout=120,
@@ -96,17 +96,21 @@ class Embedder:
 
             try:
                 data = response.json()["data"]
-                data = sorted(data, key=lambda item: item["index"])
-                vectors.extend(
-                    [list(map(float, item["embedding"])) for item in data]
-                )
+                if len(data) != 1:
+                    raise StageError(
+                        "LiteLLM returned "
+                        f"{len(data)} embeddings for one input"
+                    )
+                vector = list(map(float, data[0]["embedding"]))
             except (KeyError, TypeError, ValueError) as exc:
                 raise StageError("LiteLLM embedding response was invalid") from exc
+            if len(vector) != EMBEDDING_DIMENSIONS:
+                raise StageError(
+                    f"LiteLLM returned a {len(vector)}-dimensional embedding; "
+                    f"expected {EMBEDDING_DIMENSIONS}"
+                )
+            vectors.append(vector)
 
-        if len(vectors) != len(texts) or any(
-            len(vector) != EMBEDDING_DIMENSIONS for vector in vectors
-        ):
-            raise StageError("Embedding response count or dimensions were invalid")
         output = version_dir / "embeddings.parquet"
         output_table = table.append_column(
             "embedding",

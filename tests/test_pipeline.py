@@ -291,10 +291,7 @@ class EmbedderTest(unittest.TestCase):
                 status_code=200,
                 **{
                     "json.return_value": {
-                        "data": [
-                            {"index": index, "embedding": [0.1] * 768}
-                            for index, _text in enumerate(raw_texts)
-                        ]
+                        "data": [{"index": 0, "embedding": [0.1] * 768}]
                     }
                 },
             )
@@ -305,27 +302,61 @@ class EmbedderTest(unittest.TestCase):
             ):
                 output = Embedder().run(version_dir)
 
-            request = post.call_args.kwargs
+            requests = post.call_args_list
+            self.assertEqual(2, len(requests))
             self.assertEqual(
                 "https://dlss-aigateway-prod.stanford.edu/v1/embeddings",
-                post.call_args.args[0],
+                requests[0].args[0],
             )
             self.assertEqual(
-                {"Authorization": "Bearer test-key"}, request["headers"]
+                {"Authorization": "Bearer test-key"},
+                requests[0].kwargs["headers"],
             )
-            self.assertEqual("gemini-embedding-2", request["json"]["model"])
-            self.assertEqual(768, request["json"]["dimensions"])
             self.assertEqual(
                 [
                     "title: Example title | text: First raw chunk",
                     "title: Example title | text: Second raw chunk",
                 ],
-                request["json"]["input"],
+                [request.kwargs["json"]["input"] for request in requests],
             )
+            for request in requests:
+                self.assertEqual(
+                    "gemini-embedding-2", request.kwargs["json"]["model"]
+                )
+                self.assertEqual(768, request.kwargs["json"]["dimensions"])
             self.assertEqual(
                 raw_texts,
                 pq.read_table(output).column("text").to_pylist(),
             )
+
+    def test_rejects_multiple_embeddings_for_one_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            (version_dir / "metadata.json").write_text("{}")
+            pq.write_table(
+                pa.Table.from_pylist([{"text": "One chunk"}]),
+                version_dir / "chunks.parquet",
+            )
+            response = Mock(
+                status_code=200,
+                **{
+                    "json.return_value": {
+                        "data": [
+                            {"index": 0, "embedding": [0.1] * 768},
+                            {"index": 1, "embedding": [0.2] * 768},
+                        ]
+                    }
+                },
+            )
+
+            with (
+                patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
+                patch("sdr_harvest.embed.requests.post", return_value=response),
+                self.assertRaisesRegex(
+                    StageError, "LiteLLM returned 2 embeddings for one input"
+                ),
+            ):
+                Embedder().run(version_dir)
 
     def test_requires_litellm_api_key(self):
         with tempfile.TemporaryDirectory() as directory:
