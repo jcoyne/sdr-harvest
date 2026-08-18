@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import json
 import os
-from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
+import sqlite3
+import sys
+from array import array
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
+from hashlib import sha256
 from pathlib import Path
 from threading import BoundedSemaphore
 
@@ -20,6 +24,7 @@ EMBEDDING_MODEL = "gemini-embedding-2"
 EMBEDDING_DIMENSIONS = 768
 EMBEDDING_CONCURRENCY = 4
 ERROR_BODY_LIMIT = 2_000
+CHECKPOINT_FILENAME = "embeddings.checkpoint.sqlite3"
 _embedding_slots = BoundedSemaphore(EMBEDDING_CONCURRENCY)
 
 
@@ -84,6 +89,80 @@ def retrieval_document(title: str, text: str) -> str:
     return f"title: {title} | text: {text}"
 
 
+def embedding_input_fingerprint(texts: list[str]) -> str:
+    """Identify the exact ordered inputs and embedding configuration."""
+    digest = sha256()
+    digest.update(f"{EMBEDDING_MODEL}\0{EMBEDDING_DIMENSIONS}\0".encode())
+    for text in texts:
+        encoded = text.encode()
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
+    return digest.hexdigest()
+
+
+def vector_bytes(vector: list[float]) -> bytes:
+    values = array("f", vector)
+    if sys.byteorder != "little":
+        values.byteswap()
+    return values.tobytes()
+
+
+def vector_from_bytes(value: bytes) -> list[float] | None:
+    if len(value) != EMBEDDING_DIMENSIONS * 4:
+        return None
+    values = array("f")
+    values.frombytes(value)
+    if sys.byteorder != "little":
+        values.byteswap()
+    return list(values)
+
+
+class EmbeddingCheckpoint:
+    """Persist completed vectors so a failed embedding stage can resume."""
+
+    def __init__(self, path: Path, fingerprint: str, count: int) -> None:
+        self.count = count
+        self.db = sqlite3.connect(path)
+        self.db.execute(
+            "CREATE TABLE IF NOT EXISTS metadata "
+            "(id INTEGER PRIMARY KEY CHECK(id=1), fingerprint TEXT NOT NULL)"
+        )
+        self.db.execute(
+            "CREATE TABLE IF NOT EXISTS embeddings "
+            "(chunk_index INTEGER PRIMARY KEY, embedding BLOB NOT NULL)"
+        )
+        stored = self.db.execute(
+            "SELECT fingerprint FROM metadata WHERE id=1"
+        ).fetchone()
+        if not stored or stored[0] != fingerprint:
+            self.db.execute("DELETE FROM embeddings")
+            self.db.execute(
+                "INSERT INTO metadata(id,fingerprint) VALUES(1,?) "
+                "ON CONFLICT(id) DO UPDATE SET fingerprint=excluded.fingerprint",
+                (fingerprint,),
+            )
+        self.db.commit()
+
+    def load(self) -> list[list[float] | None]:
+        vectors: list[list[float] | None] = [None] * self.count
+        for index, value in self.db.execute(
+            "SELECT chunk_index,embedding FROM embeddings"
+        ):
+            if 0 <= index < self.count:
+                vectors[index] = vector_from_bytes(value)
+        return vectors
+
+    def save(self, index: int, vector: list[float]) -> None:
+        self.db.execute(
+            "INSERT OR REPLACE INTO embeddings(chunk_index,embedding) VALUES(?,?)",
+            (index, sqlite3.Binary(vector_bytes(vector))),
+        )
+        self.db.commit()
+
+    def close(self) -> None:
+        self.db.close()
+
+
 class Embedder:
     """Add Gemini embedding vectors to every chunk in an object."""
 
@@ -141,20 +220,43 @@ class Embedder:
             retrieval_document(title, text)
             for text in table.column("text").to_pylist()
         ]
-        executor = ThreadPoolExecutor(max_workers=EMBEDDING_CONCURRENCY)
-        futures = [executor.submit(self.embed_text, text, key) for text in texts]
+        checkpoint = EmbeddingCheckpoint(
+            version_dir / CHECKPOINT_FILENAME,
+            embedding_input_fingerprint(texts),
+            len(texts),
+        )
         try:
-            done, _pending = wait(futures, return_when=FIRST_EXCEPTION)
-            for future in done:
-                future.result()
-            vectors = [future.result() for future in futures]
+            vectors = checkpoint.load()
+            missing = [index for index, vector in enumerate(vectors) if vector is None]
+            executor = ThreadPoolExecutor(max_workers=EMBEDDING_CONCURRENCY)
+            futures = {
+                executor.submit(self.embed_text, texts[index], key): index
+                for index in missing
+            }
+            try:
+                for future in as_completed(futures):
+                    index = futures[future]
+                    vector = future.result()
+                    checkpoint.save(index, vector)
+                    vectors[index] = vector
+            finally:
+                for future in futures:
+                    future.cancel()
+                executor.shutdown(wait=True, cancel_futures=True)
         finally:
-            executor.shutdown(wait=True, cancel_futures=True)
+            checkpoint.close()
+
+        completed_vectors = [vector for vector in vectors if vector is not None]
+        if len(completed_vectors) != len(texts):
+            raise StageError("Embedding checkpoint was incomplete")
 
         output = version_dir / "embeddings.parquet"
         output_table = table.append_column(
             "embedding",
-            pa.array(vectors, type=pa.list_(pa.float32(), EMBEDDING_DIMENSIONS)),
+            pa.array(
+                completed_vectors,
+                type=pa.list_(pa.float32(), EMBEDDING_DIMENSIONS),
+            ),
         )
         pq.write_table(output_table, output, compression="zstd")
         return output

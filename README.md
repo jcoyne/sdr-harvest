@@ -72,6 +72,11 @@ Document vectors are requested from the Stanford LiteLLM gateway using
 model and dimensions and format query text as
 `task: question answering | query: <question>`.
 
+Each completed vector is checkpointed in the object's version directory. If an
+embedding request fails, a retry resumes with only the missing chunks. A change
+to the ordered embedding inputs, model, or dimensions invalidates that
+checkpoint automatically.
+
 ## Inspect and retry failures
 
 Show every failure or inspect one object:

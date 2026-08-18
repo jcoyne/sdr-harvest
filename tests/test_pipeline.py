@@ -417,6 +417,81 @@ class EmbedderTest(unittest.TestCase):
 
             self.assertEqual(EMBEDDING_CONCURRENCY, maximum_active)
 
+    def test_resumes_from_completed_embedding_checkpoint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            (version_dir / "metadata.json").write_text("{}")
+            pq.write_table(
+                pa.Table.from_pylist(
+                    [{"text": f"chunk-{index}"} for index in range(3)]
+                ),
+                version_dir / "chunks.parquet",
+            )
+
+            def fail_last(text, _key):
+                index = int(text.rsplit("-", 1)[-1])
+                if index == 2:
+                    time.sleep(0.03)
+                    raise TransientStageError("try again")
+                return [float(index)] * 768
+
+            with (
+                patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
+                patch.object(Embedder, "embed_text", side_effect=fail_last),
+                self.assertRaises(TransientStageError),
+            ):
+                Embedder().run(version_dir)
+
+            def complete(text, _key):
+                index = int(text.rsplit("-", 1)[-1])
+                return [float(index)] * 768
+
+            with (
+                patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
+                patch.object(
+                    Embedder, "embed_text", side_effect=complete
+                ) as embed_text,
+            ):
+                output = Embedder().run(version_dir)
+
+            embed_text.assert_called_once()
+            self.assertIn("chunk-2", embed_text.call_args.args[0])
+            vectors = pq.read_table(output).column("embedding").to_pylist()
+            self.assertEqual([0.0, 1.0, 2.0], [vector[0] for vector in vectors])
+
+    def test_discards_checkpoint_when_embedding_inputs_change(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            (version_dir / "metadata.json").write_text("{}")
+
+            def write_chunks(second_text):
+                pq.write_table(
+                    pa.Table.from_pylist(
+                        [{"text": "first"}, {"text": second_text}]
+                    ),
+                    version_dir / "chunks.parquet",
+                )
+
+            write_chunks("second")
+            with (
+                patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
+                patch.object(
+                    Embedder, "embed_text", return_value=[0.1] * 768
+                ),
+            ):
+                Embedder().run(version_dir)
+
+            write_chunks("changed")
+            with (
+                patch.dict(os.environ, {"LITELLM_API_KEY": "test-key"}),
+                patch.object(
+                    Embedder, "embed_text", return_value=[0.2] * 768
+                ) as embed_text,
+            ):
+                Embedder().run(version_dir)
+
+            self.assertEqual(2, embed_text.call_count)
+
     def test_requires_litellm_api_key(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.dict(os.environ, {}, clear=True):
