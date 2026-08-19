@@ -62,6 +62,11 @@ completed downloads, extracted text, chunks, embeddings, and Solr documents.
 When an SDR object changes, a new version is built without overwriting its
 previous artifacts.
 
+For Cocina books with one transcription XML file for every PDF page, the build
+downloads and extracts the page-level ALTO OCR instead of the image-heavy PDFs.
+If the ALTO inventory is incomplete, the build falls back to the selected PDF.
+Other object types continue using PDF extraction.
+
 Press Ctrl-C once to cancel queued work and exit. Running the command again
 resumes from completed stages. Use `--no-progress` for redirected logs or a
 scheduler.

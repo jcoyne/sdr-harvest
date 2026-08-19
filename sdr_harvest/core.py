@@ -20,6 +20,7 @@ SIGNATURES = {
     "embed": "gemini-embedding-2-768-retrieval-document-v2",
     "document": "nested-solr-document-v1",
 }
+SOURCE_INVENTORY_SIGNATURE = "prefer-complete-book-alto-v1"
 
 
 class StageError(RuntimeError):

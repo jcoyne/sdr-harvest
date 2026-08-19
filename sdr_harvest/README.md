@@ -7,8 +7,10 @@ The Python implementation is separated by responsibility:
 | `pipeline.py` | `Pipeline` | Coordinates resumable object builds without knowing about Solr. |
 | `attempts.py` | `StageAttempts` | Runs operations with durable attempt logs, failure classification, and retry policy. |
 | `metadata.py` | `MetadataFetcher` | Fetches COCINA and derives searchable metadata with Traject. |
-| `download.py` | `FileDownloader` | Downloads and validates the PDF inventory declared by COCINA. |
-| `extract_text.py` | `TextExtractor` | Converts downloaded PDFs into Markdown. |
+| `download.py` | `FileDownloader` | Downloads and validates the selected source-file inventory declared by COCINA. |
+| `extract_text.py` | `TextExtractor` | Selects extraction from object and source characteristics. |
+| `extract_alto.py` | `AltoXmlExtractionStrategy` | Converts complete page-level ALTO OCR into Markdown. |
+| `extract_pdf.py` | `PdfExtractionStrategy` | Converts embedded PDF text into Markdown. |
 | `chunk.py` | `Chunker` | Splits extracted text and searchable metadata into chunk rows. |
 | `embed.py` | `Embedder` | Formats chunks for asymmetric retrieval and adds Gemini vectors. |
 | `create_solr_document.py` | `SolrDocumentBuilder` | Creates a nested parent/child Solr JSON document from embedded chunks. |

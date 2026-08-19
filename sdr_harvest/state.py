@@ -8,6 +8,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterator
 
+from .core import SOURCE_INVENTORY_SIGNATURE
+
 
 STAGES = (
     "cocina",
@@ -44,6 +46,7 @@ CREATE TABLE IF NOT EXISTS objects (
   source_last_modified TEXT,
   source_checked_at TEXT,
   source_cache_sha256 TEXT,
+  source_inventory_signature TEXT,
   current_artifact_dir TEXT,
   published_fingerprint TEXT,
   created_at TEXT NOT NULL,
@@ -139,6 +142,7 @@ class StateStore:
             "source_last_modified": "TEXT",
             "source_checked_at": "TEXT",
             "source_cache_sha256": "TEXT",
+            "source_inventory_signature": "TEXT",
         }
         for name, column_type in additions.items():
             if name not in columns:
@@ -216,9 +220,20 @@ class StateStore:
         with self.transaction():
             self.db.execute(
                 """UPDATE objects SET source_fingerprint=?, source_version=?, source_etag=?,
-                   source_last_modified=?, source_checked_at=?, source_cache_sha256=?, updated_at=?
+                   source_last_modified=?, source_checked_at=?, source_cache_sha256=?,
+                   source_inventory_signature=?, updated_at=?
                    WHERE druid=?""",
-                (fingerprint, version, etag, last_modified, now(), cache_sha256, now(), druid),
+                (
+                    fingerprint,
+                    version,
+                    etag,
+                    last_modified,
+                    now(),
+                    cache_sha256,
+                    SOURCE_INVENTORY_SIGNATURE,
+                    now(),
+                    druid,
+                ),
             )
             self.db.execute("DELETE FROM source_files WHERE druid=?", (druid,))
             for f in files:

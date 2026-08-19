@@ -28,6 +28,7 @@ from sdr_harvest.attempts import StageAttempts
 from sdr_harvest.chunk import CHUNK_OVERLAP, CHUNK_SIZE, Chunker
 from sdr_harvest.core import (
     SIGNATURES,
+    SOURCE_INVENTORY_SIGNATURE,
     Settings,
     StageError,
     TransientStageError,
@@ -45,8 +46,10 @@ from sdr_harvest.embed import (
     retrieval_document,
     retrieval_title,
 )
+from sdr_harvest.extract_text import TextExtractor
 from sdr_harvest.manifests import (
     cocina_pdf_files,
+    cocina_source_files,
     merge_manifests,
     parse_manifest,
     source_fingerprint,
@@ -201,6 +204,73 @@ class FingerprintTest(unittest.TestCase):
             [file["filename"] for file in cocina_pdf_files(data)],
         )
 
+    def test_book_prefers_complete_page_alto_over_pdfs(self):
+        data = cocina()
+        data["type"] = "https://cocina.sul.stanford.edu/models/book"
+        data["structural"]["contains"] = [
+            self.page_resource(1, include_alto=True),
+            self.page_resource(2, include_alto=True),
+            self.full_pdf_resource(),
+        ]
+
+        self.assertEqual(
+            ["page-1.xml", "page-2.xml"],
+            [file["filename"] for file in cocina_source_files(data)],
+        )
+
+    def test_book_falls_back_to_object_pdf_when_page_alto_is_incomplete(self):
+        data = cocina()
+        data["type"] = "https://cocina.sul.stanford.edu/models/book"
+        data["structural"]["contains"] = [
+            self.page_resource(1, include_alto=True),
+            self.page_resource(2, include_alto=False),
+            self.full_pdf_resource(),
+        ]
+
+        self.assertEqual(
+            ["full.pdf"],
+            [file["filename"] for file in cocina_source_files(data)],
+        )
+
+    @staticmethod
+    def page_resource(number: int, *, include_alto: bool) -> dict:
+        files = [
+            {
+                "externalIdentifier": f"file:page-pdf-{number}",
+                "filename": f"page-{number}.pdf",
+                "hasMimeType": "application/pdf",
+            }
+        ]
+        if include_alto:
+            files.append(
+                {
+                    "externalIdentifier": f"file:page-alto-{number}",
+                    "filename": f"page-{number}.xml",
+                    "hasMimeType": "application/xml",
+                    "use": "transcription",
+                }
+            )
+        return {
+            "externalIdentifier": f"resource:page-{number}",
+            "type": "https://cocina.sul.stanford.edu/models/resources/page",
+            "structural": {"contains": files},
+        }
+
+    @staticmethod
+    def full_pdf_resource() -> dict:
+        return {
+            "type": "https://cocina.sul.stanford.edu/models/resources/object",
+            "structural": {
+                "contains": [
+                    {
+                        "externalIdentifier": "file:full",
+                        "filename": "full.pdf",
+                        "hasMimeType": "application/pdf",
+                    }
+                ]
+            },
+        }
+
     def test_metadata_and_file_changes_alter_source_fingerprint(self):
         first = cocina()
         changed_metadata = cocina()
@@ -208,6 +278,57 @@ class FingerprintTest(unittest.TestCase):
         changed_file = cocina(digest="def")
         self.assertNotEqual(source_fingerprint(first, cocina_pdf_files(first)), source_fingerprint(changed_metadata, cocina_pdf_files(changed_metadata)))
         self.assertNotEqual(source_fingerprint(first, cocina_pdf_files(first)), source_fingerprint(changed_file, cocina_pdf_files(changed_file)))
+
+
+class TextExtractorTest(unittest.TestCase):
+    def test_book_extracts_alto_and_joins_line_break_hyphenation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            version_dir.joinpath("cocina.json").write_text(
+                json.dumps(
+                    {"type": "https://cocina.sul.stanford.edu/models/book"}
+                )
+            )
+            source = version_dir / "pdfs"
+            source.mkdir()
+            source.joinpath("page-1.xml").write_text(
+                """<?xml version="1.0"?>
+                <alto xmlns="http://www.loc.gov/standards/alto/ns-v2#">
+                  <Layout><Page><PrintSpace><TextBlock>
+                    <TextLine><String CONTENT="bac"/><HYP CONTENT="-"/></TextLine>
+                    <TextLine><String CONTENT="teria"/><SP/><String CONTENT="cause"/></TextLine>
+                    <TextLine><String CONTENT="disease."/></TextLine>
+                  </TextBlock></PrintSpace></Page></Layout>
+                </alto>"""
+            )
+
+            output = TextExtractor().run(version_dir)
+
+            self.assertEqual(
+                "bacteria cause\ndisease.",
+                output.joinpath("page-1.md").read_text(),
+            )
+
+    def test_non_book_uses_pdf_strategy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            version_dir.joinpath("cocina.json").write_text(
+                json.dumps(
+                    {"type": "https://cocina.sul.stanford.edu/models/document"}
+                )
+            )
+            source = version_dir / "pdfs"
+            source.mkdir()
+            source.joinpath("document.pdf").write_bytes(b"pdf")
+
+            with patch(
+                "sdr_harvest.extract_pdf.pymupdf4llm.to_markdown",
+                return_value="PDF text",
+            ) as to_markdown:
+                output = TextExtractor().run(version_dir)
+
+            self.assertEqual("PDF text", output.joinpath("document.md").read_text())
+            to_markdown.assert_called_once()
 
 
 class StreamingResponse:
@@ -742,7 +863,13 @@ class StateTest(unittest.TestCase):
         migrated = StateStore(legacy_path)
         columns = {row[1] for row in migrated.db.execute("PRAGMA table_info(objects)")}
         self.assertTrue(
-            {"source_etag", "source_last_modified", "source_checked_at", "source_cache_sha256"}.issubset(columns)
+            {
+                "source_etag",
+                "source_last_modified",
+                "source_checked_at",
+                "source_cache_sha256",
+                "source_inventory_signature",
+            }.issubset(columns)
         )
         publication_columns = {
             row[1]
@@ -924,6 +1051,61 @@ class CliErrorTest(unittest.TestCase):
 
 
 class ResumeTest(unittest.TestCase):
+    def test_changed_source_inventory_policy_queues_cached_object_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = StateStore(root / "state.sqlite3")
+            store.reconcile_manifest({DRUID})
+            source = cocina()
+            files = cocina_source_files(source)
+            source_fp = source_fingerprint(source, files)
+            cache = root / "sources" / DRUID / "cocina.json"
+            cache.parent.mkdir(parents=True)
+            cache.write_text(json.dumps(source, sort_keys=True))
+            store.set_source(
+                DRUID,
+                source_fp,
+                "1",
+                files,
+                cache_sha256=file_sha256(cache),
+            )
+            self.assertEqual(
+                SOURCE_INVENTORY_SIGNATURE,
+                store.object_row(DRUID)["source_inventory_signature"],
+            )
+            store.db.execute(
+                "UPDATE objects SET source_inventory_signature=NULL WHERE druid=?",
+                (DRUID,),
+            )
+            store.db.commit()
+            input_fp = source_fp
+            version_dir = root / "versions" / DRUID / source_fp
+            version_dir.mkdir(parents=True)
+            for stage in STAGES[1:]:
+                artifact = version_dir / stage
+                artifact.write_text(stage)
+                output_fp = f"output-{stage}"
+                store.adopt_stage(
+                    DRUID,
+                    stage,
+                    input_fp,
+                    output_fp,
+                    SIGNATURES[stage],
+                    artifact,
+                )
+                input_fp = output_fp
+
+            estimate, pending = Pipeline(Settings(root, root), store)._plan_work(
+                [DRUID], show_progress=False
+            )
+
+            self.assertEqual([DRUID], pending)
+            self.assertEqual(1, estimate["cocina"])
+            self.assertTrue(
+                all(estimate[stage] == 0 for stage in STAGES if stage != "cocina")
+            )
+            store.close()
+
     def test_fully_current_objects_are_not_queued_for_processing(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

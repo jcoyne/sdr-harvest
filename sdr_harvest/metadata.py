@@ -12,13 +12,14 @@ import requests
 from .attempts import StageAttempts
 from .core import (
     SIGNATURES,
+    SOURCE_INVENTORY_SIGNATURE,
     EventLog,
     Settings,
     StageError,
     TransientStageError,
     file_sha256,
 )
-from .manifests import cocina_pdf_files, source_fingerprint
+from .manifests import cocina_source_files, source_fingerprint
 from .state import StateStore
 
 
@@ -73,12 +74,16 @@ class MetadataFetcher:
 
         def read_cached_source() -> tuple[dict, list[dict], str]:
             data = json.loads(path.read_text())
-            files = cocina_pdf_files(data)
+            files = cocina_source_files(data)
             return data, files, source_fingerprint(data, files)
 
         if cache_is_valid and cocina_checked_recently(stored["source_checked_at"]):
             data, files, source_fp = read_cached_source()
-            if source_fp != stored["source_fingerprint"]:
+            if (
+                source_fp != stored["source_fingerprint"]
+                or stored["source_inventory_signature"]
+                != SOURCE_INVENTORY_SIGNATURE
+            ):
                 self.store.set_source(
                     druid,
                     source_fp,
@@ -153,7 +158,7 @@ class MetadataFetcher:
             temporary = path.with_suffix(".json.tmp")
             temporary.write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
             temporary.replace(path)
-            files = cocina_pdf_files(data)
+            files = cocina_source_files(data)
             outcome.update(
                 data=data,
                 files=files,

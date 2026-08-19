@@ -11,7 +11,7 @@ from .manifests import safe_name
 
 
 class FileDownloader:
-    """Download and validate the PDF inventory declared by COCINA."""
+    """Download and validate the source-file inventory declared by COCINA."""
 
     def __init__(
         self,
@@ -28,7 +28,7 @@ class FileDownloader:
         expected: set[str] = set()
         names = [safe_name(info["filename"]) for info in files]
         if len(names) != len(set(names)):
-            raise StageError("COCINA contains duplicate PDF filenames")
+            raise StageError("COCINA contains duplicate source filenames")
         for info in files:
             filename = safe_name(info["filename"])
             expected.add(filename)

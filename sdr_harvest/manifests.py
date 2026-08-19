@@ -56,17 +56,34 @@ def merge_manifests(inputs: list[Path], output: Path) -> dict:
     }
 
 
-def cocina_pdf_files(data: dict) -> list[dict]:
+def _cocina_files(data: dict) -> tuple[list[dict], set[str]]:
     found: list[dict] = []
+    page_resources: set[str] = set()
+    resource_number = 0
 
-    def visit(node: object, resource_type: str | None = None) -> None:
+    def visit(
+        node: object,
+        resource_type: str | None = None,
+        resource_key: str | None = None,
+    ) -> None:
+        nonlocal resource_number
         if isinstance(node, dict):
             node_type = str(node.get("type", ""))
             if "/models/resources/" in node_type:
                 resource_type = node_type.rsplit("/", 1)[-1]
-            if node.get("hasMimeType", "").lower() == "application/pdf" and node.get(
-                "filename"
-            ):
+                resource_number += 1
+                resource_key = str(
+                    node.get("externalIdentifier") or f"resource:{resource_number}"
+                )
+                if resource_type == "page":
+                    page_resources.add(resource_key)
+            mime_type = str(node.get("hasMimeType", "")).lower()
+            is_pdf = mime_type == "application/pdf"
+            is_transcription_xml = mime_type in {
+                "application/xml",
+                "text/xml",
+            } and str(node.get("use", "")).lower() == "transcription"
+            if (is_pdf or is_transcription_xml) and node.get("filename"):
                 digests = {
                     digest.get("type"): digest.get("digest")
                     for digest in node.get("hasMessageDigests", [])
@@ -86,20 +103,62 @@ def cocina_pdf_files(data: dict) -> list[dict]:
                         "sha1": digests.get("sha1"),
                         "md5": digests.get("md5"),
                         "_resource_type": resource_type,
+                        "_resource_key": resource_key,
+                        "_mime_type": mime_type,
+                        "_use": str(node.get("use", "")).lower(),
                     }
                 )
             for value in node.values():
-                visit(value, resource_type)
+                visit(value, resource_type, resource_key)
         elif isinstance(node, list):
             for value in node:
-                visit(value, resource_type)
+                visit(value, resource_type, resource_key)
 
     visit(data.get("structural", {}))
+    return found, page_resources
+
+
+def _public_file(item: dict) -> dict:
+    return {key: value for key, value in item.items() if not key.startswith("_")}
+
+
+def cocina_pdf_files(data: dict) -> list[dict]:
+    found = [
+        item
+        for item in _cocina_files(data)[0]
+        if item["_mime_type"] == "application/pdf"
+    ]
     if any(item["_resource_type"] == "object" for item in found):
         found = [item for item in found if item["_resource_type"] != "page"]
+    return sorted(
+        (_public_file(item) for item in found),
+        key=lambda item: (item["filename"], item["file_id"]),
+    )
+
+
+def cocina_source_files(data: dict) -> list[dict]:
+    """Prefer complete page-level ALTO for books, otherwise select PDFs."""
+    found, page_resources = _cocina_files(data)
+    is_book = str(data.get("type", "")).rsplit("/", 1)[-1] == "book"
+    alto_by_page: dict[str | None, list[dict]] = {}
     for item in found:
-        del item["_resource_type"]
-    return sorted(found, key=lambda item: (item["filename"], item["file_id"]))
+        if (
+            item["_resource_type"] == "page"
+            and item["_mime_type"] in {"application/xml", "text/xml"}
+            and item["_use"] == "transcription"
+        ):
+            alto_by_page.setdefault(item["_resource_key"], []).append(item)
+    has_complete_alto = bool(page_resources) and all(
+        len(alto_by_page.get(resource, [])) == 1 for resource in page_resources
+    )
+    if is_book and has_complete_alto:
+        alto = [alto_by_page[resource][0] for resource in page_resources]
+        return sorted(
+            (_public_file(item) for item in alto),
+            key=lambda item: (item["filename"], item["file_id"]),
+        )
+
+    return cocina_pdf_files(data)
 
 
 def source_fingerprint(data: dict, files: list[dict]) -> str:

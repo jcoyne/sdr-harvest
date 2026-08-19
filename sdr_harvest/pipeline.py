@@ -16,6 +16,7 @@ from .attempts import StageAttempts
 from .chunk import Chunker
 from .core import (
     SIGNATURES,
+    SOURCE_INVENTORY_SIGNATURE,
     Settings,
     StageError,
     interruptible_thread_pool,
@@ -91,7 +92,7 @@ class Pipeline:
             row["druid"]: row
             for row in self.store.db.execute(
                 """SELECT druid,source_fingerprint,source_checked_at,
-                          source_cache_sha256
+                          source_cache_sha256,source_inventory_signature
                    FROM objects WHERE manifest_present=1"""
             )
             if row["druid"] in selected
@@ -124,6 +125,8 @@ class Pipeline:
                 or not obj["source_cache_sha256"]
                 or not cache_path.exists()
                 or not cocina_checked_recently(obj["source_checked_at"])
+                or obj["source_inventory_signature"]
+                != SOURCE_INVENTORY_SIGNATURE
             )
             needs_work = needs_cocina
             if needs_cocina:
