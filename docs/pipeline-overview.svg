@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 520" role="img" aria-labelledby="title description">
+  <title id="title">SDR Harvest pipeline overview</title>
+  <desc id="description">Four connected boxes show the Acquire, Prepare, Enrich, and Index phases of the SDR Harvest pipeline.</desc>
+
+  <defs>
+    <filter id="shadow" x="-10%" y="-15%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#1f2937" flood-opacity="0.14"/>
+    </filter>
+    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="520" fill="#f8fafc"/>
+
+  <text x="800" y="62" text-anchor="middle" fill="#172554" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="700">
+    SDR Harvest Pipeline
+  </text>
+  <text x="800" y="96" text-anchor="middle" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="19">
+    From repository objects to semantic search
+  </text>
+
+  <!-- Flow arrows -->
+  <g fill="none" stroke="#475569" stroke-width="6" stroke-linecap="round" marker-end="url(#arrowhead)">
+    <path d="M 390 267 H 452"/>
+    <path d="M 770 267 H 832"/>
+    <path d="M 1150 267 H 1212"/>
+  </g>
+
+  <!-- Acquire -->
+  <g filter="url(#shadow)">
+    <rect x="70" y="145" width="320" height="245" rx="24" fill="#ffffff" stroke="#0f766e" stroke-width="4"/>
+    <rect x="70" y="145" width="320" height="72" rx="24" fill="#0f766e"/>
+    <path d="M 70 193 H 390 V 217 H 70 z" fill="#0f766e"/>
+  </g>
+  <circle cx="112" cy="181" r="22" fill="#ccfbf1"/>
+  <text x="112" y="189" text-anchor="middle" fill="#0f766e" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700">1</text>
+  <text x="151" y="190" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Acquire</text>
+  <g fill="#334155" font-family="Arial, Helvetica, sans-serif" font-size="20">
+    <text x="105" y="265">Read the manifest</text>
+    <text x="105" y="305">Fetch Cocina metadata</text>
+    <text x="105" y="345">Download and validate files</text>
+  </g>
+  <g fill="#0f766e">
+    <circle cx="88" cy="258" r="5"/><circle cx="88" cy="298" r="5"/><circle cx="88" cy="338" r="5"/>
+  </g>
+
+  <!-- Prepare -->
+  <g filter="url(#shadow)">
+    <rect x="450" y="145" width="320" height="245" rx="24" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+    <rect x="450" y="145" width="320" height="72" rx="24" fill="#2563eb"/>
+    <path d="M 450 193 H 770 V 217 H 450 z" fill="#2563eb"/>
+  </g>
+  <circle cx="492" cy="181" r="22" fill="#dbeafe"/>
+  <text x="492" y="189" text-anchor="middle" fill="#1d4ed8" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700">2</text>
+  <text x="531" y="190" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Prepare</text>
+  <g fill="#334155" font-family="Arial, Helvetica, sans-serif" font-size="20">
+    <text x="485" y="265">Extract text</text>
+    <text x="485" y="305">Transform metadata</text>
+    <text x="485" y="345">Create overlapping chunks</text>
+  </g>
+  <g fill="#2563eb">
+    <circle cx="468" cy="258" r="5"/><circle cx="468" cy="298" r="5"/><circle cx="468" cy="338" r="5"/>
+  </g>
+
+  <!-- Enrich -->
+  <g filter="url(#shadow)">
+    <rect x="830" y="145" width="320" height="245" rx="24" fill="#ffffff" stroke="#7c3aed" stroke-width="4"/>
+    <rect x="830" y="145" width="320" height="72" rx="24" fill="#7c3aed"/>
+    <path d="M 830 193 H 1150 V 217 H 830 z" fill="#7c3aed"/>
+  </g>
+  <circle cx="872" cy="181" r="22" fill="#ede9fe"/>
+  <text x="872" y="189" text-anchor="middle" fill="#6d28d9" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700">3</text>
+  <text x="911" y="190" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Enrich</text>
+  <g fill="#334155" font-family="Arial, Helvetica, sans-serif" font-size="20">
+    <text x="865" y="265">Format content for retrieval</text>
+    <text x="865" y="305">Generate semantic vectors</text>
+    <text x="865" y="345">Checkpoint each embedding</text>
+  </g>
+  <g fill="#7c3aed">
+    <circle cx="848" cy="258" r="5"/><circle cx="848" cy="298" r="5"/><circle cx="848" cy="338" r="5"/>
+  </g>
+
+  <!-- Index -->
+  <g filter="url(#shadow)">
+    <rect x="1210" y="145" width="320" height="245" rx="24" fill="#ffffff" stroke="#be123c" stroke-width="4"/>
+    <rect x="1210" y="145" width="320" height="72" rx="24" fill="#be123c"/>
+    <path d="M 1210 193 H 1530 V 217 H 1210 z" fill="#be123c"/>
+  </g>
+  <circle cx="1252" cy="181" r="22" fill="#ffe4e6"/>
+  <text x="1252" y="189" text-anchor="middle" fill="#be123c" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700">4</text>
+  <text x="1291" y="190" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Index</text>
+  <g fill="#334155" font-family="Arial, Helvetica, sans-serif" font-size="20">
+    <text x="1245" y="265">Build parent/child documents</text>
+    <text x="1245" y="305">Publish documents to Solr</text>
+    <text x="1245" y="345">Enable semantic search</text>
+  </g>
+  <g fill="#be123c">
+    <circle cx="1228" cy="258" r="5"/><circle cx="1228" cy="298" r="5"/><circle cx="1228" cy="338" r="5"/>
+  </g>
+
+  <rect x="270" y="432" width="1060" height="52" rx="26" fill="#e2e8f0"/>
+  <text x="800" y="465" text-anchor="middle" fill="#334155" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="600">
+    Every build stage is checkpointed and resumable; publishing is a separate, explicit operation.
+  </text>
+</svg>

@@ -1,8 +1,22 @@
 # SDR Harvest
 
 SDR Harvest builds searchable Solr documents from Stanford Digital Repository
-objects. Builds are resumable and stored locally; publishing to Solr is a
-separate command.
+objects.
+
+The pipeline has four broad phases:
+
+1. **Acquire** — Read the manifest, fetch Cocina metadata, and download
+   validated source files.
+2. **Prepare** — Extract text, transform metadata, and divide the content into
+   overlapping chunks.
+3. **Enrich** — Generate a semantic vector embedding for every chunk.
+4. **Index** — Create nested parent/child Solr documents and publish them to the
+   search collection.
+
+Every build stage is checkpointed and resumable; publishing is a separate,
+explicit operation.
+
+![SDR Harvest pipeline: Acquire, Prepare, Enrich, and Index](docs/pipeline-overview.svg)
 
 ## Quick start
 
