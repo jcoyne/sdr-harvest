@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from xml.etree import ElementTree
 
-from .core import StageError
+from .core import ALTO_EXTRACT_SIGNATURE, StageError
 
 
 def local_name(tag: str) -> str:
@@ -47,6 +47,9 @@ def alto_text(path: Path) -> str:
 
 class AltoXmlExtractionStrategy:
     """Extract OCR text directly from page-level ALTO XML files."""
+
+    # Retain the former shared signature so existing ALTO output stays current.
+    signature = ALTO_EXTRACT_SIGNATURE
 
     def supports(self, cocina: dict, source_files: list[Path]) -> bool:
         is_book = str(cocina.get("type", "")).rsplit("/", 1)[-1] == "book"

@@ -92,7 +92,8 @@ class Pipeline:
             row["druid"]: row
             for row in self.store.db.execute(
                 """SELECT druid,source_fingerprint,source_checked_at,
-                          source_cache_sha256,source_inventory_signature
+                          source_cache_sha256,source_inventory_signature,
+                          current_artifact_dir
                    FROM objects WHERE manifest_present=1"""
             )
             if row["druid"] in selected
@@ -111,6 +112,7 @@ class Pipeline:
             if row["druid"] in selected
         }
         downstream = ("download", "metadata", "extract", "chunk", "embed", "document")
+        extractor = TextExtractor()
         for druid in tqdm(
             druids,
             desc="Estimating remaining work",
@@ -134,12 +136,20 @@ class Pipeline:
             dirty = not input_fp
             for stage in downstream:
                 record = stages.get((druid, stage))
+                signature = SIGNATURES[stage]
+                if stage == "extract" and obj and obj["current_artifact_dir"]:
+                    version_dir = self.store.resolve_path(obj["current_artifact_dir"])
+                    try:
+                        signature = extractor.signature(version_dir)
+                    except (OSError, ValueError, StageError):
+                        # Missing or invalid artifacts must be rebuilt conservatively.
+                        pass
                 current = bool(
                     not dirty
                     and record
                     and record["status"] == "succeeded"
                     and record["input_fingerprint"] == input_fp
-                    and record["stage_signature"] == SIGNATURES[stage]
+                    and record["stage_signature"] == signature
                     and record["artifact_path"]
                     and self.store.resolve_path(record["artifact_path"]).exists()
                 )
@@ -307,7 +317,11 @@ class Pipeline:
             ),
         ]
         for stage, operation in operations:
-            signature = SIGNATURES[stage]
+            signature = (
+                extractor.signature(version_dir)
+                if stage == "extract"
+                else SIGNATURES[stage]
+            )
             record = self.store.stage(druid, stage)
             is_current = (
                 self.store.stage_is_current(druid, stage, input_fp, signature)

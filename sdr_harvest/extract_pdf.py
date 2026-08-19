@@ -4,11 +4,13 @@ from pathlib import Path
 
 import pymupdf4llm
 
-from .core import StageError
+from .core import PDF_EXTRACT_SIGNATURE, StageError
 
 
 class PdfExtractionStrategy:
     """Extract embedded text from PDF source files."""
+
+    signature = PDF_EXTRACT_SIGNATURE
 
     def supports(self, cocina: dict, source_files: list[Path]) -> bool:
         return any(path.suffix.lower() == ".pdf" for path in source_files)

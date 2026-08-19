@@ -11,11 +11,15 @@ from pathlib import Path
 import requests
 
 
+ALTO_EXTRACT_SIGNATURE = "pymupdf4llm-no-ocr-v1"
+PDF_EXTRACT_SIGNATURE = "pymupdf4llm-1.28.2-no-ocr-v2"
+
 SIGNATURES = {
     "cocina": "cocina-v2-conditional-get",
     "download": "download-v1-sha1",
     "metadata": "traject-sdr-config-v1",
-    "extract": "pymupdf4llm-1.28.2-no-ocr-v2",
+    # Used as the conservative default when the extraction strategy is unknown.
+    "extract": PDF_EXTRACT_SIGNATURE,
     "chunk": "recursive-1500-200-v2",
     "embed": "gemini-embedding-2-768-retrieval-document-v2",
     "document": "nested-solr-document-v1",

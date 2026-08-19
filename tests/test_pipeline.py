@@ -28,6 +28,8 @@ from sdr_harvest.cli import (
 from sdr_harvest.attempts import StageAttempts
 from sdr_harvest.chunk import CHUNK_OVERLAP, CHUNK_SIZE, Chunker
 from sdr_harvest.core import (
+    ALTO_EXTRACT_SIGNATURE,
+    PDF_EXTRACT_SIGNATURE,
     SIGNATURES,
     SOURCE_INVENTORY_SIGNATURE,
     Settings,
@@ -283,6 +285,29 @@ class FingerprintTest(unittest.TestCase):
 
 
 class TextExtractorTest(unittest.TestCase):
+    def test_uses_strategy_specific_signatures(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "pdfs"
+            source.mkdir()
+            cocina_path = root / "cocina.json"
+            extractor = TextExtractor()
+
+            cocina_path.write_text(
+                json.dumps({"type": "https://cocina.sul.stanford.edu/models/book"})
+            )
+            source.joinpath("page.xml").write_text("<alto/>")
+            self.assertEqual(ALTO_EXTRACT_SIGNATURE, extractor.signature(root))
+
+            source.joinpath("page.xml").unlink()
+            source.joinpath("document.pdf").write_bytes(b"pdf")
+            cocina_path.write_text(
+                json.dumps(
+                    {"type": "https://cocina.sul.stanford.edu/models/document"}
+                )
+            )
+            self.assertEqual(PDF_EXTRACT_SIGNATURE, extractor.signature(root))
+
     def test_book_extracts_alto_and_joins_line_break_hyphenation(self):
         with tempfile.TemporaryDirectory() as directory:
             version_dir = Path(directory)
@@ -1161,6 +1186,84 @@ class CliErrorTest(unittest.TestCase):
 
 
 class ResumeTest(unittest.TestCase):
+    def _seed_current_extraction(
+        self, root: Path, store: StateStore, *, use_alto: bool
+    ) -> None:
+        source_fp = "source-fingerprint"
+        cache = root / "sources" / DRUID / "cocina.json"
+        cache.parent.mkdir(parents=True)
+        cocina_data = {
+            "type": (
+                "https://cocina.sul.stanford.edu/models/book"
+                if use_alto
+                else "https://cocina.sul.stanford.edu/models/document"
+            )
+        }
+        cache.write_text(json.dumps(cocina_data))
+        store.set_source(
+            DRUID,
+            source_fp,
+            "1",
+            [],
+            cache_sha256=file_sha256(cache),
+        )
+        version_dir = root / "versions" / DRUID / source_fp
+        source_dir = version_dir / "pdfs"
+        source_dir.mkdir(parents=True)
+        version_dir.joinpath("cocina.json").write_text(json.dumps(cocina_data))
+        source_dir.joinpath("page.xml" if use_alto else "document.pdf").write_text(
+            "<alto/>" if use_alto else "pdf"
+        )
+        input_fp = source_fp
+        for stage in STAGES[1:]:
+            artifact = version_dir / f"{stage}.artifact"
+            artifact.write_text(stage)
+            output_fp = f"output-{stage}"
+            signature = (
+                ALTO_EXTRACT_SIGNATURE if stage == "extract" else SIGNATURES[stage]
+            )
+            store.adopt_stage(
+                DRUID, stage, input_fp, output_fp, signature, artifact
+            )
+            input_fp = output_fp
+        store.mark_built(DRUID, str(version_dir))
+
+    def test_pymupdf_signature_change_does_not_queue_alto_extraction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = StateStore(root / "state.sqlite3")
+            store.reconcile_manifest({DRUID})
+            self._seed_current_extraction(root, store, use_alto=True)
+
+            estimate, pending = Pipeline(Settings(root, root), store)._plan_work(
+                [DRUID], show_progress=False
+            )
+
+            self.assertEqual([], pending)
+            self.assertTrue(all(count == 0 for count in estimate.values()))
+            store.close()
+
+    def test_pymupdf_signature_change_queues_pdf_extraction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = StateStore(root / "state.sqlite3")
+            store.reconcile_manifest({DRUID})
+            self._seed_current_extraction(root, store, use_alto=False)
+            store.db.execute(
+                "UPDATE stage_state SET stage_signature=? "
+                "WHERE druid=? AND stage='extract'",
+                (ALTO_EXTRACT_SIGNATURE, DRUID),
+            )
+            store.db.commit()
+
+            estimate, pending = Pipeline(Settings(root, root), store)._plan_work(
+                [DRUID], show_progress=False
+            )
+
+            self.assertEqual([DRUID], pending)
+            self.assertEqual(1, estimate["extract"])
+            store.close()
+
     def test_changed_source_inventory_policy_queues_cached_object_once(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1291,7 +1394,7 @@ class ResumeTest(unittest.TestCase):
                 patch("sdr_harvest.pipeline.StageAttempts") as attempts_class,
                 patch("sdr_harvest.pipeline.MetadataFetcher") as metadata_class,
                 patch("sdr_harvest.pipeline.FileDownloader"),
-                patch("sdr_harvest.pipeline.TextExtractor"),
+                patch("sdr_harvest.pipeline.TextExtractor") as extractor_class,
                 patch("sdr_harvest.pipeline.Chunker"),
                 patch("sdr_harvest.pipeline.Embedder"),
                 patch("sdr_harvest.pipeline.SolrDocumentBuilder"),
@@ -1303,6 +1406,9 @@ class ResumeTest(unittest.TestCase):
                     files,
                     source_fp,
                 )
+                extractor_class.return_value.signature.return_value = SIGNATURES[
+                    "extract"
+                ]
                 pipeline.run_object(store.start_run("manifest.csv"), DRUID)
             self.assertEqual(
                 str(Path("versions") / DRUID / source_fp),
