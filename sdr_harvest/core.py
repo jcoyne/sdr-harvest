@@ -15,7 +15,7 @@ SIGNATURES = {
     "cocina": "cocina-v2-conditional-get",
     "download": "download-v1-sha1",
     "metadata": "traject-sdr-config-v1",
-    "extract": "pymupdf4llm-no-ocr-v1",
+    "extract": "pymupdf4llm-1.28.2-no-ocr-v2",
     "chunk": "recursive-1500-200-v2",
     "embed": "gemini-embedding-2-768-retrieval-document-v2",
     "document": "nested-solr-document-v1",

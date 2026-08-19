@@ -16,6 +16,7 @@ from unittest.mock import Mock, patch
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pymupdf
 
 from sdr_harvest.cli import (
     RESOURCE_TRACKER_WARNING_FILTER,
@@ -46,6 +47,7 @@ from sdr_harvest.embed import (
     retrieval_document,
     retrieval_title,
 )
+from sdr_harvest.extract_pdf import PdfExtractionStrategy
 from sdr_harvest.extract_text import TextExtractor
 from sdr_harvest.manifests import (
     cocina_pdf_files,
@@ -329,6 +331,35 @@ class TextExtractorTest(unittest.TestCase):
 
             self.assertEqual("PDF text", output.joinpath("document.md").read_text())
             to_markdown.assert_called_once()
+
+
+class PdfExtractionRegressionTest(unittest.TestCase):
+    def test_preserves_an_invisible_pdf_text_layer(self):
+        """Regression test for hz508gx6219 losing all non-heading text."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf = root / "invisible-text-layer.pdf"
+            document = pymupdf.open()
+            page = document.new_page()
+            phrase = "Invisible text layers must remain searchable. "
+            page.insert_textbox(
+                pymupdf.Rect(50, 50, 550, 750),
+                phrase * 30,
+                fontsize=11,
+                render_mode=3,
+            )
+            document.save(pdf)
+            document.close()
+
+            with pymupdf.open(pdf) as check:
+                self.assertGreater(len(check[0].get_text()), 1_000)
+
+            output = root / "markdown"
+            output.mkdir()
+            PdfExtractionStrategy().extract([pdf], output)
+
+            extracted = output.joinpath("invisible-text-layer.md").read_text()
+            self.assertIn("Invisible text layers must remain searchable", extracted)
 
 
 class StreamingResponse:
