@@ -141,7 +141,7 @@ class Pipeline:
                     and record["input_fingerprint"] == input_fp
                     and record["stage_signature"] == SIGNATURES[stage]
                     and record["artifact_path"]
-                    and Path(record["artifact_path"]).exists()
+                    and self.store.resolve_path(record["artifact_path"]).exists()
                 )
                 if current:
                     input_fp = record["output_fingerprint"] or input_fp
@@ -313,7 +313,7 @@ class Pipeline:
                 self.store.stage_is_current(druid, stage, input_fp, signature)
                 and record
                 and record.artifact_path
-                and Path(record.artifact_path).exists()
+                and self.store.resolve_path(record.artifact_path).exists()
             )
             if is_current:
                 input_fp = record.output_fingerprint or input_fp

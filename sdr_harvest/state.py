@@ -108,7 +108,15 @@ CREATE TABLE IF NOT EXISTS publications (
 CREATE INDEX IF NOT EXISTS idx_stage_status ON stage_state(status, stage);
 CREATE INDEX IF NOT EXISTS idx_attempt_object ON attempts(druid, stage);
 CREATE INDEX IF NOT EXISTS idx_publication_status ON publications(target_url, status);
+CREATE TABLE IF NOT EXISTS app_metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 """
+
+
+RELATIVE_PATHS_MIGRATION = "relative-state-paths-v1"
+STATE_PATH_ROOTS = ("sources", "versions", "logs")
 
 
 @dataclass(frozen=True)
@@ -127,9 +135,10 @@ class StageRecord:
 
 class StateStore:
     def __init__(self, path: Path):
-        self.path = path
+        self.path = path.resolve()
+        self.state_dir = self.path.parent
         path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(path, timeout=30)
+        self.db = sqlite3.connect(self.path, timeout=30)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
         self._migrate()
@@ -157,7 +166,67 @@ class StateStore:
         # Older releases tracked publication as a build stage without recording
         # its Solr target. It cannot safely suppress a target-specific publish.
         self.db.execute("DELETE FROM stage_state WHERE stage='publish'")
+        self._migrate_relative_paths()
         self.db.commit()
+
+    def _portable_path(self, value: str | Path | None) -> str | None:
+        """Represent a managed state path relative to the state directory."""
+        if value is None:
+            return None
+        path = Path(value)
+        if not path.is_absolute():
+            return str(path)
+        try:
+            return str(path.relative_to(self.state_dir))
+        except ValueError:
+            # Legacy databases may point at a state directory on another
+            # machine or at the location from which this directory was moved.
+            # Managed paths always live below one of these top-level folders.
+            for index in range(len(path.parts) - 1, -1, -1):
+                if path.parts[index] in STATE_PATH_ROOTS:
+                    return str(Path(*path.parts[index:]))
+        return str(path)
+
+    def resolve_path(self, value: str | Path) -> Path:
+        """Resolve a stored path against the current state directory."""
+        path = Path(value)
+        if not path.is_absolute():
+            return self.state_dir / path
+        if path.exists():
+            return path
+        portable = self._portable_path(path)
+        return self.state_dir / portable if portable != str(path) else path
+
+    def _migrate_relative_paths(self) -> None:
+        migrated = self.db.execute(
+            "SELECT 1 FROM app_metadata WHERE key=?",
+            (RELATIVE_PATHS_MIGRATION,),
+        ).fetchone()
+        if migrated:
+            return
+        columns = (
+            ("objects", "rowid", "current_artifact_dir"),
+            ("stage_state", "rowid", "artifact_path"),
+            ("attempts", "id", "log_path"),
+            ("publications", "rowid", "receipt_path"),
+        )
+        for table, key, column in columns:
+            rows = self.db.execute(
+                f"SELECT {key},{column} FROM {table} WHERE {column} IS NOT NULL"
+            ).fetchall()
+            updates = [
+                (portable, row[0])
+                for row in rows
+                if (portable := self._portable_path(row[1])) != row[1]
+            ]
+            if updates:
+                self.db.executemany(
+                    f"UPDATE {table} SET {column}=? WHERE {key}=?", updates
+                )
+        self.db.execute(
+            "INSERT INTO app_metadata(key,value) VALUES(?,?)",
+            (RELATIVE_PATHS_MIGRATION, now()),
+        )
 
     def close(self) -> None:
         self.db.close()
@@ -294,7 +363,14 @@ class StateStore:
             cur = self.db.execute(
                 """INSERT INTO attempts(run_id,druid,stage,attempt,status,started_at,log_path)
                    VALUES(?,?,?,?, 'running', ?, ?)""",
-                (run_id, druid, stage, attempt, now(), log_path),
+                (
+                    run_id,
+                    druid,
+                    stage,
+                    attempt,
+                    now(),
+                    self._portable_path(log_path),
+                ),
             )
         return int(cur.lastrowid), attempt
 
@@ -309,7 +385,16 @@ class StateStore:
             self.db.execute(
                 """UPDATE stage_state SET status=?,finished_at=?,output_fingerprint=?,artifact_path=?,
                    error_category=?,error_message=? WHERE druid=? AND stage=?""",
-                (status, now(), output_fp, artifact_path, category, message, druid, stage),
+                (
+                    status,
+                    now(),
+                    output_fp,
+                    self._portable_path(artifact_path),
+                    category,
+                    message,
+                    druid,
+                    stage,
+                ),
             )
 
     def invalidate(self, druid: str, from_stage: str) -> None:
@@ -337,7 +422,7 @@ class StateStore:
     def mark_built(self, druid: str, artifact_dir: str) -> None:
         self.db.execute(
             "UPDATE objects SET current_artifact_dir=?,updated_at=? WHERE druid=?",
-            (artifact_dir, now(), druid),
+            (self._portable_path(artifact_dir), now(), druid),
         )
         self.db.commit()
 
@@ -402,7 +487,15 @@ class StateStore:
         self.db.execute(
             """UPDATE publications SET status=?,finished_at=?,receipt_path=?,
                error_category=?,error_message=? WHERE druid=? AND target_url=?""",
-            (status, now(), receipt_path, category, message, druid, target_url),
+            (
+                status,
+                now(),
+                self._portable_path(receipt_path),
+                category,
+                message,
+                druid,
+                target_url,
+            ),
         )
         self.db.commit()
 
@@ -444,6 +537,15 @@ class StateStore:
                ON CONFLICT(druid,stage) DO UPDATE SET status='succeeded',input_fingerprint=excluded.input_fingerprint,
                  output_fingerprint=excluded.output_fingerprint,stage_signature=excluded.stage_signature,
                  artifact_path=excluded.artifact_path,finished_at=excluded.finished_at,error_category=NULL,error_message=NULL""",
-            (druid, stage, input_fp, output_fp, signature, str(artifact), now(), now()),
+            (
+                druid,
+                stage,
+                input_fp,
+                output_fp,
+                signature,
+                self._portable_path(artifact),
+                now(),
+                now(),
+            ),
         )
         self.db.commit()

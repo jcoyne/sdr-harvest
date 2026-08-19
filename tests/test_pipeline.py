@@ -828,6 +828,85 @@ class StateTest(unittest.TestCase):
         self.assertFalse(self.store.set_source(DRUID, "same", "1", []))
         self.assertEqual("succeeded", self.store.stage(DRUID, "download").status)
 
+    def test_managed_paths_are_stored_relative_to_state_directory(self):
+        artifact = self.path / "versions" / DRUID / "source" / "solr.json"
+        artifact.parent.mkdir(parents=True)
+        artifact.write_text("{}")
+        self.store.adopt_stage(
+            DRUID, "document", "in", "out", "sig", artifact
+        )
+        self.store.mark_built(DRUID, str(artifact.parent))
+
+        stored = self.store.db.execute(
+            "SELECT artifact_path FROM stage_state WHERE druid=? AND stage='document'",
+            (DRUID,),
+        ).fetchone()[0]
+        current = self.store.object_row(DRUID)["current_artifact_dir"]
+
+        self.assertEqual(
+            str(Path("versions") / DRUID / "source" / "solr.json"), stored
+        )
+        self.assertEqual(str(Path("versions") / DRUID / "source"), current)
+        self.assertEqual(artifact.resolve(), self.store.resolve_path(stored))
+
+    def test_legacy_absolute_paths_are_migrated_after_state_directory_moves(self):
+        self.store.close()
+        old_root = Path("/old-machine/project/.sdr-harvest")
+        connection = sqlite3.connect(self.path / "state.sqlite3")
+        connection.execute(
+            "DELETE FROM app_metadata WHERE key='relative-state-paths-v1'"
+        )
+        connection.execute(
+            """INSERT INTO stage_state(
+                 druid,stage,status,artifact_path,attempt_count
+               ) VALUES(?,?,'succeeded',?,0)""",
+            (
+                DRUID,
+                "document",
+                str(old_root / "versions" / DRUID / "source" / "solr.json"),
+            ),
+        )
+        connection.execute(
+            "UPDATE objects SET current_artifact_dir=? WHERE druid=?",
+            (str(old_root / "versions" / DRUID / "source"), DRUID),
+        )
+        connection.commit()
+        connection.close()
+
+        self.store = StateStore(self.path / "state.sqlite3")
+
+        record = self.store.stage(DRUID, "document")
+        self.assertEqual(
+            str(Path("versions") / DRUID / "source" / "solr.json"),
+            record.artifact_path,
+        )
+        self.assertEqual(
+            (self.path / "versions" / DRUID / "source" / "solr.json").resolve(),
+            self.store.resolve_path(record.artifact_path),
+        )
+
+    def test_relative_artifact_path_survives_state_directory_move(self):
+        self.store.close()
+        original = self.path / "original-state"
+        moved = self.path / "moved-state"
+        store = StateStore(original / "state.sqlite3")
+        store.reconcile_manifest({DRUID})
+        artifact = original / "versions" / DRUID / "source" / "solr.json"
+        artifact.parent.mkdir(parents=True)
+        artifact.write_text("{}")
+        store.adopt_stage(DRUID, "document", "in", "out", "sig", artifact)
+        store.close()
+
+        original.rename(moved)
+        self.store = StateStore(moved / "state.sqlite3")
+        record = self.store.stage(DRUID, "document")
+
+        self.assertEqual(
+            (moved / "versions" / DRUID / "source" / "solr.json").resolve(),
+            self.store.resolve_path(record.artifact_path),
+        )
+        self.assertTrue(self.store.resolve_path(record.artifact_path).exists())
+
     def test_invalidate_marks_selected_stage_and_following_stages(self):
         for stage in STAGES:
             artifact = self.path / stage
@@ -1194,7 +1273,10 @@ class ResumeTest(unittest.TestCase):
                     source_fp,
                 )
                 pipeline.run_object(store.start_run("manifest.csv"), DRUID)
-            self.assertEqual(str(version_dir), store.object_row(DRUID)["current_artifact_dir"])
+            self.assertEqual(
+                str(Path("versions") / DRUID / source_fp),
+                store.object_row(DRUID)["current_artifact_dir"],
+            )
             attempts.run.assert_not_called()
             self.assertIn((DRUID, "cocina", "started"), progress_events)
             self.assertIn((DRUID, "cocina", "succeeded"), progress_events)

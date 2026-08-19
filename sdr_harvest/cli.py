@@ -254,7 +254,11 @@ def main(argv: list[str] | None = None) -> None:
             versions = args.state_dir / "versions"
             for object_dir in versions.glob("*") if versions.exists() else []:
                 current = store.object_row(object_dir.name)
-                keep = Path(current["current_artifact_dir"]).resolve() if current and current["current_artifact_dir"] else None
+                keep = (
+                    store.resolve_path(current["current_artifact_dir"]).resolve()
+                    if current and current["current_artifact_dir"]
+                    else None
+                )
                 for version in object_dir.glob("*"):
                     if keep and version.resolve() == keep:
                         continue

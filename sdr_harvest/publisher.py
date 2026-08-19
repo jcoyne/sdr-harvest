@@ -245,7 +245,7 @@ class CorpusPublisher:
             document = self.store.stage(druid, "document")
             source_fp = obj["source_fingerprint"] if obj else None
             document_path = (
-                Path(document.artifact_path)
+                self.store.resolve_path(document.artifact_path)
                 if document and document.artifact_path
                 else None
             )
