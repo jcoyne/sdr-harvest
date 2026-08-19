@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import sys
+import textwrap
 import warnings
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,6 +14,7 @@ import requests
 from urllib3.exceptions import InsecureRequestWarning
 
 from .core import Settings, StageError
+from .evaluation import compare_reports, live_evaluator, load_judgments, parse_cutoffs
 from .manifests import merge_manifests, parse_manifest
 from .pipeline import Pipeline
 from .publisher import CorpusPublisher, SolrPublisher
@@ -65,6 +67,60 @@ def parser() -> argparse.ArgumentParser:
         "--no-progress", action="store_true", help="disable the publication progress bar"
     )
     publish.add_argument(
+        "--insecure",
+        action="store_true",
+        help="disable TLS certificate verification (only for a trusted local tunnel)",
+    )
+    evaluate = commands.add_parser(
+        "evaluate", help="measure ranked retrieval against relevance judgments"
+    )
+    evaluate.add_argument("--judgments", type=Path, required=True)
+    evaluate.add_argument("--output", type=Path, required=True)
+    evaluate.add_argument("--baseline", type=Path)
+    evaluate.add_argument("--target", default="http://localhost:8983/solr/sdr-search")
+    evaluate.add_argument(
+        "--cutoffs", default="1,5,10", help="comma-separated ranking cutoffs"
+    )
+    evaluate.add_argument(
+        "--candidates",
+        type=int,
+        default=100,
+        help="number of chunk candidates to retrieve before collapsing by DRUID",
+    )
+    evaluate.add_argument(
+        "--fail-on-regression",
+        metavar="METRIC",
+        help="exit nonzero when this metric drops beyond the tolerance",
+    )
+    evaluate.add_argument(
+        "--regression-tolerance",
+        type=float,
+        default=0.0,
+        help="allowed absolute decrease for --fail-on-regression",
+    )
+    evaluate.add_argument(
+        "--insecure",
+        action="store_true",
+        help="disable TLS certificate verification (only for a trusted local tunnel)",
+    )
+    query = commands.add_parser(
+        "query", help="run one semantic query and display ranked results"
+    )
+    query.add_argument("query", help="natural-language query text")
+    query.add_argument("--target", default="http://localhost:8983/solr/sdr-search")
+    query.add_argument(
+        "--limit", type=int, default=10, help="number of DRUID results to display"
+    )
+    query.add_argument(
+        "--candidates",
+        type=int,
+        default=100,
+        help="number of chunk candidates to retrieve before collapsing by DRUID",
+    )
+    query.add_argument(
+        "--json", action="store_true", help="emit machine-readable JSON"
+    )
+    query.add_argument(
         "--insecure",
         action="store_true",
         help="disable TLS certificate verification (only for a trusted local tunnel)",
@@ -150,6 +206,32 @@ def _pipeline(root: Path, args, store: StateStore) -> Pipeline:
     return Pipeline(_settings(root, args), store)
 
 
+def _print_query_results(results: list[dict]) -> None:
+    if not results:
+        print("No results.")
+        return
+    for rank, result in enumerate(results, 1):
+        score = result.get("score")
+        score_label = f" score={score:.6f}" if isinstance(score, (int, float)) else ""
+        print(f"{rank}. {result['druid']}{score_label}")
+        details = []
+        if filename := result.get("filename"):
+            details.append(str(filename))
+        if (chunk_index := result.get("chunk_index")) is not None:
+            details.append(f"chunk {chunk_index}")
+        if details:
+            print(f"   {' · '.join(details)}")
+        if snippet := " ".join(str(result.get("snippet", "")).split()):
+            print(
+                textwrap.fill(
+                    snippet,
+                    width=100,
+                    initial_indent="   ",
+                    subsequent_indent="   ",
+                )
+            )
+
+
 def main(argv: list[str] | None = None) -> None:
     # PyMuPDF may start multiprocessing's resource tracker during extraction.
     # It inherits this targeted filter before any worker creates a semaphore.
@@ -206,6 +288,98 @@ def main(argv: list[str] | None = None) -> None:
             print(json.dumps(summary, indent=2, sort_keys=True))
             if summary["failed"] or summary["not_ready"]:
                 raise SystemExit(1)
+            return
+        if args.command == "evaluate":
+            cutoffs = parse_cutoffs(args.cutoffs)
+            if args.candidates < 1:
+                raise StageError("Candidates must be positive")
+            if args.regression_tolerance < 0:
+                raise StageError("Regression tolerance cannot be negative")
+            if args.fail_on_regression and not args.baseline:
+                raise StageError("--fail-on-regression requires --baseline")
+            verify_tls = not args.insecure
+            if not verify_tls:
+                warnings.filterwarnings("ignore", category=InsecureRequestWarning)
+            evaluator, session = live_evaluator(args.target, verify_tls=verify_tls)
+            try:
+                report = evaluator.run(
+                    load_judgments(args.judgments),
+                    cutoffs=cutoffs,
+                    candidate_count=args.candidates,
+                )
+            finally:
+                session.close()
+            if args.baseline:
+                try:
+                    baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    raise StageError(f"Could not read baseline report: {exc}") from exc
+                report["comparison"] = compare_reports(report, baseline)
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(
+                json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            print(json.dumps(report["aggregate"], indent=2, sort_keys=True))
+            if report.get("comparison"):
+                print(
+                    json.dumps(
+                        {
+                            name: values["delta"]
+                            for name, values in report["comparison"][
+                                "aggregate"
+                            ].items()
+                        },
+                        indent=2,
+                        sort_keys=True,
+                    )
+                )
+            if args.fail_on_regression:
+                comparison = report.get("comparison", {}).get("aggregate", {})
+                if args.fail_on_regression not in comparison:
+                    raise StageError(
+                        f"Unknown regression metric: {args.fail_on_regression}"
+                    )
+                delta = comparison[args.fail_on_regression]["delta"]
+                if delta < -args.regression_tolerance:
+                    print(
+                        f"Regression: {args.fail_on_regression} changed by {delta:.6f}",
+                        file=sys.stderr,
+                    )
+                    raise SystemExit(2)
+            return
+        if args.command == "query":
+            if args.limit < 1:
+                raise StageError("Limit must be positive")
+            if args.candidates < args.limit:
+                raise StageError(
+                    f"Candidate count ({args.candidates}) must be at least the "
+                    f"result limit ({args.limit})"
+                )
+            verify_tls = not args.insecure
+            if not verify_tls:
+                warnings.filterwarnings("ignore", category=InsecureRequestWarning)
+            evaluator, session = live_evaluator(args.target, verify_tls=verify_tls)
+            try:
+                results = evaluator.query(
+                    args.query, candidate_count=args.candidates
+                )[: args.limit]
+            finally:
+                session.close()
+            if args.json:
+                print(
+                    json.dumps(
+                        {
+                            "query": args.query,
+                            "candidate_chunks": args.candidates,
+                            "result_count": len(results),
+                            "results": results,
+                        },
+                        indent=2,
+                        sort_keys=True,
+                    )
+                )
+            else:
+                _print_query_results(results)
             return
         if args.command == "status":
             rows = store.rows_for_status(failed_only=args.failed, druid=args.druid, stage=args.stage)

@@ -1,0 +1,246 @@
+{
+  "aggregate": {
+    "mrr@1": 1.0,
+    "mrr@10": 1.0,
+    "mrr@5": 1.0,
+    "ndcg@1": 1.0,
+    "ndcg@10": 0.878120514726648,
+    "ndcg@5": 0.8225180062157464,
+    "recall@1": 0.25,
+    "recall@10": 0.8333333333333333,
+    "recall@5": 0.6666666666666666,
+    "success@1": 1.0,
+    "success@10": 1.0,
+    "success@5": 1.0
+  },
+  "created_at": "2026-08-19T19:57:04.312422+00:00",
+  "queries": [
+    {
+      "id": "campus-history",
+      "metrics": {
+        "mrr@1": 1.0,
+        "mrr@10": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@1": 1.0,
+        "ndcg@10": 0.9651366671790967,
+        "ndcg@5": 0.8539316501572937,
+        "recall@1": 0.16666666666666666,
+        "recall@10": 1.0,
+        "recall@5": 0.6666666666666666,
+        "success@1": 1.0,
+        "success@10": 1.0,
+        "success@5": 1.0
+      },
+      "query": "What was Stanford's role in the development of Silicon Valley?",
+      "relevant": {
+        "cf791dy3687": 1.0,
+        "cj914qw1192": 1.0,
+        "cv597xh6999": 1.0,
+        "kx682dv2945": 1.0,
+        "my387ct3613": 1.0,
+        "tw299ys2132": 1.0
+      },
+      "results": [
+        {
+          "chunk_id": "tw299ys2132_tw299ys2132_SC0932_s5_Bower_script_pdf_c323",
+          "chunk_index": 323,
+          "druid": "tw299ys2132",
+          "filename": "tw299ys2132_SC0932_s5_Bower_script.pdf",
+          "score": 0.90017414,
+          "snippet": "The university, I think, has played such a unique role in the development of Silicon Valley. Of course it has. I mean, in terms of Provost Terman and Bill Shockley encouraged many EE students to start companies, and a number of people went out from here and set up information technology, computer, and hardware companies--Hewlett and Packard, Varian, and Fairchild Semiconductor. Many of the top EE people at \n\n241 \n\nFairchild Semiconductor Company left to set up one business after another, from Ci"
+        },
+        {
+          "chunk_id": "cf791dy3687_cf791dy3687_SC0932_s5_Holloway_Charles_Transcript_pdf_c263",
+          "chunk_index": 263,
+          "druid": "cf791dy3687",
+          "filename": "cf791dy3687_SC0932_s5_Holloway_Charles_Transcript.pdf",
+          "score": 0.8956189,
+          "snippet": "- **Holloway:** Well, yes. I think that going back Fred Terman was somebody who encouraged people to come in. It was the Stanford Industrial Park, which was where Silicon Valley actually started, the space. But he encouraged people to come, and he encouraged faculty to go engage with them. He encouraged the students to maybe not take a PhD but maybe go to work for one of these companies. Maybe that\u2019s where you would have the biggest impact. So that was one of the things they did. \n\n   - [00:19:1"
+        },
+        {
+          "chunk_id": "kx682dv2945_Westhem_Ashley_COMMMSThesis_pdf_c18",
+          "chunk_index": 18,
+          "druid": "kx682dv2945",
+          "filename": "Westhem_Ashley_COMMMSThesis.pdf",
+          "score": 0.89165145,
+          "snippet": "Stanford is a breeding ground for technology innovation, an incubator for Silicon \n\nValley\u2019s greatest entrepreneurs and companies, including Google, Hewlett-Packard and Cisco Systems. Former Stanford University President John L. Hennessy praised the University for \u201cpioneering innovations in research, transferring discoveries to the broader community, and educating tomorrow's leaders and entrepreneurs,\u201d illustrating the faculty and students\u2019 \n\n\u201ctremendous impact on the global economy and on impro"
+        },
+        {
+          "chunk_id": "vn821qn1037_vn821qn1037_101_pdf_c0",
+          "chunk_index": 0,
+          "druid": "vn821qn1037",
+          "filename": "vn821qn1037_101.pdf",
+          "score": 0.89031315,
+          "snippet": "Miller: Well, I think the deal stream, as we called it\u2014the number of\nopportunities here\u2014is still very, very great. One great advantage is that\nSilicon Valley is multidimensional. It\u2019s not just one cluster. Route 128\nnow has become more multidimensional, but Route 128 was at one time\nlargely about computing. Here we had computing, we had biosciences,\nwe had medical instruments, we had material science people. We had a\nquite great variety. That\u2019s important because it\u2019s often the combination\nof the"
+        },
+        {
+          "chunk_id": "cv597xh6999_cv597xh6999_04_0399_pdf_c5",
+          "chunk_index": 5,
+          "druid": "cv597xh6999",
+          "filename": "cv597xh6999_04_0399.pdf",
+          "score": 0.8891997,
+          "snippet": "an in her book\nRegional Advantage: university\nencouragement of\nentrepreneurial spirit and collaboration\nwith industry; government (primarily military) funding of the electronics sector; the\nexistence of local institutions such as the\nValley-based Churchill Club, which provides\na forum for the exchange of information\namong competing firms; and the nonhier-\narchical organizational structure typical of\nSilicon Valley firms.\nStanford\u2019s role as an incubator of technology is clear, Lenoir said, singli"
+        },
+        {
+          "chunk_id": "my387ct3613_my387ct3613_SC0932_s5_Miller_script_pdf_c158",
+          "chunk_index": 158,
+          "druid": "my387ct3613",
+          "filename": "my387ct3613_SC0932_s5_Miller_script.pdf",
+          "score": 0.8891442,
+          "snippet": "- **Miller:** I don\u2019t think I said that.  But a lot of people have said that. I may have said it humorously, but I never quite accepted the notion. The weather certainly helped.  It was an attractive place to locate but I think the presence of the university and the early people who came out of it [was more important].  You know, Herbert Hoover had a huge impact on this place.  And he was, of course, very interested in the interaction with industry.  People like Hewlett and Packard were great le"
+        },
+        {
+          "chunk_id": "zy549rf5507_zy549rf5507_SC0932_s5_Taubman_Philip_Transcript_032_pdf_c1",
+          "chunk_index": 1,
+          "druid": "zy549rf5507",
+          "filename": "zy549rf5507_SC0932_s5_Taubman_Philip_Transcript_032.pdf",
+          "score": 0.88831174,
+          "snippet": "the creation of one of the nation\u2019s great engineering schools. The\ndevelopment of Silicon Valley. The investment of federal funds. Post-war\nmoney in university research established by Sterling and Terman."
+        },
+        {
+          "chunk_id": "cj914qw1192_cj914qw1192_SC0932_s5_Robertson_Transcript_script_pdf_c104",
+          "chunk_index": 104,
+          "druid": "cj914qw1192",
+          "filename": "cj914qw1192_SC0932_s5_Robertson_Transcript_script.pdf",
+          "score": 0.8869686,
+          "snippet": "83 \n\npublic. I think that that has been a unique part of Stanford\u2019s culture and of Silicon Valley. It\u2019s not total serendipity that Silicon Valley and Stanford are here. \n\nClearly, Silicon Valley came after Stanford. I think its growth was largely promoted through the efforts of Fred Terman with his view of establishing the Stanford Research Park, establishing Hewlett and Packard as the anchor store, and bringing on all the others over the years. Silicon Valley was made more fortunate by Shockley"
+        },
+        {
+          "chunk_id": "zb942ss9091_zb942ss9091_084_pdf_c0",
+          "chunk_index": 0,
+          "druid": "zb942ss9091",
+          "filename": "zb942ss9091_084.pdf",
+          "score": 0.8863349,
+          "snippet": "public. I think that that has been a unique part of Stanford\u2019s culture and of\nSilicon Valley. If s not total serendipity that Silicon Valley and Stanford are\nhere.\nClearly, Silicon Valley came after Stanford. I think its growth was\nlargely promoted through the efforts of Fred Terman with his view of\nestablishing the Stanford Research Park, establishing Hewlett and Packard as\nthe anchor store, and bringing on all the others over the years. Silicon Valley\nwas made more fortunate by Shockley coming"
+        },
+        {
+          "chunk_id": "nh541fc2074_nh541fc2074_04_0283_pdf_c5",
+          "chunk_index": 5,
+          "druid": "nh541fc2074",
+          "filename": "nh541fc2074_04_0283.pdf",
+          "score": 0.8862816,
+          "snippet": "successful new companies. In an informal\nstudy, Gibbons said he found that \u201cStanford startups\u201d were responsible for about\nhalf of the revenues of the Silicon Valley\u2019s largest 100 firms from 1980 to\n1996. He defined a Stanford startup as a\ncompany in which both the majority of\nthe founding team and the technology\ncame from Stanford. Hewlett-Packard\nprovides a large chunk of the total, but\nnot one of the valley\u2019s semiconductor\ncompanies fits his definition.\nGibbons stressed the importance of\nrecog"
+        }
+      ]
+    },
+    {
+      "id": "water-policy",
+      "metrics": {
+        "mrr@1": 1.0,
+        "mrr@10": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@1": 1.0,
+        "ndcg@10": 0.7911043622741993,
+        "ndcg@5": 0.7911043622741993,
+        "recall@1": 0.3333333333333333,
+        "recall@10": 0.6666666666666666,
+        "recall@5": 0.6666666666666666,
+        "success@1": 1.0,
+        "success@10": 1.0,
+        "success@5": 1.0
+      },
+      "query": "How did California water policy affect agriculture?",
+      "relevant": {
+        "dj435dw5816": 3.0,
+        "hx239rw5017": 1.0,
+        "yw272ft6143": 2.0
+      },
+      "results": [
+        {
+          "chunk_id": "dj435dw5816_Forty_Years_of_California_Water_Policy_Timothy_Quinn_pdf_c32",
+          "chunk_index": 32,
+          "druid": "dj435dw5816",
+          "filename": "Forty Years of California Water Policy_Timothy Quinn.pdf",
+          "score": 0.8955468,
+          "snippet": "During the development era, the dominant political coalition in California water policy was a longstanding alliance between Central Valley agricultural interests and urban interests primarily from Southern California[3] . This partnership was focused on building new infrastructure to expand supply for a growing California economy and to provide flood protection and hydroelectric power. However, by the late 1980s, it was apparent that the development era in California water had run its course and"
+        },
+        {
+          "chunk_id": "ty162zv7580_Water_Governance_and_Climate_Change_pdf_c16",
+          "chunk_index": 16,
+          "druid": "ty162zv7580",
+          "filename": "Water Governance and Climate Change.pdf",
+          "score": 0.87960345,
+          "snippet": "_\u201cThis \n  is \n  a \n  relatively \n  tame \n  drought \n  compared \n  to \n  what \n  we \n  could \n  face \n  in \n  the \n  future.\u201d_ \n\nDespite \n  the \n  severity \n  of \n  the \n  present \n  drought, \n  the \n  statewide \n  economic \n  consequences \n  are \n  projected \n  to be \n  relatively \n  minor. \n  Estimates \n  are \n  that \n  the \n  current \n  drought \n  will \n  impose \n  direct \n  costs \n  of \n  $1.5 \n  billion \n  on agriculture \n  (approximately \n  3% \n  of \n  the \n  value \n  of \n  agricultural \n  "
+        },
+        {
+          "chunk_id": "dz913gx6656_2014-03-27_group_water_letter_pdf_c2",
+          "chunk_index": 2,
+          "druid": "dz913gx6656",
+          "filename": "2014-03-27 group water letter.pdf",
+          "score": 0.87797344,
+          "snippet": "## _Extremely Low Water Allocations to Agriculture_ \n\n- An unprecedented zero percent allocation for SWP water contractors \n\n- Zero percent allocation for CVP agricultural water service and Friant Division contractors \n\n- A historically-low 40 percent allocation for senior water rights holders (Settlement and Exchange contractors) \n\n- 500,000 acres of farm lands to be fallowed \n\n- 100,000 head of cattle expected to be lost \n\n- At least 10 communities potentially running out of water soon without"
+        },
+        {
+          "chunk_id": "hx239rw5017_Putting_Adapative_Management_into_Practice_Report_Final_pdf_c134",
+          "chunk_index": 134,
+          "druid": "hx239rw5017",
+          "filename": "Putting Adapative Management into Practice Report Final.pdf",
+          "score": 0.8767723,
+          "snippet": "WATER IN THE WEST Putting Adaptive Management into Practice: Incorporating Quantitative Metrics into Sustainable Groundwater Management \n\n**33** \n\nFor the past several decades, urban water suppliers have operated under statewide policies that require them to develop such plans. Indeed, experiences during a serious drought in the 1980s triggered the passage of the Urban Water Management Act to require water supply reliability analysis and contingency planning that includes defined stages of alert"
+        },
+        {
+          "chunk_id": "cj626wh9436_Working_Paper_on_Perfomance_Measurement_1_pdf_c117",
+          "chunk_index": 117,
+          "druid": "cj626wh9436",
+          "filename": "Working_Paper_on_Perfomance_Measurement_1.pdf",
+          "score": 0.8766246,
+          "snippet": "While perhaps less accountable to the general public than their urban counterparts, agricultural water managers we consulted assert that they have all the information they need to make optimal decisions at the district and farm level. They are able to optimize their operations given the information they have. But they do have a pressing need to increase the reliability of their water supplies more generally. One area where they believed that the public lacked sufficient information is in underst"
+        },
+        {
+          "chunk_id": "vz026gp1715_SustainabilityWesternWater_pdf_c5",
+          "chunk_index": 5,
+          "druid": "vz026gp1715",
+          "filename": "SustainabilityWesternWater.pdf",
+          "score": 0.87401426,
+          "snippet": "The Program\u2019s work has particularly important implications for water management in agriculture, which accounts for about 80 percent of water withdrawn for human use throughout the region. In California alone, agriculture is a $30 billion-a-year enterprise. But studies suggest that the state\u2019s agricultural sector can continue to thrive only if aggressive \n\n**==> picture [612 x 41] intentionally omitted <==**\n\n**----- Start of picture text -----**<br>\nMay 2010     Rural Connections   20<br>**-----"
+        },
+        {
+          "chunk_id": "wm884ms1113_Water-Energy_Agenda-_final-042514_pdf_c23",
+          "chunk_index": 23,
+          "druid": "wm884ms1113",
+          "filename": "Water-Energy Agenda- final-042514.pdf",
+          "score": 0.86742115,
+          "snippet": "## **The Evolution of California\u2019s Water-Energy Policy** \n\nIn \n  recent \n  decades, \n  California \n  has \n  been \n  dealing \n  with \n  various \n  water \n  and \n  energy \n  challenges, \n  including extensive \n  droughts \n  and \n  rising \n  energy \n  costs, \n  and \n  there \n  has \n  been \n  a \n  growing \n  realization \n  of \n  limitations \n  in access \n  to \n  cheap \n  and \n  abundant \n  water \n  and \n  energy \n  sources. \n  Nevertheless, \n  while \n  much \n  effort \n  has \n  been expended \n  to \n "
+        },
+        {
+          "chunk_id": "yf248qn1413_2009-05-7-pr-fy10_budget_details_pdf_c6",
+          "chunk_index": 6,
+          "druid": "yf248qn1413",
+          "filename": "2009-05-7-pr-fy10 budget details.pdf",
+          "score": 0.867249,
+          "snippet": "**\u201cThe situation in California is dire. We have unemployment rates of up to 40 percent in some parts of the San Joaquin Valley, which is only exacerbated by the drought. Farmers who once tended the lands known as \u2018America\u2019s breadbasket\u2019 are now themselves standing in bread lines. Top soil blown off from fallowed lands has created dust storms so massive that they have closed down Interstate 5 on windy days. Some farms are picking up and moving their operations to Mexico. Nearly 85,000 acres of fa"
+        },
+        {
+          "chunk_id": "xx830rj6529_xx830rj6529_SLS-JOURNALS_SELA_022_3_StanEnvtlLAnn_30_1980-1981_pdf_c0",
+          "chunk_index": 0,
+          "druid": "xx830rj6529",
+          "filename": "xx830rj6529_SLS-JOURNALS_SELA_022_3_StanEnvtlLAnn_30_1980-1981.pdf",
+          "score": 0.8658078,
+          "snippet": "## \n\n## \n\n## \n\n## \n\n## \n\n## \n\n## \n\n## \n\n##"
+        },
+        {
+          "chunk_id": "hc629dh8892_2010-02-25-pr-valley_water_allocation-_pdf_c2",
+          "chunk_index": 2,
+          "druid": "hc629dh8892",
+          "filename": "2010-02-25-pr-valley water allocation-.pdf",
+          "score": 0.8646668,
+          "snippet": "Last year, South-of-Delta farmers received only 10 percent of their contractual water allocation from the Central Valley Project (CVP), due to three consecutive years of below average precipitation and existing environmental standards, while farmers with more senior water rights on the east side of the Valley received up to 100 percent of their allocation. \n\n\"I am pleased that it appears that west side farmers will be able to receive enough water to plant their crops and hire workers this year, "
+        }
+      ]
+    }
+  ],
+  "query_count": 2,
+  "report_version": 1,
+  "retrieval": {
+    "candidate_chunks": 100,
+    "collapse": "best-ranked chunk per DRUID",
+    "cutoffs": [
+      1,
+      5,
+      10
+    ],
+    "embedding_model": "gemini-embedding-2",
+    "query_format": "task: question answering | query: <query>",
+    "solr_url": "http://localhost:8983/solr/sdr-search"
+  }
+}

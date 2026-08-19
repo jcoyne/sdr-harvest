@@ -174,6 +174,82 @@ We often use:
 ssh -N -L 8983:<remote_host>:443 semantic-search-demo.stanford.edu
 ```
 
+## Evaluate retrieval quality
+
+To inspect one query manually, use the same semantic retrieval path as the
+evaluator:
+
+```shell
+LITELLM_API_KEY=<key> uv run sdr-harvest query \
+  "What was Stanford's role in the development of Silicon Valley?"
+```
+
+The command displays the ranked DRUIDs with their similarity scores, source
+filenames, chunk indexes, and matching text. Results are collapsed to the best
+chunk per DRUID, just as they are during evaluation. Use `--limit 20` to show
+more objects, `--candidates 200` to expand the chunk candidate pool, or
+`--json` for machine-readable output. To query another collection, pass its
+full URL with `--target`.
+
+Keep a reviewed set of natural-language queries and relevant SDR objects in a
+JSON Lines file. Each line has a stable test ID, a query, and either a list of
+relevant DRUIDs (binary relevance) or a DRUID-to-grade object (graded
+relevance):
+
+```json
+{"id":"oral-history-rail","query":"What did railroad workers say about workplace safety?","relevant":["aa111bb2222"]}
+{"id":"water-policy","query":"How did water policy affect California agriculture?","relevant":{"cc333dd4444":3,"ee555ff6666":1}}
+```
+
+Grades must be positive; a useful convention is 3 for highly relevant, 2 for
+relevant, and 1 for marginally relevant. Start from
+[`evaluations/judgments.example.jsonl`](evaluations/judgments.example.jsonl)
+and replace its placeholders with judgments reviewed by a domain expert.
+
+Run an evaluation against the local collection and save it as the baseline for
+the current pipeline:
+
+```shell
+LITELLM_API_KEY=<key> uv run sdr-harvest evaluate \
+  --judgments evaluations/judgments.jsonl \
+  --output evaluations/baseline.json
+```
+
+The evaluator embeds queries with the same Gemini model as the pipeline,
+retrieves chunk candidates from Solr, and collapses them by DRUID before
+scoring. This prevents documents with more chunks from occupying multiple
+ranking positions. It reports these metrics at ranks 1, 5, and 10 by default:
+
+- `success`: fraction of queries with at least one relevant result;
+- `recall`: fraction of all judged-relevant objects retrieved;
+- `mrr`: how early the first relevant result appears;
+- `ndcg`: ranking quality that gives more credit to highly graded results.
+
+After changing extraction, chunking, metadata, embeddings, or Solr behavior,
+rebuild and publish the affected corpus, then compare with the saved baseline:
+
+```shell
+LITELLM_API_KEY=<key> uv run sdr-harvest evaluate \
+  --judgments evaluations/judgments.jsonl \
+  --output evaluations/candidate.json \
+  --baseline evaluations/baseline.json \
+  --fail-on-regression ndcg@10 \
+  --regression-tolerance 0.01
+```
+
+The command exits with status 2 when the selected metric decreases by more than
+the tolerance, which makes it suitable for a release check. The full JSON
+report includes aggregate deltas and each query's ranked DRUID, best chunk,
+score, filename, and snippet for diagnosis. Use `--cutoffs` to change the
+reported ranks and `--candidates` to change how many chunks are retrieved
+before collapsing.
+
+Treat the judgment file as a maintained test fixture: include representative
+query types, difficult terminology, known near-misses, and more than one
+relevant object where appropriate. Keep the file fixed while comparing two
+pipeline versions; the evaluator rejects a baseline made with different
+judgments or metrics.
+
 ## State and intermediate data
 
 By default, all managed state is stored in `.sdr-harvest/`, including:
