@@ -49,7 +49,7 @@ from sdr_harvest.embed import (
     retrieval_document,
     retrieval_title,
 )
-from sdr_harvest.extract_pdf import PdfExtractionStrategy
+from sdr_harvest.extract_pdf import PdfExtractionStrategy, extract_pdf_to_markdown
 from sdr_harvest.extract_text import TextExtractor
 from sdr_harvest.manifests import (
     cocina_pdf_files,
@@ -359,6 +359,36 @@ class TextExtractorTest(unittest.TestCase):
 
 
 class PdfExtractionRegressionTest(unittest.TestCase):
+    def test_submits_pdf_extraction_to_the_shared_executor(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf = root / "document.pdf"
+            pdf.write_bytes(b"pdf")
+            output = root / "markdown"
+            output.mkdir()
+            executor = Mock()
+
+            def submit(operation, *args):
+                operation(*args)
+                future = Mock()
+                future.result.return_value = None
+                return future
+
+            executor.submit.side_effect = submit
+            with patch(
+                "sdr_harvest.extract_pdf.pymupdf4llm.to_markdown",
+                return_value="Extracted in a worker process",
+            ):
+                PdfExtractionStrategy(executor).extract([pdf], output)
+
+            executor.submit.assert_called_once_with(
+                extract_pdf_to_markdown, pdf, output / "document.md"
+            )
+            self.assertEqual(
+                "Extracted in a worker process",
+                output.joinpath("document.md").read_text(),
+            )
+
     def test_preserves_an_invisible_pdf_text_layer(self):
         """Regression test for hz508gx6219 losing all non-heading text."""
         with tempfile.TemporaryDirectory() as directory:

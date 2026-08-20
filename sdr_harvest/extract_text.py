@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import Executor
 from pathlib import Path
 from typing import Protocol
 
@@ -22,10 +23,15 @@ class ExtractionStrategy(Protocol):
 class TextExtractor:
     """Select a text extraction strategy and produce Markdown artifacts."""
 
-    def __init__(self, strategies: list[ExtractionStrategy] | None = None) -> None:
+    def __init__(
+        self,
+        strategies: list[ExtractionStrategy] | None = None,
+        *,
+        pdf_executor: Executor | None = None,
+    ) -> None:
         self.strategies = strategies or [
             AltoXmlExtractionStrategy(),
-            PdfExtractionStrategy(),
+            PdfExtractionStrategy(pdf_executor),
         ]
 
     def _strategy(self, version_dir: Path) -> tuple[ExtractionStrategy, list[Path]]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import concurrent.futures
 import hashlib
 import json
+import multiprocessing
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -105,6 +106,22 @@ class EventLog:
 def interruptible_thread_pool(max_workers: int):
     """Do not wait for active worker threads after a keyboard interrupt."""
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+    try:
+        yield executor
+    except KeyboardInterrupt:
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise
+    else:
+        executor.shutdown(wait=True)
+
+
+@contextmanager
+def interruptible_process_pool(max_workers: int):
+    """Run CPU-bound work in isolated processes without blocking Ctrl-C exit."""
+    executor = concurrent.futures.ProcessPoolExecutor(
+        max_workers=max_workers,
+        mp_context=multiprocessing.get_context("spawn"),
+    )
     try:
         yield executor
     except KeyboardInterrupt:
