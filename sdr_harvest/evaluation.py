@@ -38,72 +38,83 @@ def retrieval_query(query: str) -> str:
     return f"{QUERY_PREFIX}{query.strip()}"
 
 
+SCORE_RANGE = (0, 3)
+
+
 def load_judgments(path: Path) -> list[Judgment]:
-    """Load newline-delimited queries and graded document relevance judgments."""
+    """Load test cases from a JSON file, or every *.json file in a directory
+    (see evaluations/test-cases-schema.md)."""
+    paths = sorted(path.glob("*.json")) if path.is_dir() else [path]
+    if not paths:
+        raise StageError(f"No JSON test case files found in {path}")
+
+    seen_ids: set[str] = set()
     judgments = []
-    seen_ids = set()
-    with path.open(encoding="utf-8") as stream:
-        for line_number, line in enumerate(stream, 1):
-            if not line.strip() or line.lstrip().startswith("#"):
-                continue
+    for file_path in paths:
+        judgments.extend(_load_judgment_file(file_path, seen_ids))
+    if not judgments:
+        raise StageError(f"No judgments found in {path}")
+    return judgments
+
+
+def _load_judgment_file(path: Path, seen_ids: set[str]) -> list[Judgment]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise StageError(f"Invalid JSON in {path}: {exc.msg}") from exc
+    if not isinstance(data, list):
+        raise StageError(f"{path} must contain a JSON array of test cases")
+
+    judgments = []
+    for index, row in enumerate(data):
+        judgment_id = str(row.get("test_id", "")).strip()
+        query = str(row.get("query", "")).strip()
+        label = judgment_id or f"entry {index}"
+        if not judgment_id or not query:
+            raise StageError(f"{path} {label} requires non-empty test_id and query")
+        if judgment_id in seen_ids:
+            raise StageError(f"Duplicate judgment test_id: {judgment_id}")
+
+        low, high = SCORE_RANGE
+
+        raw_judgments = row.get("judgments")
+        if not isinstance(raw_judgments, list) or not raw_judgments:
+            raise StageError(f"{path} {label} requires a non-empty judgments array")
+
+        relevant = {}
+        for entry in raw_judgments:
+            raw_druid = entry.get("document_id")
+            match = DRUID_RE.fullmatch(str(raw_druid).strip())
+            if not match:
+                raise StageError(
+                    f"{path} {label} has an invalid document_id: {raw_druid!r}"
+                )
+            druid = match.group(1).lower()
+            if druid in relevant:
+                raise StageError(f"{path} {label} repeats document_id: {druid}")
+
             try:
-                row = json.loads(line)
-            except json.JSONDecodeError as exc:
+                score = float(entry.get("score"))
+            except (TypeError, ValueError) as exc:
                 raise StageError(
-                    f"Invalid JSON in {path} line {line_number}: {exc.msg}"
+                    f"{path} {label} has a non-numeric score for {druid}"
                 ) from exc
-
-            judgment_id = str(row.get("id", "")).strip()
-            query = str(row.get("query", "")).strip()
-            relevant_value = row.get("relevant")
-            if not judgment_id or not query:
+            if not math.isfinite(score) or score < low or score > high:
                 raise StageError(
-                    f"{path} line {line_number} requires non-empty id and query"
+                    f"{path} {label} has a score outside the graded "
+                    f"range [{low}, {high}] for {druid}"
                 )
-            if judgment_id in seen_ids:
-                raise StageError(f"Duplicate judgment id: {judgment_id}")
+            if score > 0:
+                relevant[druid] = score
 
-            if isinstance(relevant_value, list):
-                raw_relevant = [(druid, 1.0) for druid in relevant_value]
-            elif isinstance(relevant_value, dict):
-                try:
-                    raw_relevant = [
-                        (druid, float(grade))
-                        for druid, grade in relevant_value.items()
-                    ]
-                except (TypeError, ValueError) as exc:
-                    raise StageError(
-                        f"{path} line {line_number} has a non-numeric relevance grade"
-                    ) from exc
-            else:
-                raise StageError(
-                    f"{path} line {line_number} relevant must be a list or object"
-                )
-            if not raw_relevant:
-                raise StageError(
-                    f"{path} line {line_number} requires at least one relevant DRUID"
-                )
-            relevant = {}
-            for raw_druid, grade in raw_relevant:
-                match = DRUID_RE.fullmatch(str(raw_druid).strip())
-                if not match:
-                    raise StageError(
-                        f"{path} line {line_number} has an invalid relevant DRUID: "
-                        f"{raw_druid!r}"
-                    )
-                druid = match.group(1).lower()
-                if druid in relevant:
-                    raise StageError(
-                        f"{path} line {line_number} repeats relevant DRUID: {druid}"
-                    )
-                if not math.isfinite(grade) or grade <= 0:
-                    raise StageError(
-                        f"{path} line {line_number} requires positive, finite grades"
-                    )
-                relevant[druid] = grade
+        if not relevant:
+            raise StageError(
+                f"{path} {label} requires at least one relevant document "
+                "(out_of_scope cases are not yet supported by this evaluator)"
+            )
 
-            seen_ids.add(judgment_id)
-            judgments.append(Judgment(judgment_id, query, relevant))
+        seen_ids.add(judgment_id)
+        judgments.append(Judgment(judgment_id, query, relevant))
     if not judgments:
         raise StageError(f"No judgments found in {path}")
     return judgments

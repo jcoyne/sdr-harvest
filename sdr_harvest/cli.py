@@ -74,7 +74,12 @@ def parser() -> argparse.ArgumentParser:
     evaluate = commands.add_parser(
         "evaluate", help="measure ranked retrieval against relevance judgments"
     )
-    evaluate.add_argument("--judgments", type=Path, required=True)
+    evaluate.add_argument(
+        "--judgments",
+        type=Path,
+        required=True,
+        help="test-case JSON file, or a directory of them, evaluated together",
+    )
     evaluate.add_argument("--output", type=Path, required=True)
     evaluate.add_argument("--baseline", type=Path)
     evaluate.add_argument("--target", default="http://localhost:8983/solr/sdr-search")

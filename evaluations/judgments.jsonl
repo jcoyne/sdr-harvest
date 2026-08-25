@@ -1,4 +1,0 @@
-# Use a list for binary relevance: every listed DRUID is relevant.
-{"id":"campus-history","query":"What was Stanford's role in the development of Silicon Valley?","relevant":["tw299ys2132", "cf791dy3687", "cv597xh6999", "cj914qw1192", "my387ct3613", "kx682dv2945"]}
-# Use an object for graded relevance: 3 = highly relevant, 2 = relevant, 1 = marginal.
-{"id":"water-policy","query":"How did California water policy affect agriculture?","relevant":{"dj435dw5816":3,"yw272ft6143":2, "hx239rw5017": 1}}

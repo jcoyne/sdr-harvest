@@ -1,0 +1,191 @@
+[
+  {
+    "test_id": "john-lynch-1",
+    "subject_id": "john-lynch",
+    "query": "John Lynch",
+    "test_type": "keyword_search",
+    "test_description": "Bare personal name, the least specified form of the need. Both manifestations of the 2010 oral history should take ranks 1 and 2; everything below them is surname or given-name collision. Also compares search_type=keyword against search_type=hybrid on an identical query to see whether the hybrid path adds anything when the lexical signal is already decisive.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-08-21",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "bb051hp9404", "score": 3, "explanation": "The oral history interview with the target person, audio manifestation. Exact match on both name tokens in the author and title fields."},
+      {"document_id": "zv638jb7154", "score": 3, "explanation": "Same interview, transcript manifestation. Equally about the target person; scored identically because relevance is a property of the work, and the manifestation_group field is where the duplication is recorded."},
+      {"document_id": "wt877xv3307", "score": 0, "explanation": "Timothy E. Lynch. Surname collision with no given-name support."},
+      {"document_id": "dx232rh2820", "score": 0, "explanation": "'Lynch' appears only as the middle name of Hester Lynch Piozzi inside a quoted title in a conservation report."},
+      {"document_id": "sk000hs9561", "score": 0, "explanation": "Suzanne Lynch. Surname collision."},
+      {"document_id": "mt709km1648", "score": 0, "explanation": "J.P. Lynch, wireless structural monitoring. Surname collision; the highest-ranked wrong-person result."},
+      {"document_id": "bv781zg6129", "score": 0, "explanation": "Matches on a bibliography entry for Jeremiah Lynch plus scattered occurrences of 'John'. Both tokens present, neither referring to the target."},
+      {"document_id": "fw604td6083", "score": 0, "explanation": "Raci H. Lynch. Surname collision."},
+      {"document_id": "yk303kd1864", "score": 0, "explanation": "Rep. Stephen F. Lynch. Surname collision."},
+      {"document_id": "qp646bx8608", "score": 0, "explanation": "John W. Gardner. Given-name collision only."},
+      {"document_id": "jv814kq6989", "score": 0, "explanation": "No relation to either token as a person reference."},
+      {"document_id": "qc628cs4077", "score": 0, "explanation": "Author John B. Owens. Given-name collision only."},
+      {"document_id": "xt460qv0655", "score": 0, "explanation": "Pope John Paul II. Given-name collision only."},
+      {"document_id": "sy451nj0072", "score": 0, "explanation": "Given-name collision inside a quoted title enumerating aliases including John Wilson and John Morison."},
+      {"document_id": "hq029yw7738", "score": 0, "explanation": "Matches 'John' via the John A. Blume Earthquake Engineering Center. Institutional given-name collision."}
+    ]
+  },
+  {
+    "test_id": "john-lynch-2",
+    "subject_id": "john-lynch",
+    "query": "Interview with John Lynch : Stanford Athletics Hall of Fame Oral History Project",
+    "test_type": "known_item",
+    "test_description": "Full title supplied verbatim. The Stanford Historical Society series gives dozens of documents the shape 'Interview with X : Stanford Athletics ... Oral History Project', so the discriminating content is one name inside a long template. Tests whether the template overwhelms the name.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-08-21",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "zv638jb7154", "score": 3, "explanation": "Exact title match, transcript manifestation."},
+      {"document_id": "bb051hp9404", "score": 3, "explanation": "Exact title match, audio manifestation."},
+      {"document_id": "jp794zn1111", "score": 1, "explanation": "Rick Lundblade interview: identical series, interviewer, and induction weekend, so it satisfies every element of the query except the name. Defensible as a neighbour, wrong as a known item."},
+      {"document_id": "mw975hh7191", "score": 1, "explanation": "Audio manifestation of the same Lundblade interview; same reasoning."},
+      {"document_id": "hb487rf6333", "score": 0, "explanation": "Shockley and Brown interview. Matches the series template only."},
+      {"document_id": "dg463tn4876", "score": 0, "explanation": "Transcript manifestation of the same. Series template only."},
+      {"document_id": "ws573tv7788", "score": 0, "explanation": "Brennan interview, a different project within the same programme. Series template only."},
+      {"document_id": "yd548yj2145", "score": 0, "explanation": "Brennan transcript manifestation. Its three matched chunks are the bare strings '6', '10', and '14', so it earned its rank on template similarity plus content-free chunks rather than on any text."}
+    ]
+  },
+  {
+    "test_id": "john-lynch-3",
+    "subject_id": "john-lynch",
+    "query": "Which coach talked John Lynch out of quitting football for baseball?",
+    "test_type": "fact_lookup",
+    "test_description": "Natural-language question naming the subject. The answer is Bill Walsh, who in 1992 talked Lynch out of signing with the Marlins. Passage retrieval should land on the office-meeting passage rather than merely on the right document. Note the near-miss distractor inside the same documents: Denny Green tried to talk Lynch into staying at quarterback, and Dave Tipton pushed him toward safety, so a shallow match on 'coach' plus 'talked into' can retrieve the wrong episode.",
+    "expected_answer": {
+      "value": "Bill Walsh",
+      "evidence": [
+        {"document_id": "bb051hp9404", "locator": "bb051hp9404_script.pdf chunk 20, transcript timestamp 00:14:42", "quote": "And at the time, Bill Walsh was named coach and this is a true story. He called me in his office ... you can play safety in the NFL and you can play it at Pro-Bowl level."},
+        {"document_id": "zv638jb7154", "locator": "zv638jb7154_21.pdf chunk 0", "quote": "And at the time, Bill Walsh was named coach and this is a true story. He called me m his office ..."},
+        {"document_id": "bb051hp9404", "locator": "bb051hp9404_script.pdf chunk 4, abstract", "quote": "Lynch talked about how he nearly quit football but Bill Walsh convinced him that he could be a Pro Bowl safety in the NFL"}
+      ]
+    },
+    "expected_no_results": false,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-08-21",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "zv638jb7154", "score": 3, "explanation": "Contains the answer-bearing passage at page 21. Retrieved at passage rank 1, though the OCR damages the evidence text ('m my opinion', 'leading tackier')."},
+      {"document_id": "bb051hp9404", "score": 3, "explanation": "Contains the same passage in clean text plus an abstract that states the fact outright. The better citation of the two despite ranking below zv638jb7154 here."},
+      {"document_id": "hx664zp3987", "score": 1, "explanation": "Stanford Report obituary coverage of Bill Walsh. Relevant to the answer entity but says nothing about Lynch, so it cannot answer the question as asked. Judged marginal rather than zero because a user verifying who Walsh was would find it useful."}
+    ]
+  },
+  {
+    "test_id": "john-lynch-4",
+    "subject_id": "john-lynch",
+    "query": "who threw the first pitch in Florida Marlins organization history",
+    "test_type": "fact_lookup",
+    "test_description": "The answer is John Lynch, but his name appears nowhere in the query. Retrieval has to work from the described event alone. The fact is stated verbatim in both manifestations, which makes this a controlled test of whether digitization quality decides retrievability: if only one manifestation comes back, text quality is the only variable that differs.",
+    "expected_answer": {
+      "value": "John Lynch, at Erie, Pennsylvania, in the Florida Marlins' first minor-league season. His jersey went to the Baseball Hall of Fame.",
+      "evidence": [
+        {"document_id": "bb051hp9404", "locator": "bb051hp9404_script.pdf chunk 12-13, timestamp 00:07:41", "quote": "Yes, I threw the first pitch in the organization's history up in Erie, Pennsylvania."},
+        {"document_id": "zv638jb7154", "locator": "zv638jb7154_15.pdf chunk 0", "quote": "Yes, I threw the first pitch m the organization's history up m Erie, Pennsylvania."}
+      ]
+    },
+    "expected_no_results": false,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-08-21",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "bb051hp9404", "score": 3, "explanation": "Answer-bearing chunks retrieved at passage ranks 1 and 2 with no name token in the query. Correct and well ranked."},
+      {"document_id": "zv638jb7154", "score": 3, "explanation": "Contains the identical answer sentence at page 15 and is equally relevant on the merits, but was not returned anywhere in the top 10. Scored 3 because relevance does not depend on retrieval; the miss is visible by diffing this judgment against the run. The only difference between this document and bb051hp9404 at this passage is OCR damage, which makes this the cleanest recall failure in the set."},
+      {"document_id": "kk742wt1722", "score": 0, "explanation": "Mark Marquess on Stanford baseball recruiting and his own playing career. Dense in baseball vocabulary, contains nothing about the Marlins. Occupies four of the ten passage slots."},
+      {"document_id": "jp794zn1111", "score": 0, "explanation": "Lundblade on freshman pitching and catching at Stanford. Matches 'pitch' and 'first' in an unrelated sense."},
+      {"document_id": "pp528nw0523", "score": 0, "explanation": "Mike Montgomery on early basketball coaching jobs. No topical connection beyond 'first' and career-start framing."}
+    ]
+  },
+  {
+    "test_id": "john-lynch-5",
+    "subject_id": "john-lynch",
+    "query": "Cardinal safety who became a TV football broadcaster",
+    "test_type": "synonym_match",
+    "test_description": "Descriptive paraphrase using the team nickname and a post-playing role, with no personal name. Tests both paraphrase bridging.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-08-21",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "bb051hp9404", "score": 3, "explanation": "Retrieved at rank 1. Its abstract chunk names the safety position and the Fox Sports commentator career explicitly, giving the paraphrase a direct anchor even though 'Cardinal' and 'general manager' appear nowhere."},
+      {"document_id": "zv638jb7154", "score": 3, "explanation": "Same interview, equally relevant. Its abstract page did not OCR into text carrying the 'Fox Sports commentator' phrasing, so the only anchor the paraphrase could have used is missing from this manifestation."},
+      {"document_id": "bs410jf2315", "score": 0, "explanation": "Martin Hellman oral history. Matched on a digression about a colleague who considered going pro in baseball. No safety, no broadcasting, wrong sport."},
+      {"document_id": "bv990zf3647", "score": 0, "explanation": "1930s Stanford football reminiscence. Matches the sport and the institution and nothing else in the query."},
+      {"document_id": "jc053rs7985", "score": 0, "explanation": "Stanford coaching history covering Walsh and Elway. No defensive back, no broadcaster."},
+      {"document_id": "jc869tp4929", "score": 0, "explanation": "Walter Brown on KZSU student radio. Matches 'broadcaster' plus 'football' in the wrong sense: a student announcer rather than a player turned commentator. The most instructive false positive here, since the two senses of the word are what the query hinges on."},
+      {"document_id": "bw369cw3223", "score": 0, "explanation": "Athletic director Geiger on Walsh's move to the 49ers. Shares the 49ers association that the 'general manager' clause gestures at, but concerns a different person and era."},
+      {"document_id": "yr527vj4437", "score": 0, "explanation": "Jim Merrill on a single carry in a Stanford game. Football, wrong everything else."},
+      {"document_id": "cv759zq7723", "score": 0, "explanation": "Manjula Waldron oral history; matched a passage about watching O.J. Simpson play. Football mention only."}
+    ]
+  },
+  {
+    "test_id": "john-lynch-6",
+    "subject_id": "john-lynch",
+    "query": "gridiron star reminiscences of his undergraduate days on the Farm",
+    "test_type": "synonym_match",
+    "test_description": "A fair description of the target document rendered entirely in period idiom: 'gridiron' for football, 'the Farm' for Stanford, 'reminiscences' for oral history. No name, position, date, or sport term that the document itself uses. Establishes the outer limit of paraphrase the embedding space will bridge. Both target manifestations are expected to be missed; the interesting output is which documents the register attracts instead.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-08-21",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "bb051hp9404", "score": 2, "explanation": "A football player's recollections of his Stanford undergraduate years, which is what the query describes. Scored 2 rather than 3 because the query's nostalgic register genuinely fits the older alumni interviews better."},
+      {"document_id": "zv638jb7154", "score": 2, "explanation": "Same reasoning as bb051hp9404."},
+      {"document_id": "bv990zf3647", "score": 1, "explanation": "Larry Harris on 1930s Stanford football, Pop Warner, and Encina dorm pranks. Not the target, but a legitimately good answer to the query as phrased: the archaic register is matched exactly. Retrieved at rank 1."},
+      {"document_id": "jz934qv9888", "score": 1, "explanation": "James Newell on 1930s football players and campus life. Same register match, equally defensible."},
+      {"document_id": "fb202sj3817", "score": 1, "explanation": "Roger Clay Jr. on walking onto the Stanford football team in the 1960s. On theme for undergraduate football recollection, though he explicitly rejects the nostalgic framing the query implies."},
+      {"document_id": "bs994tk0131", "score": 0, "explanation": "Bill Nilli on Stanford Village housing and pranks. Undergraduate reminiscence with no football content."},
+      {"document_id": "jc053rs7985", "score": 0, "explanation": "Coaching-history exposition, not personal reminiscence."},
+      {"document_id": "jc869tp4929", "score": 0, "explanation": "Student radio recollections. Campus nostalgia without a player's perspective."}
+    ]
+  },
+  {
+    "test_id": "john-lynch-7",
+    "subject_id": "john-lynch",
+    "query": "Stanford two-sport athletes who played both football and baseball",
+    "test_type": "conceptual_thematic",
+    "test_description": "A theme of which the John Lynch is a prime example. Tests the ranking of aboutness against mention: the Marquess interviews name Lynch in a single sentence, the Lynch interviews discuss his dual-sport career for pages.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-08-21",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "bb051hp9404", "score": 3, "explanation": "Sustained first-person treatment of the theme: choosing Stanford because Marquess and Denny Green permitted two sports, the Elway and Dotterer precedents, the Marlins draft, and the regret of never reaching Omaha."},
+      {"document_id": "zv638jb7154", "score": 3, "explanation": "Same content. With page 36 adding Lynch's reflection on never fulfilling his baseball potential."},
+      {"document_id": "xb773ps6063", "score": 2, "explanation": "Marquess names Lynch in a list of Stanford two-sport athletes and, separately, discusses institutional cooperation between the football and baseball programmes. Strong on the theme, one sentence on the person."},
+      {"document_id": "kk742wt1722", "score": 2, "explanation": "Clean manifestation of the same Marquess material, with additional passages on Toby Gerhart and on Dutch Fehring assuring Marquess he could play both sports."},
+      {"document_id": "mw975hh7191", "score": 3, "explanation": "Lundblade discusses Stanford two-sport athletes at length, naming Walt Harris, Toi Cook, Ruben Amaro, and Mike Dotterer. A genuine instance of the theme that has no connection to the subject, which is the correct outcome for a thematic query."},
+      {"document_id": "yb269gc3416", "score": 1, "explanation": "Bowlsby on Toby Gerhart and multi-sport Stanford athletes. Touches the theme in passing within a broader discussion of athlete culture."},
+      {"document_id": "sf339kr5070", "score": 0, "explanation": "Warren Hayman naming Black Stanford athletes across several sports. Adjacent but not about dual-sport participation."},
+      {"document_id": "pv418mj9131", "score": 0, "explanation": "Ted Leland on football recruiting and socioeconomics. No dual-sport content."}
+    ]
+  },
+  {
+    "test_id": "john-lynch-8",
+    "subject_id": "john-lynch",
+    "query": "choosing between a professional sports contract and finishing college",
+    "test_type": "conceptual_thematic",
+    "test_description": "States in wholly abstract terms the exact dilemma the target document narrates concretely: the Marlins offered Lynch two contracts, one contingent on giving up football, and Walsh talked him into returning for his senior year. Tests whether abstract thematic retrieval can reach a concrete narrative instance, or whether it only finds documents that theorise about the theme.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-08-21",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "bb051hp9404", "score": 3, "explanation": "Contains the canonical instance of the queried dilemma, narrated in detail at chunks 19 to 21."},
+      {"document_id": "zv638jb7154", "score": 3, "explanation": "Same episode at pages 21 and 22."},
+      {"document_id": "hw766xh9410", "score": 3, "explanation": "Michael Spence describes an athletic director forcing a choice between junior hockey and an academic path. A true instance of the theme."},
+      {"document_id": "hn397wj3831", "score": 1, "explanation": "Dettamanti on recruits weighing academic reputation against athletic programme strength. Adjacent, but the choice is between schools rather than between a contract and a degree."},
+      {"document_id": "fg882jw9460", "score": 1, "explanation": "Economics honours thesis on socioeconomic pathways to the NBA and NFL. Related at the population level; contains no decision narrative."},
+      {"document_id": "fb202sj3817", "score": 0, "explanation": "Roger Clay Jr. on scholarship precarity and affordability. Financial pressure around college athletics, but no professional option was ever on the table."},
+      {"document_id": "hw008vp0081", "score": 0, "explanation": "Don Shaw on transferring after an injury. Concerns choosing where to study, not whether to turn professional."},
+      {"document_id": "jj932cm8789", "score": 0, "explanation": "Jeanine Valadez on sport selection and academic advising. No professional option."}
+    ]
+  }
+]

@@ -22,14 +22,28 @@ from sdr_harvest.evaluation import (
 )
 
 
+def _case(judgment_id, judgments, query="q"):
+    return {
+        "test_id": judgment_id,
+        "query": query,
+        "judgments": [
+            {"document_id": druid, "score": score, "explanation": ""}
+            for druid, score in judgments
+        ],
+    }
+
+
 class JudgmentTest(unittest.TestCase):
-    def test_loads_binary_and_graded_jsonl_judgments(self):
+    def test_loads_graded_judgments(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "judgments.jsonl"
+            path = Path(directory) / "judgments.json"
             path.write_text(
-                '# comments are allowed\n'
-                '{"id":"one","query":"first","relevant":["aa123bb4567"]}\n'
-                '{"id":"two","query":"second","relevant":{"cc123dd4567":3}}\n'
+                json.dumps(
+                    [
+                        _case("one", [("aa123bb4567", 1)], query="first"),
+                        _case("two", [("cc123dd4567", 3)], query="second"),
+                    ]
+                )
             )
 
             judgments = load_judgments(path)
@@ -39,23 +53,61 @@ class JudgmentTest(unittest.TestCase):
 
     def test_rejects_duplicate_ids(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "judgments.jsonl"
-            row = '{"id":"same","query":"q","relevant":["aa123bb4567"]}\n'
-            path.write_text(row + row)
+            path = Path(directory) / "judgments.json"
+            case = _case("same", [("aa123bb4567", 1)])
+            path.write_text(json.dumps([case, case]))
 
-            with self.assertRaisesRegex(StageError, "Duplicate judgment id"):
+            with self.assertRaisesRegex(StageError, "Duplicate judgment test_id"):
                 load_judgments(path)
 
     def test_rejects_placeholder_instead_of_reporting_zero_scores(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "judgments.jsonl"
+            path = Path(directory) / "judgments.json"
             path.write_text(
-                '{"id":"one","query":"first",'
-                '"relevant":["replace-with-relevant-druid"]}\n'
+                json.dumps(
+                    [_case("one", [("replace-with-relevant-druid", 1)])]
+                )
             )
 
-            with self.assertRaisesRegex(StageError, "invalid relevant DRUID"):
+            with self.assertRaisesRegex(StageError, "invalid document_id"):
                 load_judgments(path)
+
+    def test_rejects_score_outside_the_graded_range(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "judgments.json"
+            path.write_text(
+                json.dumps([_case("one", [("aa123bb4567", 4)])])
+            )
+
+            with self.assertRaisesRegex(StageError, "outside the graded range"):
+                load_judgments(path)
+
+    def test_loads_every_json_file_in_a_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            (Path(directory) / "one.json").write_text(
+                json.dumps([_case("one", [("aa123bb4567", 1)], query="first")])
+            )
+            (Path(directory) / "two.json").write_text(
+                json.dumps([_case("two", [("cc123dd4567", 3)], query="second")])
+            )
+
+            judgments = load_judgments(Path(directory))
+
+            self.assertEqual({"one", "two"}, {j.id for j in judgments})
+
+    def test_rejects_duplicate_ids_across_files_in_a_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            case = _case("same", [("aa123bb4567", 1)])
+            (Path(directory) / "one.json").write_text(json.dumps([case]))
+            (Path(directory) / "two.json").write_text(json.dumps([case]))
+
+            with self.assertRaisesRegex(StageError, "Duplicate judgment test_id"):
+                load_judgments(Path(directory))
+
+    def test_rejects_empty_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(StageError, "No JSON test case files found"):
+                load_judgments(Path(directory))
 
     def test_parses_sorted_unique_cutoffs(self):
         self.assertEqual((1, 5, 10), parse_cutoffs("10,1,5,5"))
