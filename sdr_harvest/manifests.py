@@ -60,13 +60,15 @@ def _cocina_files(data: dict) -> tuple[list[dict], set[str]]:
     found: list[dict] = []
     page_resources: set[str] = set()
     resource_number = 0
+    page_number = 0
 
     def visit(
         node: object,
         resource_type: str | None = None,
         resource_key: str | None = None,
+        resource_page: int | None = None,
     ) -> None:
-        nonlocal resource_number
+        nonlocal page_number, resource_number
         if isinstance(node, dict):
             node_type = str(node.get("type", ""))
             if "/models/resources/" in node_type:
@@ -76,7 +78,11 @@ def _cocina_files(data: dict) -> tuple[list[dict], set[str]]:
                     node.get("externalIdentifier") or f"resource:{resource_number}"
                 )
                 if resource_type == "page":
+                    page_number += 1
+                    resource_page = page_number
                     page_resources.add(resource_key)
+                else:
+                    resource_page = None
             mime_type = str(node.get("hasMimeType", "")).lower()
             is_pdf = mime_type == "application/pdf"
             is_transcription_xml = mime_type in {
@@ -104,15 +110,16 @@ def _cocina_files(data: dict) -> tuple[list[dict], set[str]]:
                         "md5": digests.get("md5"),
                         "_resource_type": resource_type,
                         "_resource_key": resource_key,
+                        "_resource_page": resource_page,
                         "_mime_type": mime_type,
                         "_use": str(node.get("use", "")).lower(),
                     }
                 )
             for value in node.values():
-                visit(value, resource_type, resource_key)
+                visit(value, resource_type, resource_key, resource_page)
         elif isinstance(node, list):
             for value in node:
-                visit(value, resource_type, resource_key)
+                visit(value, resource_type, resource_key, resource_page)
 
     visit(data.get("structural", {}))
     return found, page_resources
@@ -159,6 +166,16 @@ def cocina_source_files(data: dict) -> list[dict]:
         )
 
     return cocina_pdf_files(data)
+
+
+def cocina_page_numbers(data: dict) -> dict[str, str]:
+    """Map files in page resources to their 1-based structural page number."""
+    found, _ = _cocina_files(data)
+    return {
+        item["filename"]: str(item["_resource_page"])
+        for item in found
+        if item["_resource_page"] is not None
+    }
 
 
 def source_fingerprint(data: dict, files: list[dict]) -> str:

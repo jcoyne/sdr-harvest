@@ -22,22 +22,24 @@ class SolrDocumentBuilder:
             filename = (
                 "_metadata_"
                 if row["file"] == "_metadata_"
-                else Path(row["file"]).with_suffix(".pdf").name
+                else row.get("source_file")
+                or Path(row["file"]).with_suffix(".pdf").name
             )
             base = "".join(
                 character if character.isalnum() or character in "-_" else "_"
                 for character in filename
             )
-            children.append(
-                {
-                    "id": f"{druid}_{base}_c{row['chunk_index']}",
-                    "chunk_text_tesi": row["text"],
-                    "vector": row["embedding"],
-                    "chunk_index_i": row["chunk_index"],
-                    "filename_ss": filename,
-                    "doc_type_ssi": "child",
-                }
-            )
+            child = {
+                "id": f"{druid}_{base}_c{row['chunk_index']}",
+                "chunk_text_tesi": row["text"],
+                "vector": row["embedding"],
+                "chunk_index_i": row["chunk_index"],
+                "filename_ss": filename,
+                "doc_type_ssi": "child",
+            }
+            if row.get("page") is not None:
+                child["page_ss"] = str(row["page"])
+            children.append(child)
         ids = [child["id"] for child in children]
         if len(ids) != len(set(ids)):
             raise StageError("Generated duplicate child IDs")
