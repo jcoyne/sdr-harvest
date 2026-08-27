@@ -48,25 +48,31 @@ def alto_text(path: Path) -> str:
 class AltoXmlExtractionStrategy:
     """Extract OCR text directly from page-level ALTO XML files."""
 
-    # Retain the former shared signature so existing ALTO output stays current.
     signature = ALTO_EXTRACT_SIGNATURE
 
     def supports(self, cocina: dict, source_files: list[Path]) -> bool:
         is_book = str(cocina.get("type", "")).rsplit("/", 1)[-1] == "book"
         return is_book and any(path.suffix.lower() == ".xml" for path in source_files)
 
-    def extract(self, source_files: list[Path], output: Path) -> set[str]:
-        expected: set[str] = set()
-        for xml in source_files:
-            if xml.suffix.lower() != ".xml":
-                continue
+    def extract(
+        self,
+        source_files: list[Path],
+        output: Path,
+        source_pages: dict[str, str] | None = None,
+    ) -> dict[str, dict[str, object]]:
+        extracted: dict[str, dict[str, object]] = {}
+        xml_files = [path for path in source_files if path.suffix.lower() == ".xml"]
+        for xml in xml_files:
             target = output / f"{xml.stem}.md"
-            if target.name in expected:
+            if target.name in extracted:
                 raise StageError(
                     f"Multiple ALTO files map to the same Markdown file: {target.name}"
                 )
-            expected.add(target.name)
             temporary = target.with_suffix(".md.tmp")
             temporary.write_text(alto_text(xml), encoding="utf-8")
             temporary.replace(target)
-        return expected
+            extracted[target.name] = {
+                "page": (source_pages or {}).get(xml.name),
+                "source_file": xml.with_suffix(".pdf").name,
+            }
+        return extracted

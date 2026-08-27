@@ -17,6 +17,7 @@ from unittest.mock import Mock, patch
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pymupdf
+import pymupdf4llm
 
 from sdr_harvest.cli import (
     RESOURCE_TRACKER_WARNING_FILTER,
@@ -38,6 +39,7 @@ from sdr_harvest.core import (
     file_sha256,
     interruptible_thread_pool,
 )
+from sdr_harvest.create_solr_document import SolrDocumentBuilder
 from sdr_harvest.download import FileDownloader
 from sdr_harvest.embed import (
     EMBEDDING_BATCH_SIZE,
@@ -53,6 +55,7 @@ from sdr_harvest.extract_pdf import PdfExtractionStrategy, extract_pdf_to_markdo
 from sdr_harvest.extract_text import TextExtractor
 from sdr_harvest.manifests import (
     cocina_pdf_files,
+    cocina_page_numbers,
     cocina_source_files,
     merge_manifests,
     parse_manifest,
@@ -221,6 +224,15 @@ class FingerprintTest(unittest.TestCase):
             ["page-1.xml", "page-2.xml"],
             [file["filename"] for file in cocina_source_files(data)],
         )
+        self.assertEqual(
+            {
+                "page-1.pdf": "1",
+                "page-1.xml": "1",
+                "page-2.pdf": "2",
+                "page-2.xml": "2",
+            },
+            cocina_page_numbers(data),
+        )
 
     def test_book_falls_back_to_object_pdf_when_page_alto_is_incomplete(self):
         data = cocina()
@@ -313,7 +325,26 @@ class TextExtractorTest(unittest.TestCase):
             version_dir = Path(directory)
             version_dir.joinpath("cocina.json").write_text(
                 json.dumps(
-                    {"type": "https://cocina.sul.stanford.edu/models/book"}
+                    {
+                        "type": "https://cocina.sul.stanford.edu/models/book",
+                        "structural": {
+                            "contains": [
+                                {
+                                    "type": "https://cocina.sul.stanford.edu/"
+                                    "models/resources/page",
+                                    "structural": {
+                                        "contains": [
+                                            {
+                                                "filename": "page-1.xml",
+                                                "hasMimeType": "application/xml",
+                                                "use": "transcription",
+                                            }
+                                        ]
+                                    },
+                                }
+                            ]
+                        },
+                    }
                 )
             )
             source = version_dir / "pdfs"
@@ -334,6 +365,15 @@ class TextExtractorTest(unittest.TestCase):
             self.assertEqual(
                 "bacteria cause\ndisease.",
                 output.joinpath("page-1.md").read_text(),
+            )
+            self.assertEqual(
+                {
+                    "page-1.md": {
+                        "page": "1",
+                        "source_file": "page-1.pdf",
+                    }
+                },
+                json.loads(output.joinpath("pages.json").read_text()),
             )
 
     def test_non_book_uses_pdf_strategy(self):
@@ -357,6 +397,49 @@ class TextExtractorTest(unittest.TestCase):
             self.assertEqual("PDF text", output.joinpath("document.md").read_text())
             to_markdown.assert_called_once()
 
+    def test_pdf_pages_are_extracted_and_chunked_separately(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            version_dir.joinpath("cocina.json").write_text(
+                json.dumps(
+                    {"type": "https://cocina.sul.stanford.edu/models/document"}
+                )
+            )
+            version_dir.joinpath("metadata.json").write_text("{}")
+            source = version_dir / "pdfs"
+            source.mkdir()
+            source.joinpath("document.pdf").write_bytes(b"pdf")
+            first_page = "first " * 250
+            second_page = "second " * 250
+            page_chunks = [
+                {
+                    "text": first_page,
+                    "metadata": {"page_number": 1},
+                },
+                {
+                    "text": second_page,
+                    "metadata": {"page_number": 2},
+                },
+            ]
+
+            with patch(
+                "sdr_harvest.extract_pdf.pymupdf4llm.to_markdown",
+                return_value=page_chunks,
+            ):
+                TextExtractor().run(version_dir)
+            rows = pq.read_table(Chunker().run(DRUID, version_dir)).to_pylist()
+            text_rows = [row for row in rows if row["page"] is not None]
+
+            self.assertTrue(all(row["file"] == "document.md" for row in text_rows))
+            self.assertEqual({"1", "2"}, {row["page"] for row in text_rows})
+            self.assertTrue(
+                all(row["source_file"] == "document.pdf" for row in text_rows)
+            )
+            self.assertEqual(
+                first_page + second_page,
+                (version_dir / "markdown" / "document.md").read_text(),
+            )
+
 
 class PdfExtractionRegressionTest(unittest.TestCase):
     def test_submits_pdf_extraction_to_the_shared_executor(self):
@@ -369,9 +452,9 @@ class PdfExtractionRegressionTest(unittest.TestCase):
             executor = Mock()
 
             def submit(operation, *args):
-                operation(*args)
+                result = operation(*args)
                 future = Mock()
-                future.result.return_value = None
+                future.result.return_value = result
                 return future
 
             executor.submit.side_effect = submit
@@ -382,7 +465,7 @@ class PdfExtractionRegressionTest(unittest.TestCase):
                 PdfExtractionStrategy(executor).extract([pdf], output)
 
             executor.submit.assert_called_once_with(
-                extract_pdf_to_markdown, pdf, output / "document.md"
+                extract_pdf_to_markdown, pdf, output / "document.md", None
             )
             self.assertEqual(
                 "Extracted in a worker process",
@@ -415,6 +498,28 @@ class PdfExtractionRegressionTest(unittest.TestCase):
 
             extracted = output.joinpath("invisible-text-layer.md").read_text()
             self.assertIn("Invisible text layers must remain searchable", extracted)
+
+    def test_page_metadata_does_not_change_extracted_markdown(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf = root / "document.pdf"
+            document = pymupdf.open()
+            for page_number in range(1, 3):
+                page = document.new_page()
+                page.insert_text((72, 72), f"Content on page {page_number}")
+            document.save(pdf)
+            document.close()
+            expected = pymupdf4llm.to_markdown(
+                str(pdf),
+                write_images=False,
+                use_ocr=pymupdf4llm.ocr.OCRMode.NEVER,
+            )
+            output = root / "markdown"
+            output.mkdir()
+
+            PdfExtractionStrategy().extract([pdf], output)
+
+            self.assertEqual(expected, output.joinpath("document.md").read_text())
 
 
 class StreamingResponse:
@@ -545,6 +650,111 @@ class ChunkerTest(unittest.TestCase):
                     set(first["text"].split()[-30:])
                     & set(second["text"].split()[:30])
                 )
+
+    def test_carries_extracted_page_metadata_into_chunks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            version_dir.joinpath("metadata.json").write_text("{}")
+            markdown = version_dir / "markdown"
+            markdown.mkdir()
+            markdown.joinpath("page.md").write_text("ALTO page text")
+            markdown.joinpath("pages.json").write_text(
+                json.dumps(
+                    {
+                        "page.md": {
+                            "page": "42",
+                            "source_file": "page.pdf",
+                        }
+                    }
+                )
+            )
+
+            rows = pq.read_table(Chunker().run(DRUID, version_dir)).to_pylist()
+            row = next(row for row in rows if row["file"] == "page.md")
+
+            self.assertEqual("42", row["page"])
+            self.assertEqual("page.pdf", row["source_file"])
+
+    def test_leaves_page_unknown_without_page_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            version_dir.joinpath("metadata.json").write_text("{}")
+            markdown = version_dir / "markdown"
+            markdown.mkdir()
+            markdown.joinpath("page-10.md").write_text("Text without a known page")
+
+            rows = pq.read_table(Chunker().run(DRUID, version_dir)).to_pylist()
+            row = next(row for row in rows if row["file"] == "page-10.md")
+
+            self.assertIsNone(row["page"])
+
+    def test_leaves_page_unknown_when_chunk_start_matches_no_page_range(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            version_dir.joinpath("metadata.json").write_text("{}")
+            markdown = version_dir / "markdown"
+            markdown.mkdir()
+            markdown.joinpath("document.md").write_text("Unmatched text")
+            markdown.joinpath("pages.json").write_text(
+                json.dumps(
+                    {
+                        "document.md": {
+                            "pages": [{"page": "9", "start": 100, "end": 200}],
+                            "source_file": "document.pdf",
+                        }
+                    }
+                )
+            )
+
+            rows = pq.read_table(Chunker().run(DRUID, version_dir)).to_pylist()
+            row = next(row for row in rows if row["file"] == "document.md")
+
+            self.assertIsNone(row["page"])
+
+
+class SolrDocumentBuilderTest(unittest.TestCase):
+    def test_records_chunk_pages_as_page_ss_on_child_documents(self):
+        with tempfile.TemporaryDirectory() as directory:
+            version_dir = Path(directory)
+            version_dir.joinpath("metadata.json").write_text("{}")
+            pq.write_table(
+                pa.Table.from_pylist(
+                    [
+                        {
+                            "file": "_metadata_",
+                            "source_file": "_metadata_",
+                            "page": None,
+                            "chunk_index": 0,
+                            "text": "Metadata",
+                            "embedding": [0.1],
+                        },
+                        {
+                            "file": "document.md",
+                            "source_file": "document.pdf",
+                            "page": "1",
+                            "chunk_index": 0,
+                            "text": "First page",
+                            "embedding": [0.2],
+                        },
+                        {
+                            "file": "document.md",
+                            "source_file": "document.pdf",
+                            "page": "2",
+                            "chunk_index": 1,
+                            "text": "Second page",
+                            "embedding": [0.3],
+                        },
+                    ]
+                ),
+                version_dir / "embeddings.parquet",
+            )
+
+            output = SolrDocumentBuilder().run(DRUID, "source", version_dir)
+            children = json.loads(output.read_text())["_childDocuments_"]
+
+            self.assertNotIn("page_ss", children[0])
+            self.assertEqual(["1", "2"], [child["page_ss"] for child in children[1:]])
+            self.assertEqual(3, len({child["id"] for child in children}))
 
 
 class EmbedderTest(unittest.TestCase):

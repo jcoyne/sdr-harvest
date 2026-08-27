@@ -21,6 +21,7 @@ class Chunker:
             chunk_size=CHUNK_SIZE,
             chunk_overlap=CHUNK_OVERLAP,
             separators=["\n## ", "\n### ", "\n#### ", "\n\n", "\n", " ", ""],
+            add_start_index=True,
         )
         rows: list[dict] = []
         metadata = json.loads((version_dir / "metadata.json").read_text())
@@ -35,19 +36,40 @@ class Chunker:
             {
                 "object_id": druid,
                 "file": "_metadata_",
+                "source_file": "_metadata_",
+                "page": None,
                 "chunk_index": 0,
                 "text": "\n".join(metadata_text),
             }
         )
-        for markdown in sorted((version_dir / "markdown").glob("*.md")):
-            chunks = splitter.split_text(markdown.read_text(encoding="utf-8"))
-            for index, text in enumerate(chunks):
+        markdown_dir = version_dir / "markdown"
+        page_manifest = markdown_dir / "pages.json"
+        page_metadata = (
+            json.loads(page_manifest.read_text(encoding="utf-8"))
+            if page_manifest.exists()
+            else {}
+        )
+        for markdown in sorted(markdown_dir.glob("*.md")):
+            attributes = page_metadata.get(markdown.name, {})
+            content = markdown.read_text(encoding="utf-8")
+            chunks = splitter.create_documents([content])
+            for index, chunk in enumerate(chunks):
+                start = chunk.metadata["start_index"]
+                page = attributes.get("page")
+                for page_range in attributes.get("pages", []):
+                    if page_range["start"] <= start < page_range["end"]:
+                        page = page_range["page"]
+                        break
                 rows.append(
                     {
                         "object_id": druid,
                         "file": markdown.name,
+                        "source_file": attributes.get(
+                            "source_file", markdown.with_suffix(".pdf").name
+                        ),
+                        "page": str(page) if page is not None else None,
                         "chunk_index": index,
-                        "text": text,
+                        "text": chunk.page_content,
                     }
                 )
         output = version_dir / "chunks.parquet"
@@ -55,6 +77,8 @@ class Chunker:
             [
                 ("object_id", pa.string()),
                 ("file", pa.string()),
+                ("source_file", pa.string()),
+                ("page", pa.string()),
                 ("chunk_index", pa.int32()),
                 ("text", pa.string()),
             ]
