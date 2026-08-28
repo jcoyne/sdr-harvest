@@ -1,29 +1,714 @@
 {
   "aggregate": {
-    "mrr@1": 1.0,
-    "mrr@10": 1.0,
-    "mrr@5": 1.0,
-    "ndcg@1": 1.0,
-    "ndcg@10": 0.878120514726648,
-    "ndcg@5": 0.8225180062157464,
-    "recall@1": 0.25,
-    "recall@10": 0.8333333333333333,
-    "recall@5": 0.6666666666666666,
-    "success@1": 1.0,
-    "success@10": 1.0,
-    "success@5": 1.0
+    "mrr@1": 0.8,
+    "mrr@10": 0.85,
+    "mrr@5": 0.85,
+    "ndcg@1": 0.7428571428571429,
+    "ndcg@10": 0.7256097599631578,
+    "ndcg@5": 0.6882292652748631,
+    "recall@1": 0.275,
+    "recall@10": 0.6900000000000001,
+    "recall@5": 0.6233333333333333,
+    "success@1": 0.8,
+    "success@10": 0.9,
+    "success@5": 0.9
   },
-  "created_at": "2026-08-19T19:57:04.312422+00:00",
+  "created_at": "2026-08-25T20:00:27.098241+00:00",
   "queries": [
     {
-      "id": "campus-history",
+      "id": "john-lynch-1",
       "metrics": {
         "mrr@1": 1.0,
         "mrr@10": 1.0,
         "mrr@5": 1.0,
         "ndcg@1": 1.0,
-        "ndcg@10": 0.9651366671790967,
-        "ndcg@5": 0.8539316501572937,
+        "ndcg@10": 1.0,
+        "ndcg@5": 1.0,
+        "recall@1": 0.5,
+        "recall@10": 1.0,
+        "recall@5": 1.0,
+        "success@1": 1.0,
+        "success@10": 1.0,
+        "success@5": 1.0
+      },
+      "query": "John Lynch",
+      "relevant": {
+        "bb051hp9404": 3.0,
+        "zv638jb7154": 3.0
+      },
+      "results": [
+        {
+          "chunk_id": "zv638jb7154_zv638jb7154_04_pdf_c0",
+          "chunk_index": 0,
+          "druid": "zv638jb7154",
+          "filename": "zv638jb7154_04.pdf",
+          "score": 0.90021,
+          "snippet": "4"
+        },
+        {
+          "chunk_id": "bb051hp9404_bb051hp9404_script_pdf_c5",
+          "chunk_index": 5,
+          "druid": "bb051hp9404",
+          "filename": "bb051hp9404_script.pdf",
+          "score": 0.89056635,
+          "snippet": "## **S T A N F O R D U N I V E R S I T Y** \n\nPROJECT: STANFORD ATHLETIC HALL OF FAME NAME OF INTERVIEWER: JAMES RUTTER NAME OF INTERVIEWEE: JOHN LYNCH DATE OF INTERVIEW: NOVEMBER 5, 2010 \n\n(misc.) \n\n**Rutter:** This is Jim Rutter, Stanford Athletics Archivist and it is November 5, 2010.  I am here at the Francis C. Arrillaga Center in a back alley conference room with John Terrence Lynch to talk about his Stanford days on the occasion of his induction to the Stanford Athletic Hall of Fame tonigh"
+        }
+      ]
+    },
+    {
+      "id": "john-lynch-2",
+      "metrics": {
+        "mrr@1": 1.0,
+        "mrr@10": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@1": 1.0,
+        "ndcg@10": 0.9246243924703831,
+        "ndcg@5": 0.9246243924703831,
+        "recall@1": 0.25,
+        "recall@10": 0.5,
+        "recall@5": 0.5,
+        "success@1": 1.0,
+        "success@10": 1.0,
+        "success@5": 1.0
+      },
+      "query": "Interview with John Lynch : Stanford Athletics Hall of Fame Oral History Project",
+      "relevant": {
+        "bb051hp9404": 3.0,
+        "jp794zn1111": 1.0,
+        "mw975hh7191": 1.0,
+        "zv638jb7154": 3.0
+      },
+      "results": [
+        {
+          "chunk_id": "zv638jb7154_zv638jb7154_06_pdf_c0",
+          "chunk_index": 0,
+          "druid": "zv638jb7154",
+          "filename": "zv638jb7154_06.pdf",
+          "score": 0.94605315,
+          "snippet": "Introduction\nThis oral history was conducted by the Stanford Oral History Program, sponsored by the\nStanford Historical Society and the Stanford University Archives, with partial funding\nsupport from the Stanford Department of Athletics. The Stanford Oral History Program is\nunder the direction of the Oral History Committee of the Stanford Historical Society. The\ninterview was conducted m 2010 by James Rutter, Stanford Athletics Archivist. The\ntranscript and recording are part of a collection of "
+        },
+        {
+          "chunk_id": "bb051hp9404_bb051hp9404_script_pdf_c4",
+          "chunk_index": 4,
+          "druid": "bb051hp9404",
+          "filename": "bb051hp9404_script.pdf",
+          "score": 0.93612576,
+          "snippet": "## **Abstract** \n\nIn his interview, John Lynch discussed his high school sports career, recruitment, and Stanford Football and Baseball career from 1989-1992.  The conversation included the 1990 and 1991 seasons and specific memories of Denny Green, the Aloha Bowl, and Lynch\u2019s decision to switch football positions.  From there Lynch talked about how he nearly quit football but Bill Walsh convinced him that he could be a Pro Bowl safety in the NFL, leading to a pro football career in the NFL.  Ly"
+        },
+        {
+          "chunk_id": "cq956fd8985_cq956fd8985_09_pdf_c0",
+          "chunk_index": 0,
+          "druid": "cq956fd8985",
+          "filename": "cq956fd8985_09.pdf",
+          "score": 0.8984518,
+          "snippet": "Project Description\nThe Stanford Athletics Oral History Project examines the evolution of Stanford University\u2019s\nathletic program since the 1960s. It aims to document the program\u2019s journey from \u201cgood to\ngreat,\u201d identify individual contributors and institutional decisions contributing to program\ngrowth, and situate Stanford\u2019s program m the broader context of collegiate athletics.\nInterviewees include former Stanford athletic directors, staff members, coaches, faculty\nathletic representatives, and "
+        },
+        {
+          "chunk_id": "wh214kb0185_wh214kb0185_SC0932_s10_Bunnell_Transcript_pdf_c4",
+          "chunk_index": 4,
+          "druid": "wh214kb0185",
+          "filename": "wh214kb0185_SC0932_s10_Bunnell_Transcript.pdf",
+          "score": 0.89158213,
+          "snippet": "## **Project Description** \n\nThe Stanford Athletics Oral History Project examines the evolution of Stanford University\u2019s athletic program since the 1960s. It aims to document the program\u2019s journey from \u201cgood to great,\u201d identify individual contributors and institutional decisions contributing to program growth, and situate Stanford\u2019s program in the broader context of collegiate athletics. Interviewees include former Stanford athletic directors, staff members, coaches, faculty athletic representat"
+        },
+        {
+          "chunk_id": "ft102fd0627_ft102fd0627_10_pdf_c0",
+          "chunk_index": 0,
+          "druid": "ft102fd0627",
+          "filename": "ft102fd0627_10.pdf",
+          "score": 0.8899702,
+          "snippet": "10"
+        }
+      ]
+    },
+    {
+      "id": "john-lynch-3",
+      "metrics": {
+        "mrr@1": 1.0,
+        "mrr@10": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@1": 1.0,
+        "ndcg@10": 0.9580414003446834,
+        "ndcg@5": 0.9580414003446834,
+        "recall@1": 0.3333333333333333,
+        "recall@10": 0.6666666666666666,
+        "recall@5": 0.6666666666666666,
+        "success@1": 1.0,
+        "success@10": 1.0,
+        "success@5": 1.0
+      },
+      "query": "Which coach talked John Lynch out of quitting football for baseball?",
+      "relevant": {
+        "bb051hp9404": 3.0,
+        "hx664zp3987": 1.0,
+        "zv638jb7154": 3.0
+      },
+      "results": [
+        {
+          "chunk_id": "zv638jb7154_zv638jb7154_21_pdf_c0",
+          "chunk_index": 0,
+          "druid": "zv638jb7154",
+          "filename": "zv638jb7154_21.pdf",
+          "score": 0.90483165,
+          "snippet": "Lynch: [00:14:05] Yes, Tank had just blown out his knee. But anyway, I ended up playing\nand I think I played really well the first couple games. We didn\u2019t get off to a good\nstart that year, and Albert Richardson I think was behind me. And they ended up -\nWilly Shaw made a switch (to Richardson), and I was the leading tackier on the team,\nand they switched him. I\u2019m like, \u201cWhaf s going on here?\u201d And then that same year I\ngot drafted m the second round by the Marlins. So I was thinking baseball was"
+        },
+        {
+          "chunk_id": "bb051hp9404_bb051hp9404_script_pdf_c19",
+          "chunk_index": 19,
+          "druid": "bb051hp9404",
+          "filename": "bb051hp9404_script.pdf",
+          "score": 0.9022232,
+          "snippet": "**Rutter:** Isn\u2019t that what (New England Patriots head coach) Belichick tried to do with you at \n\nthe end of your career?  He was trying to move you down into the box, right? **Lynch:** [00:14:02] To linebacker. Yes. \n\n**Rutter:** And they tried the same thing with (former Stanford safety) Tank Williams too, \n\nright? \n\n20 \n\n**Lynch:** [00:14:05] Yes, Tank had just blown out his knee.  But anyway, I ended up playing and I think I played really well the first couple games. We didn\u2019t get off to a g"
+        },
+        {
+          "chunk_id": "xb773ps6063_xb773ps6063_Marquess_Mark_Page_026_pdf_c1",
+          "chunk_index": 1,
+          "druid": "xb773ps6063",
+          "filename": "xb773ps6063_Marquess_Mark_Page_026.pdf",
+          "score": 0.8460374,
+          "snippet": "great history, always, no matter who the football coach was. You can talk\nabout John Elway; John Lynch, who was just inducted to the Hall of\nFame\u2014two-sport athletes. Toby Gerhart, Heisman Trophy candidate,\nbaseball player; James Lofton, track star. So I knew I could do it at Stanford."
+        }
+      ]
+    },
+    {
+      "id": "john-lynch-4",
+      "metrics": {
+        "mrr@1": 1.0,
+        "mrr@10": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@1": 1.0,
+        "ndcg@10": 0.6131471927654584,
+        "ndcg@5": 0.6131471927654584,
+        "recall@1": 0.5,
+        "recall@10": 0.5,
+        "recall@5": 0.5,
+        "success@1": 1.0,
+        "success@10": 1.0,
+        "success@5": 1.0
+      },
+      "query": "who threw the first pitch in Florida Marlins organization history",
+      "relevant": {
+        "bb051hp9404": 3.0,
+        "zv638jb7154": 3.0
+      },
+      "results": [
+        {
+          "chunk_id": "bb051hp9404_bb051hp9404_script_pdf_c12",
+          "chunk_index": 12,
+          "druid": "bb051hp9404",
+          "filename": "bb051hp9404_script.pdf",
+          "score": 0.86006784,
+          "snippet": "**Rutter:** You just met Mike Dotterer (\u201983), who is a fellow Hall of Fame member.  Mike was an All-American baseball player as well as a tailback who had eight touchdowns as a \n\n14 \n\nfreshman - so really one of the better two-sport players we ever had.  Okay, so were you influenced by the fact that Stanford had won those two NCAA titles in baseball in those years with (Jack) McDowell, and (Mike) Mussina and you at least knew that it was a major program? \n\n**Lynch:** [00:07:06] Oh, yes, absolute"
+        },
+        {
+          "chunk_id": "xb773ps6063_xb773ps6063_Marquess_Mark_Page_064_pdf_c1",
+          "chunk_index": 1,
+          "druid": "xb773ps6063",
+          "filename": "xb773ps6063_Marquess_Mark_Page_064.pdf",
+          "score": 0.8248703,
+          "snippet": "At that time, freshman weren\u2019t eligible to play varsity. So I was assistant but\nI was a head coach of the freshman team. At that time, Jerry, there was\nanother field. We didn\u2019t play on Sunken Diamond. We had a full field over\nby El Camino Real, over there where rugby is, in that area. I was responsible\nfor the team. I got a volunteer assistant, and I coached the freshman. And"
+        },
+        {
+          "chunk_id": "kk742wt1722_kk742wt1722_SC0932_s10_Marquess_Mark_Transcript_pdf_c74",
+          "chunk_index": 74,
+          "druid": "kk742wt1722",
+          "filename": "kk742wt1722_SC0932_s10_Marquess_Mark_Transcript.pdf",
+          "score": 0.8211707,
+          "snippet": "**Porras:** Wow. And what year was that, 1972? \n\n**Marquess:** 1971. Wow. Susan\u2019s working, and that was my first assistant job at Stanford. At that time, freshman weren\u2019t eligible to play varsity. So I was assistant but I was a head coach of the freshman team. At that time, Jerry, there was another field. We didn\u2019t play on Sunken Diamond. We had a full field over by El Camino Real, over there where rugby is, in that area. I was responsible for the team. I got a volunteer assistant, and I coached"
+        },
+        {
+          "chunk_id": "jp794zn1111_jp794zn1111_22_pdf_c1",
+          "chunk_index": 1,
+          "druid": "jp794zn1111",
+          "filename": "jp794zn1111_22.pdf",
+          "score": 0.81949013,
+          "snippet": "double-header games those weekends and I caught with Jeff Ballard. So, it\nwas kind of this freshman pitchmg-catchmg duo.\nYour fellow Stanford Athletic Hall of Famer, Jeff Ballard.\n[00:17:41] And Jeff was a much better player as a freshman as I was. But\ninitially, that season, I had had two or three early starts that year and it was\n22"
+        },
+        {
+          "chunk_id": "pp528nw0523_pp528nw0523_SC0932_s10_Montgomery_Mike_Transcript_pdf_c22",
+          "chunk_index": 22,
+          "druid": "pp528nw0523",
+          "filename": "pp528nw0523_SC0932_s10_Montgomery_Mike_Transcript.pdf",
+          "score": 0.815416,
+          "snippet": "**Porras:** Yes, so you weren\u2019t a graduate assistant anymore now. Now you were officially an assistant\u2014 \n\n**Montgomery:** [00:17:07] First salary I ever had\u2014I bought a new Volkswagen. It was fun. Even though again, it was back in the military environment because the Citadel is a military college, but it was a great place. The kids were fabulous, obviously very disciplined. I was a good recruiter, but I honestly had a hard \n\n24 \n\ntime bringing kids into that environment because of what they were "
+        },
+        {
+          "chunk_id": "dk859qx9685_dk859qx9685_Montgomery_Mike_Page_025_pdf_c0",
+          "chunk_index": 0,
+          "druid": "dk859qx9685",
+          "filename": "dk859qx9685_Montgomery_Mike_Page_025.pdf",
+          "score": 0.8137202,
+          "snippet": "25\ntime bringing kids into that environment because of what they were missing\nas a college experience, having to get up and march, and the whole military\nsystem.\nPorras: Right.\nMontgomery: But I did that for a year. We weren\u2019t great as a basketball team. The Citadel\nhas a really hard time. Then I ended up going to the University of Florida,\nwhich, of course, is Southeast Conference\u2014big time\u2014as what they called a\npart-time assistant. I had a little bit of money because I did have a salary.\nThey w"
+        },
+        {
+          "chunk_id": "mw975hh7191_mw975hh7191_script_pdf_c63",
+          "chunk_index": 63,
+          "druid": "mw975hh7191",
+          "filename": "mw975hh7191_script.pdf",
+          "score": 0.8134458,
+          "snippet": "**Rutter:** These are not seven-game series. \n\n- **Lundblade:** [01:09:03] These are not seven-game series.  We played Miami in the first \n\n   - round, and it\u2019s still a game I never watch the tape of just because of how it turned out.  We played Miami and they were always a great program.  I don\u2019t think we were thinking so much about them as a program other than just getting out there, playing the game, and trying to play _our_ game.  But it just seemed to go bad from the get-go.  And I remember"
+        },
+        {
+          "chunk_id": "vv251ts9806_vv251ts9806_Shaw_Don_Page_020_pdf_c1",
+          "chunk_index": 1,
+          "druid": "vv251ts9806",
+          "filename": "vv251ts9806_Shaw_Don_Page_020.pdf",
+          "score": 0.811267,
+          "snippet": "My first year as an eight-year-old was the year that the Dodgers came to Los\nAngeles from Brooklyn. And so, everything hit at once. We had heroes. We\nhad radio, Vin Scully. And my mom would take us to games. The games\nwere at the Coliseum, back in those days, before they built Dodger Stadium."
+        },
+        {
+          "chunk_id": "gf962rm8943_gf962rm8943_Rutter_James_Page_38_pdf_c1",
+          "chunk_index": 1,
+          "druid": "gf962rm8943",
+          "filename": "gf962rm8943_Rutter_James_Page_38.pdf",
+          "score": 0.8104795,
+          "snippet": "baseball coach before Mark Marquess and lives down in New Zealand I think\nnow. He was actually a big influence. I would see him at the Stanford\nbaseball camps and all. I really was positively impacted by him. Mark\nMarquess, at the time, was just coming up to take over in about 1976. Howie"
+        },
+        {
+          "chunk_id": "cq956fd8985_cq956fd8985_47_pdf_c0",
+          "chunk_index": 0,
+          "druid": "cq956fd8985",
+          "filename": "cq956fd8985_47.pdf",
+          "score": 0.81046677,
+          "snippet": "Bunnell: Talking about [that], Mark Marquess, he is retiring finally after forty-one\nyears?\nPlayer: At least, yes.\nBunnell: [00:11:00] I remember admitting him from Stockton as a backup to Jim\nPlunkett, but as an All-American. He was a three-sport, fabulous athlete.\nPlayed baseball and football at Stanford. I remember the people up in the\nHousing Office wanting to pair him with\u2014who would be a good roommate?\nThis kid\u2019s a shining star.\nWell, you and I knew Scott Romney very well; he was m the Sigm"
+        }
+      ]
+    },
+    {
+      "id": "john-lynch-5",
+      "metrics": {
+        "mrr@1": 1.0,
+        "mrr@10": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@1": 1.0,
+        "ndcg@10": 1.0,
+        "ndcg@5": 1.0,
+        "recall@1": 0.5,
+        "recall@10": 1.0,
+        "recall@5": 1.0,
+        "success@1": 1.0,
+        "success@10": 1.0,
+        "success@5": 1.0
+      },
+      "query": "Cardinal safety who became a TV football broadcaster",
+      "relevant": {
+        "bb051hp9404": 3.0,
+        "zv638jb7154": 3.0
+      },
+      "results": [
+        {
+          "chunk_id": "zv638jb7154_zv638jb7154_09_pdf_c0",
+          "chunk_index": 0,
+          "druid": "zv638jb7154",
+          "filename": "zv638jb7154_09.pdf",
+          "score": 0.85605633,
+          "snippet": "Abstract\nIn his interview, John Lynch discussed his high school sports career, recruitment, and\nStanford Football and Baseball career from 1989-1992. The conversation included the 1990\nand 1991 seasons and specific memories of Denny Green, the Aloha Bowl, and Lynch\u2019s\ndecision to switch football positions. From there Lynch talked about how he nearly quit\nfootball but Bill Walsh convinced him that he could be a Pro Bowl safety m the NFL,\nleading to a pro football career m the NFL. Lynch also looke"
+        },
+        {
+          "chunk_id": "bb051hp9404_bb051hp9404_script_pdf_c4",
+          "chunk_index": 4,
+          "druid": "bb051hp9404",
+          "filename": "bb051hp9404_script.pdf",
+          "score": 0.8483758,
+          "snippet": "## **Abstract** \n\nIn his interview, John Lynch discussed his high school sports career, recruitment, and Stanford Football and Baseball career from 1989-1992.  The conversation included the 1990 and 1991 seasons and specific memories of Denny Green, the Aloha Bowl, and Lynch\u2019s decision to switch football positions.  From there Lynch talked about how he nearly quit football but Bill Walsh convinced him that he could be a Pro Bowl safety in the NFL, leading to a pro football career in the NFL.  Ly"
+        },
+        {
+          "chunk_id": "hc583hz2350_hc583hz2350_08_pdf_c0",
+          "chunk_index": 0,
+          "druid": "hc583hz2350",
+          "filename": "hc583hz2350_08.pdf",
+          "score": 0.8426453,
+          "snippet": "STANFORD UNIVERSITY/ALUMNI STORIES 2007/WALTER BROWN\nmean?\u201d He says, \u201cWell, we can do the frosh and the Braves games because those are\nrooms that we use for the visiting scouts and other people during the actual varsity game.\nSo you move out\u2014do the prelim and you move out, but there\u2019s no room during it.\u201d And\nI said \u201cWhat happens if we broadcast on the roof?\u201d And he says, \u201cOh, that\u2019s okay.\u201d So it\nhad absolutely nothing to do with any contract with the commercial broadcasting. So,\nsophomore, junio"
+        },
+        {
+          "chunk_id": "gf962rm8943_gf962rm8943_Rutter_James_Page_13_pdf_c0",
+          "chunk_index": 0,
+          "druid": "gf962rm8943",
+          "filename": "gf962rm8943_Rutter_James_Page_13.pdf",
+          "score": 0.839792,
+          "snippet": "13\nJames Rutter\nBiography\nJim Rutter is a fourth-generation Stanford graduate and a member of the class of 1986. He\nwas the Chief Executive Officer and Vice President of Business Development at the social\nplatform company Vitae (formerly YourSports) and has served for many years as a volunteer\nathletics archivist and sports historian for Stanford University. He was the co-founder and\neditor-in-chief of TheBootleg.com, reporting on Cardinal Sports from 1994 to 2017.\nTheBootleg.com was the Stanfor"
+        },
+        {
+          "chunk_id": "fr306xp0674_fr306xp0674_030_pdf_c1",
+          "chunk_index": 1,
+          "druid": "fr306xp0674",
+          "filename": "fr306xp0674_030.pdf",
+          "score": 0.83925784,
+          "snippet": "Saturday afternoon.\nPlayer: You brought up earlier the idea of what television is today. What was it like\nm the fall of 1969 so we can put this all m perspective?\nCavalli: [00:23:16] It was 180 degrees different from what it is today. The NCAA\ncontract was exclusively owned by ABC. The NCAA controlled college\n30"
+        },
+        {
+          "chunk_id": "xb773ps6063_xb773ps6063_Marquess_Mark_Page_026_pdf_c1",
+          "chunk_index": 1,
+          "druid": "xb773ps6063",
+          "filename": "xb773ps6063_Marquess_Mark_Page_026.pdf",
+          "score": 0.83870107,
+          "snippet": "great history, always, no matter who the football coach was. You can talk\nabout John Elway; John Lynch, who was just inducted to the Hall of\nFame\u2014two-sport athletes. Toby Gerhart, Heisman Trophy candidate,\nbaseball player; James Lofton, track star. So I knew I could do it at Stanford."
+        },
+        {
+          "chunk_id": "gh498sx1638_gh498sx1638_Durham_William_Page_090_pdf_c1",
+          "chunk_index": 1,
+          "druid": "gh498sx1638",
+          "filename": "gh498sx1638_Durham_William_Page_090.pdf",
+          "score": 0.83855873,
+          "snippet": "Because we were down in Los Angeles. I\u2019m going to say it was UCLA, but\nhonestly, it might have been USC. It was a big football game, national\ntelevision. Stanford\u2019s football team was getting better all the time. So it"
+        },
+        {
+          "chunk_id": "sg783cg7759_sg783cg7759_Bowlsby_Bob_Page_074_pdf_c1",
+          "chunk_index": 1,
+          "druid": "sg783cg7759",
+          "filename": "sg783cg7759_Bowlsby_Bob_Page_074.pdf",
+          "score": 0.8382516,
+          "snippet": "contribution into making football a safer game. I\u2019ve actually collaborated\nwith David Shaw on some of that. So I feel like I\u2019ve had the opportunity to\nmake some of those impacts that I thought I might be able to make and\nmake better than being an AD."
+        },
+        {
+          "chunk_id": "jc869tp4929_jc869tp4929_script_pdf_c9",
+          "chunk_index": 9,
+          "druid": "jc869tp4929",
+          "filename": "jc869tp4929_script.pdf",
+          "score": 0.8371887,
+          "snippet": "## **HUMBURG:** Student Union? \n\n**BROWN:** Student Union, yes.  He had a talk show from the Student Union, a nightly, maybe it wasn\u2019t every night, but it was fairly frequent.  And he just\u2014he\u2019d done a lot of stuff, and\u2014but apparently had not\u2014had never done football play-by-play.  And so Ritchie was going to do the play-by-play, and I was going to do the color.  And we\u2019re up there, and it\u2019s just us, we didn\u2019t have any spotters, technicians or anything.  And we\u2019re there, and the first\u2014I loved Rick"
+        },
+        {
+          "chunk_id": "fj743fg6356_fj743fg6356_37_pdf_c0",
+          "chunk_index": 0,
+          "druid": "fj743fg6356",
+          "filename": "fj743fg6356_37.pdf",
+          "score": 0.8356183,
+          "snippet": "37\nPlunkett:\nSchofield:\nPlunkett:\nSchofield:\n[00:53:46] Well, it\u2019s f\u00f9nny. If you look at all the things he did in his growing\nup, he was often a pmch-hitter for his dad. He delivered sermons. He\nlearned how to play the organ to support his dad in church. Working on his\nmaster1 s degree, he coached semi-pro football in Alberta, Canada. He was an\nathlete. He played tennis and basketball and football. He did a lot of\ndifferent things.\nYou know, if s f\u00f9nny, with our recent Rose Bowl moment, as I was"
+        }
+      ]
+    },
+    {
+      "id": "john-lynch-6",
+      "metrics": {
+        "mrr@1": 0.0,
+        "mrr@10": 0.5,
+        "mrr@5": 0.5,
+        "ndcg@1": 0.0,
+        "ndcg@10": 0.1638857234379754,
+        "ndcg@5": 0.1638857234379754,
+        "recall@1": 0.0,
+        "recall@10": 0.4,
+        "recall@5": 0.4,
+        "success@1": 0.0,
+        "success@10": 1.0,
+        "success@5": 1.0
+      },
+      "query": "gridiron star reminiscences of his undergraduate days on the Farm",
+      "relevant": {
+        "bb051hp9404": 2.0,
+        "bv990zf3647": 1.0,
+        "fb202sj3817": 1.0,
+        "jz934qv9888": 1.0,
+        "zv638jb7154": 2.0
+      },
+      "results": [
+        {
+          "chunk_id": "ry760vq2815_ry760vq2815_05_pdf_c0",
+          "chunk_index": 0,
+          "druid": "ry760vq2815",
+          "filename": "ry760vq2815_05.pdf",
+          "score": 0.8822775,
+          "snippet": "STANFORD UNIVERSITY/ALUMNI STORIES 2008/JAMES NEWELL\nNewell: We wanted not to be too, you know, ingrained. And so we did work it pretty\nwell.\nHumburg: Do you remember anything like Big Game, or the musicals, or anything like\nthat?\nNewell: Oh, sure. Sure. Frankie Albert [Frank Culling Albert, AB Health Education\n1942] was a man on the Stanford team that was important. And I was working my way\nthrough Stanford, so I took a job as a hasher, which again, my friend, Jorgensen, my\nroommate, was the he"
+        },
+        {
+          "chunk_id": "jz934qv9888_jz934qv9888_script_pdf_c32",
+          "chunk_index": 32,
+          "druid": "jz934qv9888",
+          "filename": "jz934qv9888_script.pdf",
+          "score": 0.8812364,
+          "snippet": "But there were lots of things like that going on all the time: very, very funny, because no one took themselves very seriously.  And all the undergraduates, well, were like more or less like me: hadn\u2019t picked a place to go in life.  And I don\u2019t think I got serious until I got to medical school, and then I don\u2019t think I was particularly serious.  But\u2014what other the funny things?  There have been lots of funny things.  Oh, my God, yes.  In freshman year, a man named\u2014oh, what was that -- Horse.  We"
+        },
+        {
+          "chunk_id": "xv719my8932_xv719my8932_16_pdf_c0",
+          "chunk_index": 0,
+          "druid": "xv719my8932",
+          "filename": "xv719my8932_16.pdf",
+          "score": 0.88023996,
+          "snippet": "Stanford first opened. They built about six houses right across from where the\nLaw School is now. They were torn down when they put the Law School\nthere. It was a three-story house. My room was on the third floor and right\nacross the hall was his room.\nThere were several smart guys on the football team. Then there were other\nguys that I thought of as being animals. Fm sure they weren\u2019t stupid. There\nwas a definite dichotomy on the football team of the smart guys. Practically\neverybody was a two-"
+        },
+        {
+          "chunk_id": "ny722pj7379_ny722pj7379_17_pdf_c0",
+          "chunk_index": 0,
+          "druid": "ny722pj7379",
+          "filename": "ny722pj7379_17.pdf",
+          "score": 0.87958914,
+          "snippet": "STANFORD UNI VERSIT Y/ALUMNI STORIES 2008/LARRY HARRIS\n17\nNelson: Wonderful, wonderful. Are there any other funny stories that you remember\nfrom your time?\nHarris: No, I\u2019d have to work on that a little.\nNelson: No escapades that you had?\nHarris: No; well, the escapades came later when the class of \u201936 had a great football\nplayer who was on the ground floor of Encina as a freshman. And he was a\ngreat big guy and had a wonderful following because\u2014personally and\nbecause of football. And he was nick"
+        },
+        {
+          "chunk_id": "bv990zf3647_bv990zf3647_script_pdf_c26",
+          "chunk_index": 26,
+          "druid": "bv990zf3647",
+          "filename": "bv990zf3647_script.pdf",
+          "score": 0.8781161,
+          "snippet": "**Nelson:** Wow. **Harris:** Yeah. \n\n16 \n\n**STANFORD UNIVERSITY/ALUMNI STORIES 2008/LARRY HARRIS** \n\n**Nelson:** Wonderful, wonderful.  Are there any other funny stories that you remember from your time? **Harris:** No, I\u2019d have to work on that a little. **Nelson:** No escapades that you had? **Harris:** No; well, the escapades came later when the class of \u201936 had a great football player who was on the ground floor of Encina as a freshman.  And he was a great big guy and had a wonderful followin"
+        },
+        {
+          "chunk_id": "jq658sf7600_jq658sf7600_SC0932_s5_Trimpi_script_pdf_c61",
+          "chunk_index": 61,
+          "druid": "jq658sf7600",
+          "filename": "jq658sf7600_SC0932_s5_Trimpi_script.pdf",
+          "score": 0.8777236,
+          "snippet": "- **Trimpi:** [01:17:06] I have so many I couldn\u2019t pick one out, except walking across the Quad. \n\n- **Humburg:** Tell me about that. You\u2019re smiling. \n\n   - **Trimpi:** [01:17:15] I used to bring my lunch when I was an undergrad. In fact, I always did. I rode a bike too. I rode a bike from Palo Alto where my mother lived and sometimes I walked and sometimes, in those days, if you were offered a ride, you took it because that was when gas was short. I would take my sandwich and I\u2019d go out in the "
+        },
+        {
+          "chunk_id": "bf887vz7194_bf887vz7194_49_pdf_c0",
+          "chunk_index": 0,
+          "druid": "bf887vz7194",
+          "filename": "bf887vz7194_49.pdf",
+          "score": 0.87564695,
+          "snippet": "Lyons: [00:46:32] There was then.\nRobinson: [00:46:35] There was then, and I don\u2019t know if there is now, but\nthere certainly was then. And that principle underlay how we did\nfreshmen dorm and room assignments. So we really tried to make\nsure that each student was an individual.\nLyons: [00:46:52] Let me illustrate that with a story from last year. I\u2019m\nblocking on the potential student\u2019s name. He\u2019s the son of one of\nthe most famous professional tight ends, or, no, out back end, out\nends, or whatev"
+        },
+        {
+          "chunk_id": "ds419fp4223_ds419fp4223_SC0932_s1_Raab_Frank_Transcript_32_pdf_c0",
+          "chunk_index": 0,
+          "druid": "ds419fp4223",
+          "filename": "ds419fp4223_SC0932_s1_Raab_Frank_Transcript_32.pdf",
+          "score": 0.8753438,
+          "snippet": "32\nand I\u2019m looking around trying to find a vantage point where I can see what\u2019s\ngoing on here and watch what was going to transpire.\n[00:51:51] I ended up on this trailer sitting between a couple of guys.\nThere were a bunch of people sitting on this trailer. The coach got up\u2014\nJohn Ralston. He started doing his little pep talk spiel, and he began to\nintroduce the players, and all of a sudden, it dawned on me. I\u2019m looking\naround, and these two guys I\u2019m sitting between are really big. I mean, I\u2019m\ns"
+        },
+        {
+          "chunk_id": "hc583hz2350_hc583hz2350_09_pdf_c0",
+          "chunk_index": 0,
+          "druid": "hc583hz2350",
+          "filename": "hc583hz2350_09.pdf",
+          "score": 0.8749914,
+          "snippet": "STANFORD UNIVERSITY/ALUMNI STORIES 2007/WALTER BROWN\nthat, uh, whose son had been assaulted and she killed the assaulter, he represented her,\nhe\u2019s represented liberal causes everywhere, he\u2019s...\nHUMBURG: No, leant...\nBROWN: .. .extremely high profile and very successful. He was the starting quarterback\nas a freshman, Brodie was number two, and then Brodie moved in to start as a sophomore\nwith the varsity. And I\u2014I never quite understood if there was something political or that\nwere hiding him, or,"
+        },
+        {
+          "chunk_id": "cm935rv3779_cm935rv3779_Jue_Kenneth_Page_20_pdf_c1",
+          "chunk_index": 1,
+          "druid": "cm935rv3779",
+          "filename": "cm935rv3779_Jue_Kenneth_Page_20.pdf",
+          "score": 0.87467706,
+          "snippet": "remember one was a football player, a guy named Ron Inge. All I can say is\nwhen he took off his shirt, it was like, all muscle. It was pretty impressive.\nBustamante: Thinking back to your time at Stanford, were there any notable visitors on\ncampus or issues that galvanized debate?"
+        }
+      ]
+    },
+    {
+      "id": "john-lynch-7",
+      "metrics": {
+        "mrr@1": 1.0,
+        "mrr@10": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@1": 0.42857142857142855,
+        "ndcg@10": 0.7458023418624927,
+        "ndcg@5": 0.48320241200134995,
+        "recall@1": 0.16666666666666666,
+        "recall@10": 0.8333333333333334,
+        "recall@5": 0.5,
+        "success@1": 1.0,
+        "success@10": 1.0,
+        "success@5": 1.0
+      },
+      "query": "Stanford two-sport athletes who played both football and baseball",
+      "relevant": {
+        "bb051hp9404": 3.0,
+        "kk742wt1722": 2.0,
+        "mw975hh7191": 3.0,
+        "xb773ps6063": 2.0,
+        "yb269gc3416": 1.0,
+        "zv638jb7154": 3.0
+      },
+      "results": [
+        {
+          "chunk_id": "xb773ps6063_xb773ps6063_Marquess_Mark_Page_026_pdf_c1",
+          "chunk_index": 1,
+          "druid": "xb773ps6063",
+          "filename": "xb773ps6063_Marquess_Mark_Page_026.pdf",
+          "score": 0.895929,
+          "snippet": "great history, always, no matter who the football coach was. You can talk\nabout John Elway; John Lynch, who was just inducted to the Hall of\nFame\u2014two-sport athletes. Toby Gerhart, Heisman Trophy candidate,\nbaseball player; James Lofton, track star. So I knew I could do it at Stanford."
+        },
+        {
+          "chunk_id": "kk742wt1722_kk742wt1722_SC0932_s10_Marquess_Mark_Transcript_pdf_c126",
+          "chunk_index": 126,
+          "druid": "kk742wt1722",
+          "filename": "kk742wt1722_SC0932_s10_Marquess_Mark_Transcript.pdf",
+          "score": 0.8794477,
+          "snippet": "[00:40:15] Stanford\u2019s small, you\u2019ve got a lot of individual attention, and the only time you get in trouble academically is if you don\u2019t go to class and don\u2019t let people know. I\u2019m going to go to the other extreme. I never had a player like this. Toby Gerhart wasn\u2019t a bad example\u2014Heisman Trophy candidate, unbelievable football player. Played in the NFL. I don\u2019t think he\u2019s playing anymore, but a great player. Also, a great baseball player. Played the College World Series, was a starter, was fantas"
+        },
+        {
+          "chunk_id": "zv638jb7154_zv638jb7154_14_pdf_c1",
+          "chunk_index": 1,
+          "druid": "zv638jb7154",
+          "filename": "zv638jb7154_14.pdf",
+          "score": 0.86703795,
+          "snippet": "And I\u2019d done my research and seen \u2014 first of all, you had a head coach m \u201cNine,\u201d\nMark Marquess, who did it himself. And Denny was a guy who encouraged guys to\nplay two sports. Denny was kind of an old-school guy. He encouraged guys to go\nout for track. So it was a perfect fit and it worked out.\nRutter: You just met Mike Dotterer (^83), who is a fellow Hall of Fame member. Mike was\nan All-American baseball player as well as a tailback who had eight touchdowns as a"
+        },
+        {
+          "chunk_id": "ft102fd0627_ft102fd0627_02_pdf_c0",
+          "chunk_index": 0,
+          "druid": "ft102fd0627",
+          "filename": "ft102fd0627_02.pdf",
+          "score": 0.86330336,
+          "snippet": "2"
+        },
+        {
+          "chunk_id": "sf339kr5070_sf339kr5070_Hayman_Warren_Page_48_pdf_c1",
+          "chunk_index": 1,
+          "druid": "sf339kr5070",
+          "filename": "sf339kr5070_Hayman_Warren_Page_48.pdf",
+          "score": 0.86111414,
+          "snippet": "shoulders.\nKeith Archuleta is one. Ray Davis would be another one. The\nathletes, you didn\u2019t have too many female athletes at that time because I\ndon\u2019t think Stanford had a female basketball program, D1 at that time. But\nin football, you had Gene Washington; in basketball, you had Art Harris."
+        },
+        {
+          "chunk_id": "bb051hp9404_bb051hp9404_script_pdf_c11",
+          "chunk_index": 11,
+          "druid": "bb051hp9404",
+          "filename": "bb051hp9404_script.pdf",
+          "score": 0.860863,
+          "snippet": "**Rutter:** Lubick, who\u2019d go on to a head coaching job at Colorado State, right? \n\n**Lynch:** [00:05:39] Yes. Colorado State.  But then it was \u2013 Ron Turner was the coach that \n\nkind of took over.  And Denny loves San Diego, [Laughs] so he used to like it. That\u2019s where he lives now.  But Denny used to like to come down and visit.  So those were the guys that really did it.  And Chris Foerster as well.  Chris Foerster (Assistant Offensive Line &Special Teams Coach) was a holdover from Jack Elway\u2019s"
+        },
+        {
+          "chunk_id": "mw975hh7191_mw975hh7191_script_pdf_c44",
+          "chunk_index": 44,
+          "druid": "mw975hh7191",
+          "filename": "mw975hh7191_script.pdf",
+          "score": 0.85976994,
+          "snippet": "- **Lundblade:** [00:45:19] Yes.  Both Walt and Toi. \n\n   - **Rutter:** Great athletes. \n\n- **Lundblade:** [00:45:22] Two-sport athletes.  We had a couple two-sport athletes who came \n\n      - in.  We had Ruben Amaro, who came from a great baseball lineage.  John Ramos came in. \n\n**Rutter:** He was playing second base. \n\n- **Lundblade:** [00:45:34] No, because we had \u201cPetey\u201d at second base.  So Ruben was being tried out for third base, utility.  Like I said, to the best of my recollections, that"
+        },
+        {
+          "chunk_id": "cq956fd8985_cq956fd8985_02_pdf_c0",
+          "chunk_index": 0,
+          "druid": "cq956fd8985",
+          "filename": "cq956fd8985_02.pdf",
+          "score": 0.857012,
+          "snippet": "2"
+        },
+        {
+          "chunk_id": "dr165mr4271_dr165mr4271_Leland_Ted_Page_002_pdf_c0",
+          "chunk_index": 0,
+          "druid": "dr165mr4271",
+          "filename": "dr165mr4271_Leland_Ted_Page_002.pdf",
+          "score": 0.85560465,
+          "snippet": "2"
+        },
+        {
+          "chunk_id": "th067zs1015_th067zs1015_Meier_Tony_02_pdf_c0",
+          "chunk_index": 0,
+          "druid": "th067zs1015",
+          "filename": "th067zs1015_Meier_Tony_02.pdf",
+          "score": 0.8552216,
+          "snippet": "2"
+        }
+      ]
+    },
+    {
+      "id": "john-lynch-8",
+      "metrics": {
+        "mrr@1": 0.0,
+        "mrr@10": 0.0,
+        "mrr@5": 0.0,
+        "ndcg@1": 0.0,
+        "ndcg@10": 0.0,
+        "ndcg@5": 0.0,
+        "recall@1": 0.0,
+        "recall@10": 0.0,
+        "recall@5": 0.0,
+        "success@1": 0.0,
+        "success@10": 0.0,
+        "success@5": 0.0
+      },
+      "query": "choosing between a professional sports contract and finishing college",
+      "relevant": {
+        "bb051hp9404": 3.0,
+        "fg882jw9460": 1.0,
+        "hn397wj3831": 1.0,
+        "hw766xh9410": 3.0,
+        "zv638jb7154": 3.0
+      },
+      "results": [
+        {
+          "chunk_id": "gf962rm8943_gf962rm8943_Rutter_James_Page_52_pdf_c1",
+          "chunk_index": 1,
+          "druid": "gf962rm8943",
+          "filename": "gf962rm8943_Rutter_James_Page_52.pdf",
+          "score": 0.86737764,
+          "snippet": "always [laughter] come back and get your degree. No offense, but you can\ncome back and get your degree, which Casey Jacobsen did recently. He left a\nyear early, and it took him a while to come back and get back into taking\nclasses. When you\u2019re being offered a ton of money, if you\u2019re Josh Childress\nor you\u2019re one of the Lopez twins [Brook and Robin Lopez] and you\u2019re being"
+        },
+        {
+          "chunk_id": "xb773ps6063_xb773ps6063_Marquess_Mark_Page_094_pdf_c1",
+          "chunk_index": 1,
+          "druid": "xb773ps6063",
+          "filename": "xb773ps6063_Marquess_Mark_Page_094.pdf",
+          "score": 0.8630559,
+          "snippet": "eligible to be drafted and signed.\nPorras: And with that decision of either turning pro or coming to Stanford, you had\nto face a lot because you were recruiting some really topflight people. What\nsorts of things did you do or say to them that might have convinced them to\nnot turn pro and instead come and get a college degree?"
+        },
+        {
+          "chunk_id": "qx271zk7211_qx271zk7211_SC0932_s10_Rutter_James_Transcript_pdf_c60",
+          "chunk_index": 60,
+          "druid": "qx271zk7211",
+          "filename": "qx271zk7211_SC0932_s10_Rutter_James_Transcript.pdf",
+          "score": 0.862561,
+          "snippet": "[01:09:59] The money being offered today at times is just extraordinary. You can\u2019t blame a Christian McCaffrey for maybe staying out of a bowl game because he\u2019s going to be drafted, and he\u2019s going to be making so much money. This is life-changing, game over, do-whatever-you-want kind of money. That\u2019s not the way it used to be when you\u2019d sign for seven thousand dollars with the Green Bay Packers and work three jobs in insurance in the off season. \n\nThe money game has changed for the big revenue s"
+        },
+        {
+          "chunk_id": "jy001cx3490_jy001cx3490_Gould_Richard_144_pdf_c1",
+          "chunk_index": 1,
+          "druid": "jy001cx3490",
+          "filename": "jy001cx3490_Gould_Richard_144.pdf",
+          "score": 0.8619251,
+          "snippet": "players who stayed in school who could have turned pro. Some players\nturned pro that I thought would do great, didn\u2019t do well. It worked both\nways.\nYou know, you don\u2019t really know for sure, and so I\u2019m glad I didn\u2019t\ntry to advise them all and say this is what you should or shouldn\u2019t do. My job\nwas to sit down with the players and point out the pros and cons and not try"
+        },
+        {
+          "chunk_id": "xv226yf3840_andrewboothehonorsthesis-may2013_pdf_c0",
+          "chunk_index": 0,
+          "druid": "xv226yf3840",
+          "filename": "andrewboothehonorsthesis-may2013.pdf",
+          "score": 0.8602736,
+          "snippet": "## **How \n  Young \n  Basketball \n  Players \n  Can \n  Maximize \n  Their \n  Value** \n\nAndrew \n  Boothe[1] May \n  2013 Department \n  of \n  Economics Stanford \n  University aboothe@stanford.edu Advisor: \n  Roger \n  Noll \n\nABSTRACT: \n\nIn \n  the \n  arena \n  of \n  professional \n  sports, \n  identification \n  and \n  preparation \n  of \n  top \n  prospects occurs \n  at \n  increasingly \n  early \n  ages. \n  Therefore, \n  exceptional \n  young \n  players \n  must \n  make crucial \n  decisions \n  early \n  in \n  t"
+        },
+        {
+          "chunk_id": "kk742wt1722_kk742wt1722_SC0932_s10_Marquess_Mark_Transcript_pdf_c55",
+          "chunk_index": 55,
+          "druid": "kk742wt1722",
+          "filename": "kk742wt1722_SC0932_s10_Marquess_Mark_Transcript.pdf",
+          "score": 0.8600219,
+          "snippet": "[01:05:18] Professional sports\u2014football and baseball in this case\u2014 they may not be good enough and they don\u2019t make it. A great example of this, I had a player named Paul Zuvella, I think in my first year as head coach. He was a great player. He was a shortstop over in Fremont across the bay there, and a great player. Played shortstop, drafted by the Yankees, great \n\n50 \n\nplayer\u2014AAA Player of the Year, got a couple of cups of coffee with the Yankees, but never really made it and made a lot of mon"
+        },
+        {
+          "chunk_id": "cf791dy3687_cf791dy3687_SC0932_s5_Holloway_Charles_Transcript_pdf_c148",
+          "chunk_index": 148,
+          "druid": "cf791dy3687",
+          "filename": "cf791dy3687_SC0932_s5_Holloway_Charles_Transcript.pdf",
+          "score": 0.8590013,
+          "snippet": "[01:34:07] The other thing that we did [was to present the results from a little calculation we did using some data about college athletes.]  I don\u2019t have the numbers anymore, but the question was if you\u2019re coming to Stanford [or another major school how likely is it that you will have a successful pro career]. I know you think you\u2019re going to be the star of the football team or the basketball team, and you\u2019re going to go on to a pro career and you\u2019re going to make lots of money, and that\u2019s the "
+        },
+        {
+          "chunk_id": "mr565dd1627_mr565dd1627_SC0932_s10_Gould_Transcript_pdf_c191",
+          "chunk_index": 191,
+          "druid": "mr565dd1627",
+          "filename": "mr565dd1627_SC0932_s10_Gould_Transcript.pdf",
+          "score": 0.85847175,
+          "snippet": "- The agents in those days starting out would, to try to get the kid to \n\n   - sign with them, they would be constantly telling that kid how good they were, that he was, how good they could make him. If he would sign now they could guarantee him spots in these tournaments that his company represented, or even that they had a contract waiting that would be this dollar amount from this company. It was a no-win battle. There were players who turned pro that I felt weren\u2019t ready that actually did ve"
+        },
+        {
+          "chunk_id": "mq677rd9543_robertlemonshonorsthesis-may2014_pdf_c86",
+          "chunk_index": 86,
+          "druid": "mq677rd9543",
+          "filename": "robertlemonshonorsthesis-may2014.pdf",
+          "score": 0.85777414,
+          "snippet": "enforcement securing the cartel\u2019s success by limiting the options for young, gifted athletes. Is it a coincidence that only the top collegiate spectator sports have professional age requirements? \n\nThese age restrictions lead to opportunity costs but allow for risk assessment. Since these premier players emerging from high schools are made unavailable to the NBA/NFL, these professional leagues suffer an opportunity cost equal to the potential revenue associated with these young players. However,"
+        },
+        {
+          "chunk_id": "qb868bh8340_qb868bh8340_Holloway_Charles_Page_115_pdf_c0",
+          "chunk_index": 0,
+          "druid": "qb868bh8340",
+          "filename": "qb868bh8340_Holloway_Charles_Page_115.pdf",
+          "score": 0.85624254,
+          "snippet": "115\n[01:33:09] One of the things that my role included was telling the\nstudents that they didn\u2019t really want to get an undergraduate degree in\nbusiness, because we don\u2019t have an undergraduate degree in business, and\nso students and sometimes their parents would worry about that. If they\nwere worried about that, then the coaches would send them to me. My job\nwas to explain to them they didn\u2019t really want to get a degree in business,\nnumber one. Number two, they could take all the courses they nee"
+        }
+      ]
+    },
+    {
+      "id": "campus-history-1",
+      "metrics": {
+        "mrr@1": 1.0,
+        "mrr@10": 1.0,
+        "mrr@5": 1.0,
+        "ndcg@1": 1.0,
+        "ndcg@10": 0.9651366671790969,
+        "ndcg@5": 0.8539316501572934,
         "recall@1": 0.16666666666666666,
         "recall@10": 1.0,
         "recall@5": 0.6666666666666666,
@@ -33,12 +718,12 @@
       },
       "query": "What was Stanford's role in the development of Silicon Valley?",
       "relevant": {
-        "cf791dy3687": 1.0,
-        "cj914qw1192": 1.0,
-        "cv597xh6999": 1.0,
-        "kx682dv2945": 1.0,
-        "my387ct3613": 1.0,
-        "tw299ys2132": 1.0
+        "cf791dy3687": 3.0,
+        "cj914qw1192": 3.0,
+        "cv597xh6999": 3.0,
+        "kx682dv2945": 3.0,
+        "my387ct3613": 3.0,
+        "tw299ys2132": 3.0
       },
       "results": [
         {
@@ -62,7 +747,7 @@
           "chunk_index": 18,
           "druid": "kx682dv2945",
           "filename": "Westhem_Ashley_COMMMSThesis.pdf",
-          "score": 0.89165145,
+          "score": 0.8916514,
           "snippet": "Stanford is a breeding ground for technology innovation, an incubator for Silicon \n\nValley\u2019s greatest entrepreneurs and companies, including Google, Hewlett-Packard and Cisco Systems. Former Stanford University President John L. Hennessy praised the University for \u201cpioneering innovations in research, transferring discoveries to the broader community, and educating tomorrow's leaders and entrepreneurs,\u201d illustrating the faculty and students\u2019 \n\n\u201ctremendous impact on the global economy and on impro"
         },
         {
@@ -70,7 +755,7 @@
           "chunk_index": 0,
           "druid": "vn821qn1037",
           "filename": "vn821qn1037_101.pdf",
-          "score": 0.89031315,
+          "score": 0.8903132,
           "snippet": "Miller: Well, I think the deal stream, as we called it\u2014the number of\nopportunities here\u2014is still very, very great. One great advantage is that\nSilicon Valley is multidimensional. It\u2019s not just one cluster. Route 128\nnow has become more multidimensional, but Route 128 was at one time\nlargely about computing. Here we had computing, we had biosciences,\nwe had medical instruments, we had material science people. We had a\nquite great variety. That\u2019s important because it\u2019s often the combination\nof the"
         },
         {
@@ -86,7 +771,7 @@
           "chunk_index": 158,
           "druid": "my387ct3613",
           "filename": "my387ct3613_SC0932_s5_Miller_script.pdf",
-          "score": 0.8891442,
+          "score": 0.88914406,
           "snippet": "- **Miller:** I don\u2019t think I said that.  But a lot of people have said that. I may have said it humorously, but I never quite accepted the notion. The weather certainly helped.  It was an attractive place to locate but I think the presence of the university and the early people who came out of it [was more important].  You know, Herbert Hoover had a huge impact on this place.  And he was, of course, very interested in the interaction with industry.  People like Hewlett and Packard were great le"
         },
         {
@@ -102,16 +787,8 @@
           "chunk_index": 104,
           "druid": "cj914qw1192",
           "filename": "cj914qw1192_SC0932_s5_Robertson_Transcript_script.pdf",
-          "score": 0.8869686,
+          "score": 0.88696873,
           "snippet": "83 \n\npublic. I think that that has been a unique part of Stanford\u2019s culture and of Silicon Valley. It\u2019s not total serendipity that Silicon Valley and Stanford are here. \n\nClearly, Silicon Valley came after Stanford. I think its growth was largely promoted through the efforts of Fred Terman with his view of establishing the Stanford Research Park, establishing Hewlett and Packard as the anchor store, and bringing on all the others over the years. Silicon Valley was made more fortunate by Shockley"
-        },
-        {
-          "chunk_id": "zb942ss9091_zb942ss9091_084_pdf_c0",
-          "chunk_index": 0,
-          "druid": "zb942ss9091",
-          "filename": "zb942ss9091_084.pdf",
-          "score": 0.8863349,
-          "snippet": "public. I think that that has been a unique part of Stanford\u2019s culture and of\nSilicon Valley. If s not total serendipity that Silicon Valley and Stanford are\nhere.\nClearly, Silicon Valley came after Stanford. I think its growth was\nlargely promoted through the efforts of Fred Terman with his view of\nestablishing the Stanford Research Park, establishing Hewlett and Packard as\nthe anchor store, and bringing on all the others over the years. Silicon Valley\nwas made more fortunate by Shockley coming"
         },
         {
           "chunk_id": "nh541fc2074_nh541fc2074_04_0283_pdf_c5",
@@ -120,21 +797,29 @@
           "filename": "nh541fc2074_04_0283.pdf",
           "score": 0.8862816,
           "snippet": "successful new companies. In an informal\nstudy, Gibbons said he found that \u201cStanford startups\u201d were responsible for about\nhalf of the revenues of the Silicon Valley\u2019s largest 100 firms from 1980 to\n1996. He defined a Stanford startup as a\ncompany in which both the majority of\nthe founding team and the technology\ncame from Stanford. Hewlett-Packard\nprovides a large chunk of the total, but\nnot one of the valley\u2019s semiconductor\ncompanies fits his definition.\nGibbons stressed the importance of\nrecog"
+        },
+        {
+          "chunk_id": "wd043gc0743_wd043gc0743_script_pdf_c48",
+          "chunk_index": 48,
+          "druid": "wd043gc0743",
+          "filename": "wd043gc0743_script.pdf",
+          "score": 0.8852922,
+          "snippet": "**Gregor:** What role do you think it\u2019s played in the success of Silicon Valley? \n\n35 \n\n**Gibbons:** Well, that gets me off onto a much longer discussion because I grew up in the semiconductor business.  I\u2019m not only aware of, but agree with the view that the leaders of the semiconductor industry out here have, which is that Stanford gets far too much credit for Silicon Valley than it should. You know, coming from me, it was OK until I got to be Dean of Engineering, and then it was sort of, why?"
         }
       ]
     },
     {
-      "id": "water-policy",
+      "id": "water-policy-1",
       "metrics": {
         "mrr@1": 1.0,
         "mrr@10": 1.0,
         "mrr@5": 1.0,
         "ndcg@1": 1.0,
-        "ndcg@10": 0.7911043622741993,
-        "ndcg@5": 0.7911043622741993,
+        "ndcg@10": 0.8854598815714875,
+        "ndcg@5": 0.8854598815714875,
         "recall@1": 0.3333333333333333,
-        "recall@10": 0.6666666666666666,
-        "recall@5": 0.6666666666666666,
+        "recall@10": 1.0,
+        "recall@5": 1.0,
         "success@1": 1.0,
         "success@10": 1.0,
         "success@5": 1.0
@@ -142,8 +827,8 @@
       "query": "How did California water policy affect agriculture?",
       "relevant": {
         "dj435dw5816": 3.0,
-        "hx239rw5017": 1.0,
-        "yw272ft6143": 2.0
+        "hx239rw5017": 3.0,
+        "yw272ft6143": 3.0
       },
       "results": [
         {
@@ -151,7 +836,7 @@
           "chunk_index": 32,
           "druid": "dj435dw5816",
           "filename": "Forty Years of California Water Policy_Timothy Quinn.pdf",
-          "score": 0.8955468,
+          "score": 0.89554685,
           "snippet": "During the development era, the dominant political coalition in California water policy was a longstanding alliance between Central Valley agricultural interests and urban interests primarily from Southern California[3] . This partnership was focused on building new infrastructure to expand supply for a growing California economy and to provide flood protection and hydroelectric power. However, by the late 1980s, it was apparent that the development era in California water had run its course and"
         },
         {
@@ -161,6 +846,14 @@
           "filename": "Water Governance and Climate Change.pdf",
           "score": 0.87960345,
           "snippet": "_\u201cThis \n  is \n  a \n  relatively \n  tame \n  drought \n  compared \n  to \n  what \n  we \n  could \n  face \n  in \n  the \n  future.\u201d_ \n\nDespite \n  the \n  severity \n  of \n  the \n  present \n  drought, \n  the \n  statewide \n  economic \n  consequences \n  are \n  projected \n  to be \n  relatively \n  minor. \n  Estimates \n  are \n  that \n  the \n  current \n  drought \n  will \n  impose \n  direct \n  costs \n  of \n  $1.5 \n  billion \n  on agriculture \n  (approximately \n  3% \n  of \n  the \n  value \n  of \n  agricultural \n  "
+        },
+        {
+          "chunk_id": "yw272ft6143_Sustain_Groundwater_Act_Report_08242015_pdf_c18",
+          "chunk_index": 18,
+          "druid": "yw272ft6143",
+          "filename": "Sustain Groundwater Act_Report_08242015.pdf",
+          "score": 0.8791479,
+          "snippet": "A highly regulated surface water supply system combined with a largely unregulated groundwater system has increasingly led to over reliance on the state\u2019s groundwater supplies. During periods of drought, the state rations surface water deliveries. Because groundwater has been largely unregulated, water users commonly turn to groundwater to make up for this deficit. A study by Howitt et al. (2015) estimates that in 2015 growers will pump an additional 6.2 million acre-feet of groundwater to offse"
         },
         {
           "chunk_id": "dz913gx6656_2014-03-27_group_water_letter_pdf_c2",
@@ -175,7 +868,7 @@
           "chunk_index": 134,
           "druid": "hx239rw5017",
           "filename": "Putting Adapative Management into Practice Report Final.pdf",
-          "score": 0.8767723,
+          "score": 0.8767722,
           "snippet": "WATER IN THE WEST Putting Adaptive Management into Practice: Incorporating Quantitative Metrics into Sustainable Groundwater Management \n\n**33** \n\nFor the past several decades, urban water suppliers have operated under statewide policies that require them to develop such plans. Indeed, experiences during a serious drought in the 1980s triggered the passage of the Urban Water Management Act to require water supply reliability analysis and contingency planning that includes defined stages of alert"
         },
         {
@@ -183,16 +876,32 @@
           "chunk_index": 117,
           "druid": "cj626wh9436",
           "filename": "Working_Paper_on_Perfomance_Measurement_1.pdf",
-          "score": 0.8766246,
+          "score": 0.8766245,
           "snippet": "While perhaps less accountable to the general public than their urban counterparts, agricultural water managers we consulted assert that they have all the information they need to make optimal decisions at the district and farm level. They are able to optimize their operations given the information they have. But they do have a pressing need to increase the reliability of their water supplies more generally. One area where they believed that the public lacked sufficient information is in underst"
+        },
+        {
+          "chunk_id": "zq625sk7549_zq625sk7549_04_0360_pdf_c6",
+          "chunk_index": 6,
+          "druid": "zq625sk7549",
+          "filename": "zq625sk7549_04_0360.pdf",
+          "score": 0.8741361,
+          "snippet": "communities such as Los Angeles, Anaheim and San Diego. And California\u2019s\nmultibillion-dollar agriculture industry -\nwhich produces 45 percent of America\u2019s\nfruit and vegetables - is concentrated in\nthe vast Central Valley, where rainfall is\nscarce during the summer and fall growing seasons.\nCalifornians tried to correct the\nnorth/south water imbalance in the\n1960s by constructing a controversial\n700-mile artificial river known as the\nCalifornia Aqueduct the largest\nwater conveyance project in the"
         },
         {
           "chunk_id": "vz026gp1715_SustainabilityWesternWater_pdf_c5",
           "chunk_index": 5,
           "druid": "vz026gp1715",
           "filename": "SustainabilityWesternWater.pdf",
-          "score": 0.87401426,
+          "score": 0.8740143,
           "snippet": "The Program\u2019s work has particularly important implications for water management in agriculture, which accounts for about 80 percent of water withdrawn for human use throughout the region. In California alone, agriculture is a $30 billion-a-year enterprise. But studies suggest that the state\u2019s agricultural sector can continue to thrive only if aggressive \n\n**==> picture [612 x 41] intentionally omitted <==**\n\n**----- Start of picture text -----**<br>\nMay 2010     Rural Connections   20<br>**-----"
+        },
+        {
+          "chunk_id": "pt977vw1969_Before_The_Well_Runs_Dry_-_Water_in_the_West_Stanford_pdf_c43",
+          "chunk_index": 43,
+          "druid": "pt977vw1969",
+          "filename": "Before The Well Runs Dry - Water in the West Stanford.pdf",
+          "score": 0.86745393,
+          "snippet": "Although \n  the \n  community \n  was \n  aware \n  that \n  it \n  had \n  a \n  limited \n  water \n  supply, \n  there \n  was \n  no \n  mechanism for \n  either \n  limiting \n  land \n  use \n  changes \n  to \n  the \n  available \n  supply, \n  or \n  to \n  change \n  the \n  county\u2019s \n  water management \n  plans \n  to \n  cope \n  with \n  land \n  use \n  changes. \n  In \n  addition, \n  the \n  county \n  must \n  now \n  deal \n  with \n  a higher \n  level \n  of \n  \u201chardened\u201d \n  water \n  demand \n  \u2014 \n  that \n  is, \n  deman"
         },
         {
           "chunk_id": "wm884ms1113_Water-Energy_Agenda-_final-042514_pdf_c23",
@@ -201,35 +910,11 @@
           "filename": "Water-Energy Agenda- final-042514.pdf",
           "score": 0.86742115,
           "snippet": "## **The Evolution of California\u2019s Water-Energy Policy** \n\nIn \n  recent \n  decades, \n  California \n  has \n  been \n  dealing \n  with \n  various \n  water \n  and \n  energy \n  challenges, \n  including extensive \n  droughts \n  and \n  rising \n  energy \n  costs, \n  and \n  there \n  has \n  been \n  a \n  growing \n  realization \n  of \n  limitations \n  in access \n  to \n  cheap \n  and \n  abundant \n  water \n  and \n  energy \n  sources. \n  Nevertheless, \n  while \n  much \n  effort \n  has \n  been expended \n  to \n "
-        },
-        {
-          "chunk_id": "yf248qn1413_2009-05-7-pr-fy10_budget_details_pdf_c6",
-          "chunk_index": 6,
-          "druid": "yf248qn1413",
-          "filename": "2009-05-7-pr-fy10 budget details.pdf",
-          "score": 0.867249,
-          "snippet": "**\u201cThe situation in California is dire. We have unemployment rates of up to 40 percent in some parts of the San Joaquin Valley, which is only exacerbated by the drought. Farmers who once tended the lands known as \u2018America\u2019s breadbasket\u2019 are now themselves standing in bread lines. Top soil blown off from fallowed lands has created dust storms so massive that they have closed down Interstate 5 on windy days. Some farms are picking up and moving their operations to Mexico. Nearly 85,000 acres of fa"
-        },
-        {
-          "chunk_id": "xx830rj6529_xx830rj6529_SLS-JOURNALS_SELA_022_3_StanEnvtlLAnn_30_1980-1981_pdf_c0",
-          "chunk_index": 0,
-          "druid": "xx830rj6529",
-          "filename": "xx830rj6529_SLS-JOURNALS_SELA_022_3_StanEnvtlLAnn_30_1980-1981.pdf",
-          "score": 0.8658078,
-          "snippet": "## \n\n## \n\n## \n\n## \n\n## \n\n## \n\n## \n\n## \n\n##"
-        },
-        {
-          "chunk_id": "hc629dh8892_2010-02-25-pr-valley_water_allocation-_pdf_c2",
-          "chunk_index": 2,
-          "druid": "hc629dh8892",
-          "filename": "2010-02-25-pr-valley water allocation-.pdf",
-          "score": 0.8646668,
-          "snippet": "Last year, South-of-Delta farmers received only 10 percent of their contractual water allocation from the Central Valley Project (CVP), due to three consecutive years of below average precipitation and existing environmental standards, while farmers with more senior water rights on the east side of the Valley received up to 100 percent of their allocation. \n\n\"I am pleased that it appears that west side farmers will be able to receive enough water to plant their crops and hire workers this year, "
         }
       ]
     }
   ],
-  "query_count": 2,
+  "query_count": 10,
   "report_version": 1,
   "retrieval": {
     "candidate_chunks": 100,
@@ -241,6 +926,6 @@
     ],
     "embedding_model": "gemini-embedding-2",
     "query_format": "task: question answering | query: <query>",
-    "solr_url": "http://localhost:8983/solr/sdr-search"
+    "solr_url": "https://localhost:8983/solr/semantic-search-demo"
   }
 }

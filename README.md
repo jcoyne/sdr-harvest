@@ -206,26 +206,30 @@ more objects, `--candidates 200` to expand the chunk candidate pool, or
 full URL with `--target`.
 
 Keep a reviewed set of natural-language queries and relevant SDR objects in a
-JSON Lines file. Each line has a stable test ID, a query, and either a list of
-relevant DRUIDs (binary relevance) or a DRUID-to-grade object (graded
-relevance):
+JSON array of test cases (see
+[`evaluations/test-cases-schema.md`](evaluations/test-cases-schema.md) for the
+full field reference). Each case has a stable test ID, a query, and a
+`judgments` array of `{document_id, score, explanation}` graded `0`-`3`, with
+`3` for highly relevant, `2` for relevant, and `1` for marginally relevant:
 
 ```json
-{"id":"oral-history-rail","query":"What did railroad workers say about workplace safety?","relevant":["aa111bb2222"]}
-{"id":"water-policy","query":"How did water policy affect California agriculture?","relevant":{"cc333dd4444":3,"ee555ff6666":1}}
+[
+  {"test_id":"water-policy-1","subject_id":"water-policy","query":"How did water policy affect California agriculture?","judgments":[{"document_id":"cc333dd4444","score":3,"explanation":"..."},{"document_id":"ee555ff6666","score":1,"explanation":"..."}]}
+]
 ```
 
-Grades must be positive; a useful convention is 3 for highly relevant, 2 for
-relevant, and 1 for marginally relevant. Start from
-[`evaluations/judgments.example.jsonl`](evaluations/judgments.example.jsonl)
-and replace its placeholders with judgments reviewed by a domain expert.
+Test cases live under [`evaluations/judgments/`](evaluations/judgments/),
+one file per subject named after its `subject_id` (e.g. `john-lynch.json`).
+Create a new file for a new subject, or add miscellaneous judgments to `judgments.json`.
 
 Run an evaluation against the local collection and save it as the baseline for
-the current pipeline:
+the current pipeline. Pointing `--judgments` at the `judgments` directory
+evaluates every subject together; pointing it at one file evaluates just that
+subject:
 
 ```shell
 LITELLM_API_KEY=<key> uv run sdr-harvest evaluate \
-  --judgments evaluations/judgments.jsonl \
+  --judgments evaluations/judgments \
   --output evaluations/baseline.json
 ```
 
@@ -244,7 +248,7 @@ rebuild and publish the affected corpus, then compare with the saved baseline:
 
 ```shell
 LITELLM_API_KEY=<key> uv run sdr-harvest evaluate \
-  --judgments evaluations/judgments.jsonl \
+  --judgments evaluations/judgments \
   --output evaluations/candidate.json \
   --baseline evaluations/baseline.json \
   --fail-on-regression ndcg@10 \

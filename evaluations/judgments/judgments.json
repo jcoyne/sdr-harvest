@@ -1,0 +1,37 @@
+[
+  {
+    "test_id": "campus-history-1",
+    "subject_id": "campus-history",
+    "query": "What was Stanford's role in the development of Silicon Valley?",
+    "test_type": "conceptual_thematic",
+    "test_description": "",
+    "expected_answer": null,
+    "judge": "unknown",
+    "judged_on": "2026-08-19",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "tw299ys2132", "score": 3, "explanation": ""},
+      {"document_id": "cf791dy3687", "score": 3, "explanation": ""},
+      {"document_id": "cv597xh6999", "score": 3, "explanation": ""},
+      {"document_id": "cj914qw1192", "score": 3, "explanation": ""},
+      {"document_id": "my387ct3613", "score": 3, "explanation": ""},
+      {"document_id": "kx682dv2945", "score": 3, "explanation": ""}
+    ]
+  },
+  {
+    "test_id": "water-policy-1",
+    "subject_id": "water-policy",
+    "query": "How did California water policy affect agriculture?",
+    "test_type": "conceptual_thematic",
+    "test_description": "",
+    "expected_answer": null,
+    "judge": "unknown",
+    "judged_on": "2026-08-19",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "dj435dw5816", "score": 3, "explanation": ""},
+      {"document_id": "yw272ft6143", "score": 3, "explanation": ""},
+      {"document_id": "hx239rw5017", "score": 3, "explanation": ""}
+    ]
+  }
+]
