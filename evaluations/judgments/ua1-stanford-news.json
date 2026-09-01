@@ -1,0 +1,611 @@
+[
+  {
+    "test_id": "ua1-stanford-news-service-1",
+    "subject_id": "ua1-stanford-news-service",
+    "query": "What is the history of the Stanford Language Lab? How, when, and why was it founded and who were the key figures in its early development?",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: Mixed years of Campus Report and Stanford Report. Because of open ended first question, the responsive sources are a bit lacking as new coverage in the bound volumes ends in 2009.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "gy848tf7680",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "sv112bj3515",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "rk644xm2807",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kg249bm7262",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "tk236rn7575",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "cm292qc6441",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "wq155tt6779",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "ps632qq2069",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fb599fw1591",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vm857hw3603",
+        "score": 3,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "ua1-stanford-news-service-2",
+    "subject_id": "ua1-stanford-news-service",
+    "query": "Trace the most important developments on academic freedom at Stanford from 1959-2009?",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: Biggest developments were 1971-1975 (Faculty Senate discussing and issuing statements on Academic Freedom, Bruce Franklin case) and 1988-1995 (Gray interpretation of fundamental Standard, Corry v Stanford) but ton of relevant info across most years.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "gj613cq9533",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "gr816hj3504",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "wb656zr1968",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "gf607ck4902",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "sv112bj3515",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "db873sy6842",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "ft547hs0738",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "rk644xm2807",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "js670yf6601",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fr232gt3142",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "ns540yf8764",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "pr745tq5295",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "rh076gw8896",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kf294dq4439",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kc043hg6256",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "dg895xf2150",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "vb021tw2566",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "mw124yw7676",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "fb599fw1591",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "wq155tt6779",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "kj104pr9593",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "ps632qq2069",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "tj326gd3341",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "yc074wq5660",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "zq625sk7549",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "cv597xh6999",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "vm857hw3603",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "pz542wg2278",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "hx664zp3987",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "kt692hv7162",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "fr576hr0294",
+        "score": 2,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "ua1-stanford-news-service-3",
+    "subject_id": "ua1-stanford-news-service",
+    "query": "What major changes occurred amongst the academic program at Stanford in the 1990s, and what were the driving factors?",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: Campus Report 1990-1995, Stanford Report 1995-2000, (and from UA2: Courses and Degrees 1990-1995, and Stanford Bulletin 1996-2000) identified as most relevant.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "ns540yf8764",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "pr745tq5295",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "js634jk1228",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "cx990yq9219",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "rh076gw8896",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kc043hg6256",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "cm292qc6441",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "mg777qb7897",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fb599fw1591",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "wq155tt6779",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "nh541fc2074",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kt359cx1914",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kj104pr9593",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "ps632qq2069",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "mg231pz7645",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kc757jx7381",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "xn723qt8489",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vg611qm6210",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fg044qg9969",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fm462df0605",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "xw394sn2417",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "th091zf5087",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "ks267cf5484",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vf954cs7278",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "ck552ft4720",
+        "score": 3,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "ua1-stanford-news-service-4",
+    "subject_id": "ua1-stanford-news-service",
+    "query": "What were the most impactful reports issued by the Stanford Faculty Senate in the 1980s?",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: Campus Report volumes from the 1980s identified as most relevant.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "db873sy6842",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "ft547hs0738",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "rk644xm2807",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vg827dg7208",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kg249bm7262",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "yh744st7814",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "gy848tf7680",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "gf378vv2002",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "js670yf6601",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fr232gt3142",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "hy639ck5933",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "ns540yf8764",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "pr745tq5295",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "fk489xp1085",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "rb771qp8153",
+        "score": 2,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "ua1-stanford-news-service-5",
+    "subject_id": "ua1-stanford-news-service",
+    "query": "What were the most controversial events or activities at Stanford in the 1970s as evidenced by opinion articles or reflected in other articles?",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: Campus Report and Stanford Observer volumes from the 1970s identified as most relevant.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "vb021tw2566",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "mw124yw7676",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "gj613cq9533",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "gr816hj3504",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "wb656zr1968",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "gf607ck4902",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "sv112bj3515",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fx254ps0743",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "rv636fx2097",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fp306rx5779",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "wm382fm3271",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "zj867wt8807",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "bp750xr2774",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "nm202yv2554",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "cx184xn4149",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "qc927xz9938",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "db873sy6842",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "Ft547hs0738",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "rk644xm2807",
+        "score": 2,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "ua1-stanford-news-service-6",
+    "subject_id": "ua1-stanford-news-service",
+    "query": "Describe the information technology and information networking resources available to Stanford faculty, students, and staff from 1959-2009.",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: Faculty-Staff newsletter and Campus Report volumes identified as most relevant.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "zd841rm4054",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vg827dg7208",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "gf378vv2002",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "hy639ck5933",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kc043hg6256",
+        "score": 3,
+        "explanation": ""
+      }
+    ]
+  }
+]

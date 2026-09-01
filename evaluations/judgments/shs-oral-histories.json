@@ -1,0 +1,389 @@
+[
+  {
+    "test_id": "shs-oral-histories-1",
+    "subject_id": "shs-oral-histories",
+    "query": "President Donald Kennedy has recently passed away; please write an obituary.",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: sd729mf1818 = James Gaither\nvp170qp6623 = Donald Kennedy\nmz784zt6750 = Donald Kennedy, Diversity Project Interview\nzy181mj9040 = Jeanne Kennedy\nnj143rv1518 = Robin Kennedy\ngp008dh2698 = John Lillie\nbj393kj1073 = Ingrid Aguirre Happoldt (student/alum perspective)",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "sd729mf1818",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vp170qp6623",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "mz784zt6750",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "zy181mj9040",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "nj143rv1518",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "gp008dh2698",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "bj393kj1073",
+        "score": 2,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "shs-oral-histories-2",
+    "subject_id": "shs-oral-histories",
+    "query": "Stanford BioX will be celebrating an anniversary soon. Please select content about the program's founding motivations, key programs, and accomplishments that we can use to prepare for an upcoming program about this interdisciplinary research center.",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: ns127fp1400 = John Hennessey\nsm402xb3003 = David Neuman\njm753pp3172 = Lucy Shapiro\nqb479fg8492 = Carla Shatz\nyk826ns8548 = James Spudich\nhy263wz2608 = Richard Zare\nyw807kp8145 - Jean-Claude Latombe",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "ns127fp1400",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "sm402xb3003",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "jm753pp3172",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "qb479fg8492",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "yk826ns8548",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "hy263wz2608",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "yw807kp8145",
+        "score": 2,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "shs-oral-histories-3",
+    "subject_id": "shs-oral-histories",
+    "query": "Please curate content for an audiovisual story about the history of The Stanford Band. Be sure to include multiple voices. Organize the content in a compelling way that tells a story. The story should ideally be approximately 4 minutes in length.",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: ns998tb3917 = Jano Banks\nnm545ky9766 = Arthur P. Barnes\nkj304jt7868 - Jean Chu\nby888sj5596 = William H. Durham\njr491zw9902 = Phil Fialer (re Star Spangled Banner arrangement)\nvm297ys2956 = Jacki Williams-Jones (one of 1st women in band)  [Black Alumni Stories Collection]\nvd794mc0519 = Felicia Kamriani (re Dollies)\nwx454fs1421 = Robert Kurland\ndn854hy4713 = Cheryl Levick\nxs297jr2162 = Judy Mischel (re Tree)\npc270tq5826 = Walter Vincenti\nff972vp4266 = Charlotte Wood Severin",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "ns998tb3917",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "nm545ky9766",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kj304jt7868",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "by888sj5596",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "jr491zw9902",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vm297ys2956",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vd794mc0519",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "wx454fs1421",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "dn854hy4713",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "xs297jr2162",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "pc270tq5826",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "ff972vp4266",
+        "score": 3,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "shs-oral-histories-4",
+    "subject_id": "shs-oral-histories",
+    "query": "Please curate content for an audiovisual story about the history of the Feminist Studies Program at Stanford. Be sure to include multiple voices. Organize the content in a compelling way that tells a story. The story should ideally be approximately 4 minutes in length.",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: yq467mw3225 = Nannerl Keohane [SC1017 1988 interview]\nfr151kh6983 = Nannerl Keohane (SC0932 2018 interview]\nnh306jc7190 = Jane Collier\nbt562gk7281 = Mary L. Felstiner\nkj936yk1783 = Cynthia Russell\nsz233bd3853 = Myra Strober\nvd064qb6480 = Barbara Gelpi\nvv552nc0319 = Mary Louise Pratt\nsk930zy6535 = Bancroft and Jensen [SC1017 Aurora series]\ncj999fy6790 = Elaine Wong contains relevant info but in AAPI Collection\ntm791wn3185 = Wanda Corn [note - audio says closed to 2023; could make active now and accession transcript to A/V object]\nEstelle Freedman's interview would be essential; to be accessioned in fall",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "yq467mw3225",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fr151kh6983",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "nh306jc7190",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "bt562gk7281",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "kj936yk1783",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "sz233bd3853",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vd064qb6480",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vv552nc0319",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "sk930zy6535",
+        "score": 2,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "shs-oral-histories-5",
+    "subject_id": "shs-oral-histories",
+    "query": "Please curate content for an audiovisual story about the history of the Big Game Bonfire at Stanford. Be sure to include multiple voices. Organize the content in a compelling way that tells a story. The story should ideally be approximately 4 minutes in length.",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: cp081rw7117 = Jeanne Bauer\npc270tq5826 = Walter Vincenti\nfc385bj7520 = Marcus Krupp\nrh687bv9135 = David Cline\njm125zw4733 = Ethan Diehl",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "cp081rw7117",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "pc270tq5826",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "fc385bj7520",
+        "score": 2,
+        "explanation": ""
+      },
+      {
+        "document_id": "rh687bv9135",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "jm125zw4733",
+        "score": 3,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "shs-oral-histories-6",
+    "subject_id": "shs-oral-histories",
+    "query": "Please curate content for an audiovisual story about the history of Gorbachev's visit to Stanford. Be sure to include multiple voices. Organize the content in a compelling way that tells a story. The story should ideally be approximately 4 minutes in length.",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: sd729mf1818 = James Gaither\nmc622dd1672 = Marvin L. Harrington\nvp170qp6623 = Donald Kennedy\njm753pp3172 = Lucy Shapiro\nqs921cz3921 = Gavin Wright\nsome student perspectives too could crop up, those these are shorter I was there kind of mentions",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "sd729mf1818",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "mc622dd1672",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "vp170qp6623",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "jm753pp3172",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "qs921cz3921",
+        "score": 3,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "shs-oral-histories-7",
+    "subject_id": "shs-oral-histories",
+    "query": "Please curate content for an audiovisual story about the leadership and presidential accomplishments of university president John Hennessy. Be sure to include multiple voices. Organize the content in a compelling way that tells a story. The story should ideally be approximately 4 minutes in length.",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: ns127fp1400 = John Hennessey\njq804zp5444 = Isaac Stein\nyy759hp4897 = John Etchemendy\nqc351vx9331 = Jeff Wachtel\nmw431kw4361 = Roberta Katz\nhz432zj4350 = Steven A. Denning\nhh724ts7572 = Mary Cranston\nPhilip Taubman [accessioning the A/V object this week]",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "ns127fp1400",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "jq804zp5444",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "yy759hp4897",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "qc351vx9331",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "mw431kw4361",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "hz432zj4350",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "hh724ts7572",
+        "score": 3,
+        "explanation": ""
+      }
+    ]
+  },
+  {
+    "test_id": "shs-oral-histories-8",
+    "subject_id": "shs-oral-histories",
+    "query": "Please curate content for an audiovisual story about the history of Stanford's Native American Cultural Center. Be sure to include multiple voices. Organize the content in a compelling way that tells a story. The story should ideally be approximately 4 minutes in length.",
+    "test_type": "conceptual_thematic",
+    "test_description": "Stakeholder Comments: NOTE - would need Native American Community oral history collection indexed to fully answer this question. I've listed the druids that are in SC0932 in Column B\nmp447zs7767 = Atencio / Shunatona\npf973pk2587 = Sean McGraw (Mukekma Tah-Ruk series)\ntg285gc0132 = Jim Larimore (StoryMap Interviews)\nxd567wk7193 = Denni Woodward (Diversity Project - SC0932)\nfr673bh6421 = Ian Nui Chun (StoryMap Interviews)\ncz120cp3134 = Sheila McCabe\nrd946gj6715 = Joseph Thomas Flies-Away (Diversity Project - SC0932)\nrn689xn7825 = Raymond Bacchetti (Diversity Project - SC0932) - more nuanced here; will be interesting to see if it is picked up",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "sul-business-leads",
+    "judged_on": "2026-09-01",
+    "human_reviewed": true,
+    "judgments": [
+      {
+        "document_id": "xd567wk7193",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "rd946gj6715",
+        "score": 3,
+        "explanation": ""
+      },
+      {
+        "document_id": "rn689xn7825",
+        "score": 3,
+        "explanation": ""
+      }
+    ]
+  }
+]

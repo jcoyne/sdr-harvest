@@ -1,10 +1,6 @@
 # Retrieval Test Case Schema
 
-A test file is a **JSON array of test-case objects**. Each case pairs one query against a set of graded relevance judgments over documents in the corpus.
-
-## File naming
-
-One file per subject, named after its `subject_id`: `{subject_id}.json` (e.g. `john-lynch.json` for `subject_id: "john-lynch"`). Test case files live in `evaluations/judgments/`, which can be evaluated as a whole or one subject file at a time.
+A test file is a **JSON array of test-case objects**. Each case pairs one query against a set of graded relevance judgments over documents in the corpus. Test case files live in `evaluations/judgments/`, which can be evaluated as a whole or one subject file at a time.
 
 ## Field reference
 
