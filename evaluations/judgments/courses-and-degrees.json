@@ -6,7 +6,6 @@
     "test_type": "keyword_search",
     "test_description": "Bare collection title, minimally specified. The corpus contains exactly 38 volumes titled 'Courses and degrees. 19XX-19XX', running consecutively from 1957-58 through 1994-95 with no gaps (confirmed against the collection facet count of 38; there is no 1955-56 or 1956-57 volume, and the series stops after 1994-95). Every one of those 38 is an exact title match and is scored 3 — the case is graded across the whole series rather than a sample of it, so recall over the series is measurable and not just precision at the top. The real stress is lexical collision: 'courses' and 'degrees' are two of the most common tokens in an academic corpus, and keyword search reports 2,778 total matches for this query. The near-misses to watch are the 'Announcement of courses' series (51 volumes, 1907-1955), the direct predecessor publication under a different title, and the 'Annual register' and later 'Stanford bulletin' series, which carry the same content type under yet other titles. A healthy result set is 38 titled volumes and nothing else; a run that interleaves Announcement of courses, Annual register or Stanford Bulletin into the top ranks has let common-token overlap outrank an exact title match. Note that rows is capped at 20 per request, so a full-series evaluation of this case needs pagination or repeated probes.",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-09-02",
     "human_reviewed": true,
