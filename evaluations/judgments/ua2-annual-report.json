@@ -6,36 +6,15 @@
     "test_type": "fact_lookup",
     "test_description": "Stakeholder Comments: The first programming class, \"Theory and Operation of Computing Machines,\" was taught in Mathematic Department by John Herriott, 1955. The Department of Computer Science is created in January 1965 within the School of Humanities and Sciences with George Forsythe as chair. All of the computer science people in Mathematics moved to the new department. Included Announcement of Courses, 1954-1955, Courses and Degrees, 1964-1965, and Faculty-Staff Newsletter, 1957-1962 and 1962-1966, and Stanford Report, 2002-2003 (for Herriott obituary) (from UA1).",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "sul-business-leads",
     "judged_on": "2026-09-01",
     "human_reviewed": true,
     "judgments": [
-      {
-        "document_id": "td555yj7347",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "gm285dy9710",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "fv004tx6163",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "zd841rm4054",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "cv597xh6999",
-        "score": 3,
-        "explanation": ""
-      }
+      {"document_id": "td555yj7347", "score": 3, "explanation": ""},
+      {"document_id": "gm285dy9710", "score": 3, "explanation": ""},
+      {"document_id": "fv004tx6163", "score": 3, "explanation": ""},
+      {"document_id": "zd841rm4054", "score": 3, "explanation": ""},
+      {"document_id": "cv597xh6999", "score": 3, "explanation": ""}
     ]
   },
   {
@@ -45,271 +24,62 @@
     "test_type": "conceptual_thematic",
     "test_description": "Stakeholder Comments: Founded 1969-1970 as an interdisciplinary major with support from Ford Foundation. Major updates in the late 1990s - early 2000s. Mainly relied on Courses and Degrees and Stanford Bulletin. News Service pubs from UA1 also helpful.",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "sul-business-leads",
     "judged_on": "2026-09-01",
     "human_reviewed": true,
     "judgments": [
-      {
-        "document_id": "bt133qb4616",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "vx713nh1109",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "zx202jp0960",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "yw134bw7215",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "fj487vg0720",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "kc513yq4140",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "qp502st4627",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "nm865hg3926",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "wz191sv0665",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "xh791ct8075",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "hb618tx8323",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "dd920fk7630",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "ry567fw5185",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "hr494dz5226",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "rs159qn4689",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "rv922pn4986",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "fh842qn1658",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "jv126qc0516",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "qt625pw1904",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "md860xb2653",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "wj882zw7267",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "zc507cm4052",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "mg231pz7645",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "kc757jx7381",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "xn723qt8489",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "vg611qm6210",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "fg044qg9969",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "fm462df0605",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "xw394sn2417",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "th091zf5087",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "ks267cf5484",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "vf954cs7278",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "ck552ft4720",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "kk217cr9798",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "kz039wf1937",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "zy332hv3700",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "fv348gz0255",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "hy544tc0784",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "dp146qx1153",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "gs320bx1243",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "my043dq0442",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "qp867fp9619",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "sp664gd7172",
-        "score": 2,
-        "explanation": ""
-      },
-      {
-        "document_id": "vb021tw2566",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "rv636fx2097",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "mg777qb7897",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "gf607ck4902",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "fx254ps0743",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "gr816hj3504",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "js670yf6601",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "ry745tk1129",
-        "score": 3,
-        "explanation": ""
-      },
-      {
-        "document_id": "bp750xr2774",
-        "score": 2,
-        "explanation": ""
-      }
+      {"document_id": "bt133qb4616", "score": 3, "explanation": ""},
+      {"document_id": "vx713nh1109", "score": 3, "explanation": ""},
+      {"document_id": "zx202jp0960", "score": 3, "explanation": ""},
+      {"document_id": "yw134bw7215", "score": 2, "explanation": ""},
+      {"document_id": "fj487vg0720", "score": 2, "explanation": ""},
+      {"document_id": "kc513yq4140", "score": 2, "explanation": ""},
+      {"document_id": "qp502st4627", "score": 2, "explanation": ""},
+      {"document_id": "nm865hg3926", "score": 2, "explanation": ""},
+      {"document_id": "wz191sv0665", "score": 2, "explanation": ""},
+      {"document_id": "xh791ct8075", "score": 2, "explanation": ""},
+      {"document_id": "hb618tx8323", "score": 2, "explanation": ""},
+      {"document_id": "dd920fk7630", "score": 2, "explanation": ""},
+      {"document_id": "ry567fw5185", "score": 2, "explanation": ""},
+      {"document_id": "hr494dz5226", "score": 2, "explanation": ""},
+      {"document_id": "rs159qn4689", "score": 2, "explanation": ""},
+      {"document_id": "rv922pn4986", "score": 2, "explanation": ""},
+      {"document_id": "fh842qn1658", "score": 2, "explanation": ""},
+      {"document_id": "jv126qc0516", "score": 2, "explanation": ""},
+      {"document_id": "qt625pw1904", "score": 2, "explanation": ""},
+      {"document_id": "md860xb2653", "score": 2, "explanation": ""},
+      {"document_id": "wj882zw7267", "score": 2, "explanation": ""},
+      {"document_id": "zc507cm4052", "score": 2, "explanation": ""},
+      {"document_id": "mg231pz7645", "score": 2, "explanation": ""},
+      {"document_id": "kc757jx7381", "score": 2, "explanation": ""},
+      {"document_id": "xn723qt8489", "score": 2, "explanation": ""},
+      {"document_id": "vg611qm6210", "score": 2, "explanation": ""},
+      {"document_id": "fg044qg9969", "score": 2, "explanation": ""},
+      {"document_id": "fm462df0605", "score": 2, "explanation": ""},
+      {"document_id": "xw394sn2417", "score": 2, "explanation": ""},
+      {"document_id": "th091zf5087", "score": 2, "explanation": ""},
+      {"document_id": "ks267cf5484", "score": 3, "explanation": ""},
+      {"document_id": "vf954cs7278", "score": 3, "explanation": ""},
+      {"document_id": "ck552ft4720", "score": 3, "explanation": ""},
+      {"document_id": "kk217cr9798", "score": 2, "explanation": ""},
+      {"document_id": "kz039wf1937", "score": 2, "explanation": ""},
+      {"document_id": "zy332hv3700", "score": 2, "explanation": ""},
+      {"document_id": "fv348gz0255", "score": 2, "explanation": ""},
+      {"document_id": "hy544tc0784", "score": 2, "explanation": ""},
+      {"document_id": "dp146qx1153", "score": 2, "explanation": ""},
+      {"document_id": "gs320bx1243", "score": 2, "explanation": ""},
+      {"document_id": "my043dq0442", "score": 2, "explanation": ""},
+      {"document_id": "qp867fp9619", "score": 2, "explanation": ""},
+      {"document_id": "sp664gd7172", "score": 2, "explanation": ""},
+      {"document_id": "vb021tw2566", "score": 3, "explanation": ""},
+      {"document_id": "rv636fx2097", "score": 3, "explanation": ""},
+      {"document_id": "mg777qb7897", "score": 3, "explanation": ""},
+      {"document_id": "gf607ck4902", "score": 3, "explanation": ""},
+      {"document_id": "fx254ps0743", "score": 3, "explanation": ""},
+      {"document_id": "gr816hj3504", "score": 3, "explanation": ""},
+      {"document_id": "js670yf6601", "score": 3, "explanation": ""},
+      {"document_id": "ry745tk1129", "score": 3, "explanation": ""},
+      {"document_id": "bp750xr2774", "score": 2, "explanation": ""}
     ]
   }
 ]

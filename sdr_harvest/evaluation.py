@@ -109,8 +109,7 @@ def _load_judgment_file(path: Path, seen_ids: set[str]) -> list[Judgment]:
 
         if not relevant:
             raise StageError(
-                f"{path} {label} requires at least one relevant document "
-                "(out_of_scope cases are not yet supported by this evaluator)"
+                f"{path} {label} requires at least one relevant document"
             )
 
         seen_ids.add(judgment_id)
