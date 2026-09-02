@@ -1,0 +1,112 @@
+[
+  {
+    "test_id": "ua-tables-chunk-boundaries-1",
+    "subject_id": "ua-tables-chunk-boundaries",
+    "query": "In Stanford's 2004 annual financial report, what were total liabilities for the University alone, for the Hospitals, and on a consolidated basis?",
+    "test_type": "table_extraction",
+    "test_description": "Column attribution in a four-column financial statement. The Consolidated Statements of Financial Position table is flattened by the extractor into a vertical stream: the header row ('2004 2003 / UNIVERSITY HOSPITALS CONSOLIDATED CONSOLIDATED') appears once, then each row label is followed by its four values on separate lines with no delimiter tying a value to a column. Passing requires the answer to attribute the three figures to the correct columns rather than reporting them as an undifferentiated list. Source: chunk bd323hy3111_bd323hy3111_11_pdf_c0 (page image 11).",
+    "expected_answer": "Total liabilities at August 31, 2004 were $3,001,980 thousand for the University, $992,664 thousand for the Hospitals, and $3,994,644 thousand consolidated.",
+    "expected_no_results": false,
+    "judge": "claude-pipeline-assessment",
+    "judged_on": "2026-09-02",
+    "human_reviewed": false,
+    "judgments": [
+      {
+        "document_id": "bd323hy3111",
+        "score": 3,
+        "explanation": "Stanford University annual financial report, 2004. Contains the Consolidated Statements of Financial Position with the University / Hospitals / consolidated columns."
+      }
+    ]
+  },
+  {
+    "test_id": "ua-tables-chunk-boundaries-2",
+    "subject_id": "ua-tables-chunk-boundaries",
+    "query": "In Stanford's course listings of the mid-1950s, who taught Theory and Operation of Computing Machines, in which quarter, and for how many units?",
+    "test_type": "table_extraction",
+    "test_description": "Course-catalogue entries are tabular in the printed source (course number, title, description, then units / quarter / instructor / meeting time). The extractor renders the trailing columns as a run-on clause, e.g. '3 units, spring quarter (HERRIOT) MWF 11'. Passing requires recovering instructor, quarter and unit count as distinct values. This is the same material the question-answering spreadsheet cites for 'When was the first computer science course at Stanford taught, and who taught it?' (td555yj7347). Note the quarter changes by year: spring in 1954-55, autumn by 1957-58 -- an answer that omits the year is ambiguous. Source: chunk td555yj7347_00002165_mixed_pdf_c607 (page image 227).",
+    "expected_answer": "Mathematics 139, Theory and Operation of Computing Machines, was taught by Herriot (John H. Herriot) for 3 units in spring quarter, MWF 11, as listed in the Announcement of courses 1954-1955. By Courses and degrees 1957-1958 the same course is listed for autumn quarter.",
+    "expected_no_results": false,
+    "judge": "claude-pipeline-assessment",
+    "judged_on": "2026-09-02",
+    "human_reviewed": false,
+    "judgments": [
+      {
+        "document_id": "td555yj7347",
+        "score": 3,
+        "explanation": "Announcement of courses 1954-1955. Earliest indexed listing of the course; the volume cited by the stakeholder spreadsheet for the first-computing-course question."
+      },
+      {
+        "document_id": "zy614ws4023",
+        "score": 2,
+        "explanation": "Announcement of courses 1955-1956. Carries the same course entry; relevant context but not the earliest listing."
+      },
+      {
+        "document_id": "rn873mr9163",
+        "score": 2,
+        "explanation": "Announcement of courses 1956-1957. Same course entry in a later year."
+      },
+      {
+        "document_id": "mn533bv3110",
+        "score": 2,
+        "explanation": "Courses and degrees 1957-1958. Same course, quarter has shifted to autumn."
+      }
+    ]
+  },
+  {
+    "test_id": "ua-tables-chunk-boundaries-3",
+    "subject_id": "ua-tables-chunk-boundaries",
+    "query": "How much did Stanford report as notes and bonds payable in 2004, and how was that split between the University and the Hospitals?",
+    "test_type": "table_extraction",
+    "test_description": "Header-row separation within a single page. The liabilities half of the 2004 Consolidated Statements of Financial Position falls in the second chunk of the page (bd323hy3111_bd323hy3111_11_pdf_c1), which opens mid-table on bare figures -- '281,498 / - / 281,498 / 258,261 / Notes and bonds payable / 1,288,242 / 586,949 / 1,875,191 / 1,866,496' -- with no column header, no statement title and no units caption. A system retrieving only this chunk has four numbers per row and no basis for assigning them to columns or to fiscal years. Contrast with test 1, where the header is present in the same chunk.",
+    "expected_answer": "Notes and bonds payable at August 31, 2004 were $1,288,242 thousand for the University and $586,949 thousand for the Hospitals, $1,875,191 thousand consolidated (against $1,866,496 thousand consolidated in 2003).",
+    "expected_no_results": false,
+    "judge": "claude-pipeline-assessment",
+    "judged_on": "2026-09-02",
+    "human_reviewed": false,
+    "judgments": [
+      {
+        "document_id": "bd323hy3111",
+        "score": 3,
+        "explanation": "Stanford University annual financial report, 2004. The only document containing this line item for this fiscal year."
+      }
+    ]
+  },
+  {
+    "test_id": "ua-tables-chunk-boundaries-4",
+    "subject_id": "ua-tables-chunk-boundaries",
+    "query": "In Stanford's FY03 health care services revenue, how much covered other services provided by the School of Medicine and other University departments to the Hospitals?",
+    "test_type": "chunk_boundary",
+    "test_description": "Hard chunk boundary with no overlap. This document is chunked per page-image file, so page breaks are hard boundaries and the sliding-window overlap used within a file does not apply across them. The sentence is severed mid-figure: page image 4 ends '...An additional $22' and page image 5 begins 'million includes other services provided by the School of Medicine and other University departments to the Hospitals...'. Neither chunk alone supports the answer -- one has the number without the predicate, the other the predicate without the number. Passing requires stitching adjacent chunks or expanding context to the page pair.",
+    "expected_answer": "$22 million.",
+    "expected_no_results": false,
+    "judge": "claude-pipeline-assessment",
+    "judged_on": "2026-09-02",
+    "human_reviewed": false,
+    "judgments": [
+      {
+        "document_id": "cd915sq9449",
+        "score": 3,
+        "explanation": "Stanford University annual financial report, 2003. Contains the split sentence across page images 4 and 5."
+      }
+    ]
+  },
+  {
+    "test_id": "ua-tables-chunk-boundaries-5",
+    "subject_id": "ua-tables-chunk-boundaries",
+    "query": "According to Stanford's Courses and degrees for 1957-1958, who taught Mathematics 137, Numerical Analysis, and in which quarter?",
+    "test_type": "chunk_boundary",
+    "test_description": "Control case for within-file overlap. In this document the whole PDF is a single source file chunked with a sliding window, and consecutive chunks overlap: chunk 550 ends with '...least squares. Prerequisite : 24 or equivalent / _3 units, winter, (Herriot), MWF 11_' and chunk 551 opens by repeating that same clause. The course description and its instructor/quarter clause therefore both appear in at least one chunk. This test should pass; a failure here indicates the overlap window is not being applied or is too small, and should be compared against test 4, where no overlap exists.",
+    "expected_answer": "Herriot (John H. Herriot), winter quarter, 3 units, MWF 11.",
+    "expected_no_results": false,
+    "judge": "claude-pipeline-assessment",
+    "judged_on": "2026-09-02",
+    "human_reviewed": false,
+    "judgments": [
+      {
+        "document_id": "mn533bv3110",
+        "score": 3,
+        "explanation": "Courses and degrees 1957-1958. Contains the Mathematics 137 entry spanning the chunk 550/551 overlap."
+      }
+    ]
+  }
+]
