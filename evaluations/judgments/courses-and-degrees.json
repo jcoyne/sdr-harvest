@@ -1,0 +1,272 @@
+[
+  {
+    "test_id": "courses-and-degrees-1",
+    "subject_id": "courses-and-degrees",
+    "query": "Courses and degrees",
+    "test_type": "keyword_search",
+    "test_description": "Bare collection title, minimally specified. The corpus contains exactly 38 volumes titled 'Courses and degrees. 19XX-19XX', running consecutively from 1957-58 through 1994-95 with no gaps (confirmed against the collection facet count of 38; there is no 1955-56 or 1956-57 volume, and the series stops after 1994-95). Every one of those 38 is an exact title match and is scored 3 — the case is graded across the whole series rather than a sample of it, so recall over the series is measurable and not just precision at the top. The real stress is lexical collision: 'courses' and 'degrees' are two of the most common tokens in an academic corpus, and keyword search reports 2,778 total matches for this query. The near-misses to watch are the 'Announcement of courses' series (51 volumes, 1907-1955), the direct predecessor publication under a different title, and the 'Annual register' and later 'Stanford bulletin' series, which carry the same content type under yet other titles. A healthy result set is 38 titled volumes and nothing else; a run that interleaves Announcement of courses, Annual register or Stanford Bulletin into the top ranks has let common-token overlap outrank an exact title match. Note that rows is capped at 20 per request, so a full-series evaluation of this case needs pagination or repeated probes.",
+    "expected_answer": null,
+    "expected_no_results": false,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "mn533bv3110", "score": 3, "explanation": "Titled 'Courses and degrees. 1957-1958' — exact match on the queried title phrase; 1950s volume of the 38-volume series. First volume in the series."},
+      {"document_id": "kf619tf2206", "score": 3, "explanation": "Titled 'Courses and degrees. 1958-1959' — exact match on the queried title phrase; 1950s volume of the 38-volume series."},
+      {"document_id": "vf196vs7194", "score": 3, "explanation": "Titled 'Courses and degrees. 1959-1960' — exact match on the queried title phrase; 1950s volume of the 38-volume series."},
+      {"document_id": "jz305wr8768", "score": 3, "explanation": "Titled 'Courses and degrees. 1960-1961' — exact match on the queried title phrase; 1960s volume of the 38-volume series. Opens the 1960s run."},
+      {"document_id": "qr789wk2250", "score": 3, "explanation": "Titled 'Courses and degrees. 1961-1962' — exact match on the queried title phrase; 1960s volume of the 38-volume series."},
+      {"document_id": "rw874tv4599", "score": 3, "explanation": "Titled 'Courses and degrees. 1962-1963' — exact match on the queried title phrase; 1960s volume of the 38-volume series."},
+      {"document_id": "nm461yk1026", "score": 3, "explanation": "Titled 'Courses and degrees. 1963-1964' — exact match on the queried title phrase; 1960s volume of the 38-volume series."},
+      {"document_id": "gm285dy9710", "score": 3, "explanation": "Titled 'Courses and degrees. 1964-1965' — exact match on the queried title phrase; 1960s volume of the 38-volume series."},
+      {"document_id": "fv673nh4956", "score": 3, "explanation": "Titled 'Courses and degrees. 1965-1966' — exact match on the queried title phrase; 1960s volume of the 38-volume series."},
+      {"document_id": "ky485kb7086", "score": 3, "explanation": "Titled 'Courses and degrees. 1966-1967' — exact match on the queried title phrase; 1960s volume of the 38-volume series."},
+      {"document_id": "vx713nh1109", "score": 3, "explanation": "Titled 'Courses and degrees. 1967-1968' — exact match on the queried title phrase; 1960s volume of the 38-volume series. Title page reads 'COURSES AND DEGREES 1967/68'."},
+      {"document_id": "zx202jp0960", "score": 3, "explanation": "Titled 'Courses and degrees. 1968-1969' — exact match on the queried title phrase; 1960s volume of the 38-volume series."},
+      {"document_id": "bt133qb4616", "score": 3, "explanation": "Titled 'Courses and degrees. 1969-1970' — exact match on the queried title phrase; 1960s volume of the 38-volume series. Closes the 1960s run."},
+      {"document_id": "yw134bw7215", "score": 3, "explanation": "Titled 'Courses and degrees. 1970-1971' — exact match on the queried title phrase; 1970s volume of the 38-volume series. Opens the 1970s run."},
+      {"document_id": "fj487vg0720", "score": 3, "explanation": "Titled 'Courses and degrees. 1971-1972' — exact match on the queried title phrase; 1970s volume of the 38-volume series."},
+      {"document_id": "kc513yq4140", "score": 3, "explanation": "Titled 'Courses and degrees. 1972-1973' — exact match on the queried title phrase; 1970s volume of the 38-volume series."},
+      {"document_id": "qp502st4627", "score": 3, "explanation": "Titled 'Courses and degrees. 1973-1974' — exact match on the queried title phrase; 1970s volume of the 38-volume series."},
+      {"document_id": "nm865hg3926", "score": 3, "explanation": "Titled 'Courses and degrees. 1974-1975' — exact match on the queried title phrase; 1970s volume of the 38-volume series."},
+      {"document_id": "wz191sv0665", "score": 3, "explanation": "Titled 'Courses and degrees. 1975-1976' — exact match on the queried title phrase; 1970s volume of the 38-volume series."},
+      {"document_id": "xh791ct8075", "score": 3, "explanation": "Titled 'Courses and degrees. 1976-1977' — exact match on the queried title phrase; 1970s volume of the 38-volume series."},
+      {"document_id": "hb618tx8323", "score": 3, "explanation": "Titled 'Courses and degrees. 1977-1978' — exact match on the queried title phrase; 1970s volume of the 38-volume series."},
+      {"document_id": "dd920fk7630", "score": 3, "explanation": "Titled 'Courses and degrees. 1978-1979' — exact match on the queried title phrase; 1970s volume of the 38-volume series."},
+      {"document_id": "ry567fw5185", "score": 3, "explanation": "Titled 'Courses and degrees. 1979-1980' — exact match on the queried title phrase; 1970s volume of the 38-volume series. Closes the 1970s run."},
+      {"document_id": "hr494dz5226", "score": 3, "explanation": "Titled 'Courses and degrees. 1980-1981' — exact match on the queried title phrase; 1980s volume of the 38-volume series. Opens the 1980s run."},
+      {"document_id": "rs159qn4689", "score": 3, "explanation": "Titled 'Courses and degrees. 1981-1982' — exact match on the queried title phrase; 1980s volume of the 38-volume series."},
+      {"document_id": "rv922pn4986", "score": 3, "explanation": "Titled 'Courses and degrees. 1982-1983' — exact match on the queried title phrase; 1980s volume of the 38-volume series."},
+      {"document_id": "fh842qn1658", "score": 3, "explanation": "Titled 'Courses and degrees. 1983-1984' — exact match on the queried title phrase; 1980s volume of the 38-volume series."},
+      {"document_id": "jv126qc0516", "score": 3, "explanation": "Titled 'Courses and degrees. 1984-1985' — exact match on the queried title phrase; 1980s volume of the 38-volume series."},
+      {"document_id": "qt625pw1904", "score": 3, "explanation": "Titled 'Courses and degrees. 1985-1986' — exact match on the queried title phrase; 1980s volume of the 38-volume series."},
+      {"document_id": "md860xb2653", "score": 3, "explanation": "Titled 'Courses and degrees. 1986-1987' — exact match on the queried title phrase; 1980s volume of the 38-volume series."},
+      {"document_id": "wj882zw7267", "score": 3, "explanation": "Titled 'Courses and degrees. 1987-1988' — exact match on the queried title phrase; 1980s volume of the 38-volume series."},
+      {"document_id": "zc507cm4052", "score": 3, "explanation": "Titled 'Courses and degrees. 1988-1989' — exact match on the queried title phrase; 1980s volume of the 38-volume series."},
+      {"document_id": "mg231pz7645", "score": 3, "explanation": "Titled 'Courses and degrees. 1989-1990' — exact match on the queried title phrase; 1980s volume of the 38-volume series. Closes the 1980s run."},
+      {"document_id": "kc757jx7381", "score": 3, "explanation": "Titled 'Courses and degrees. 1990-1991' — exact match on the queried title phrase; 1990s volume of the 38-volume series."},
+      {"document_id": "xn723qt8489", "score": 3, "explanation": "Titled 'Courses and degrees. 1991-1992' — exact match on the queried title phrase; 1990s volume of the 38-volume series."},
+      {"document_id": "vg611qm6210", "score": 3, "explanation": "Titled 'Courses and degrees. 1992-1993' — exact match on the queried title phrase; 1990s volume of the 38-volume series."},
+      {"document_id": "fg044qg9969", "score": 3, "explanation": "Titled 'Courses and degrees. 1993-1994' — exact match on the queried title phrase; 1990s volume of the 38-volume series."},
+      {"document_id": "fm462df0605", "score": 3, "explanation": "Titled 'Courses and degrees. 1994-1995' — exact match on the queried title phrase; 1990s volume of the 38-volume series. Last volume in the series."},
+      {"document_id": "td555yj7347", "score": 1, "explanation": "'Announcement of courses. 1954-1955' — the predecessor title for the same annual course bulletin, and the volume immediately preceding the start of the queried series. Shares the token 'courses' but not the queried title. Defensible neighbour, not an exact match."},
+      {"document_id": "mw207jf8838", "score": 1, "explanation": "'Announcement of courses. 1949-1950' — same predecessor series; right genre and right publication function, wrong title."},
+      {"document_id": "vr117pb5594", "score": 1, "explanation": "'Announcement of courses. 1912-1913' — same reasoning, and forty-plus years before the queried series begins."},
+      {"document_id": "jg847ff8520", "score": 1, "explanation": "'Announcement of courses 1934/1935-1935/1936 (duplicate)' — predecessor series again, and one of the few corpus titles using slash-delimited years; a same-genre neighbour whose title format differs from the queried phrase in two ways at once."},
+      {"document_id": "zq085xd4686", "score": 0, "explanation": "'Annual register. 1901-1902'. False match driven by generic degree-requirement prose ('Bachelor of Arts', 'graduation', 'major subject') rather than any title overlap — a different serial entirely."},
+      {"document_id": "vw106xp9056", "score": 0, "explanation": "'Annual register. 1910-1911'. Same failure mode: ranks on 'GRADUATION' and 'Major Subject' body text, with neither queried token in its title."},
+      {"document_id": "zy332hv3700", "score": 0, "explanation": "'Stanford Bulletin. 2003-2004'. Successor publication with heavy 'degrees'/'courses' vocabulary in its body text; a pure common-token collision with no title overlap."},
+      {"document_id": "gs320bx1243", "score": 0, "explanation": "'Stanford Bulletin. 2007-2008'. Same successor-series collision, nine years after the queried series ends."}
+    ]
+  },
+  {
+    "test_id": "courses-and-degrees-2",
+    "subject_id": "courses-and-degrees",
+    "query": "Courses and degrees. 1967-1968",
+    "test_type": "known_item",
+    "test_description": "Full title supplied verbatim, including the period and the hyphenated academic year, for a 1960s volume. Success is rank 1 and nothing else; the user already knows the document. Two distinct failure modes are worth separating. First, adjacent-year siblings (1966-67, 1968-69) are near-identical in vocabulary and page structure and will crowd the top ranks. Second, and more serious: keyword search on this corpus appears to discard the year tokens entirely — issuing 'Courses and degrees 1961 1962 1963 1968' returns exactly the same 20 results in the same order as the bare phrase, and does not surface the 1961-62, 1962-63 or 1968-69 volumes at all. Hybrid/vector search does resolve the year (a probe for 1962-1963 put the correct volume at rank 1 by matching a '##### 1963' calendar chunk). So this case is a direct probe of whether the lexical path can discriminate on a year token at all.",
+    "expected_answer": null,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "vx713nh1109", "score": 3, "explanation": "The target. Title is exactly 'Courses and degrees. 1967-1968'; internal chunk vx713nh1109_373.pdf confirms the year with 'Registration for the Autumn Term will be held on September 6, 1967, and classes for Spring Term will terminate on June 12, 1968.'"},
+      {"document_id": "ky485kb7086", "score": 1, "explanation": "'Courses and degrees. 1966-1967' — immediately preceding volume, same series, overlapping title string and near-identical contents page. A good answer to the query as phrased if the year is dropped, but not the document the user named."},
+      {"document_id": "zx202jp0960", "score": 1, "explanation": "'Courses and degrees. 1968-1969' — immediately following volume; same series-neighbour reasoning."},
+      {"document_id": "rv922pn4986", "score": 0, "explanation": "'Courses and degrees. 1982-1983'. Same series but fifteen years off; ranks only via the title phrase, which is evidence the year token was ignored."},
+      {"document_id": "fm462df0605", "score": 0, "explanation": "'Courses and degrees. 1994-1995'. Same series, wrong decade entirely — a pure title-template match."},
+      {"document_id": "fg044qg9969", "score": 0, "explanation": "'Courses and degrees. 1993-1994'. Same reasoning; appears high in keyword runs for this query despite no year overlap."}
+    ]
+  },
+  {
+    "test_id": "courses-and-degrees-3",
+    "subject_id": "courses-and-degrees",
+    "query": "What was the first law degree offered by the Stanford School of Law in the 1960s?",
+    "test_type": "fact_lookup",
+    "test_description": "Natural-language question whose answer sits in a specific, repeated passage of the 1960s volumes: the LL.B., not the J.D. Tests whether retrieval reaches the answer-bearing chunk rather than merely the right volume — the phrase 'first degree in law (LL.B.)' lives in the School of Law section and a parallel statement lives in the front-matter DEGREES section, so there are two answer-bearing locations per volume. Distractors to watch: (a) the adjacent LL.M. and J.S.D. paragraphs, which are the most semantically similar text in the corpus and will co-retrieve, and answering from them gives the wrong degree; (b) the 1980s volumes, where the index entry reads 'Doctor of Jurisprudence, General Requirements for' instead — retrieving those and reporting J.D. would be a period-confusion failure that the decade constraint in the query is designed to catch.",
+    "expected_answer": {
+      "value": "The Bachelor of Laws (LL.B.).",
+      "evidence": [
+        {"document_id": "gm285dy9710", "locator": "00002174_mixed.pdf, chunk_index 32, page 14", "quote": "###### BACHELOR OF LAWS \n\nUpon recommendation to the Academic Council by the faculty of the School of Law and the University Committee on the Graduate Division, the degree of Bachelor of Laws (LL.B.) is conferred on candidates who have received the degree of Bachelor of Arts, or its equivalent, from this University or from some other institution of recognized collegiate rank"},
+        {"document_id": "gm285dy9710", "locator": "00002174_mixed.pdf, chunk_index 1093, page 406", "quote": "The curriculum leading to the first degree in law (LL.B.) constitutes an adequate preparation for the practice of law in any English-speaking jurisdiction. Graduate work leading to the degrees of Master of Laws and Doctor of the Science of Law is also offered."},
+        {"document_id": "vx713nh1109", "locator": "vx713nh1109_373.pdf, chunk_index 0, page 373", "quote": "The curriculum leading to the first degree in law (LL.B.)\nconstitutes an adequate preparation for\nthe practice of law in any English-speaking jurisdiction."},
+        {"document_id": "ky485kb7086", "locator": "ky485kb7086_013.pdf, chunk_index 0, page 13", "quote": "the degree of Bachelor of Laws\n(LL.B.) is conferred on candidates who\nhave received the degree of Bachelor of\nArts, or its equivalent, from this University\nor from some other institution of recognized\ncollegiate rank"}
+      ]
+    },
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "gm285dy9710", "score": 3, "explanation": "'Courses and degrees. 1964-1965' carries the answer in two places: the BACHELOR OF LAWS heading in the front-matter DEGREES section (page 14) and the School of Law statement 'the first degree in law (LL.B.)' (page 406)."},
+      {"document_id": "vx713nh1109", "score": 3, "explanation": "'Courses and degrees. 1967-1968' states 'The curriculum leading to the first degree in law (LL.B.)' on page 373 and repeats the BACHELOR OF LAWS paragraph on page 13 — answers the question directly for the late 1960s."},
+      {"document_id": "ky485kb7086", "score": 3, "explanation": "'Courses and degrees. 1966-1967' contains the same BACHELOR OF LAWS paragraph (page 13) and the School of Law LL.B. statement (page 361)."},
+      {"document_id": "fv673nh4956", "score": 2, "explanation": "'Courses and degrees. 1965-1966'. Its index lists 'Bachelor of Laws degree, 14' and 'Doctor of Science of Law degree, 14', confirming the LL.B. for the decade, but the retrieved evidence here is an index line rather than the explanatory passage — substantively on target, weaker as an answer-bearing chunk."},
+      {"document_id": "bt133qb4616", "score": 2, "explanation": "'Courses and degrees. 1969-1970'. Same decade and same School of Law structure, so it supports the answer, but the passages surfaced for this query were Naval Science rather than law text; on-theme but not the answer chunk."},
+      {"document_id": "rv922pn4986", "score": 0, "explanation": "'Courses and degrees. 1982-1983'. Highly similar degree-requirements prose, but by the 1980s the index entry is 'Doctor of Jurisprudence, General Requirements for' — retrieving this volume for a 1960s question invites the wrong answer (J.D.). Documented near-miss caused by template similarity across the series."},
+      {"document_id": "zc507cm4052", "score": 0, "explanation": "'Courses and degrees. 1988-1989'. Index reads 'Doctor of Jurisprudence, General Requirements for, 17' — a word-sense/period mismatch: right topic (first law degree), wrong decade, wrong answer."}
+    ]
+  },
+  {
+    "test_id": "courses-and-degrees-4",
+    "subject_id": "courses-and-degrees",
+    "query": "military and naval training for undergraduates on campus",
+    "test_type": "conceptual_thematic",
+    "test_description": "Abstract theme with no corpus vocabulary borrowed from the target documents. The 1960s 'Courses and degrees' volumes are textbook instances of this theme — their contents pages list 'Military Science', 'Naval Science' and 'Aerospace Studies' as full departments with course-by-course descriptions, and ROTC was only phased out at Stanford in 1973. This case tests whether documents *about* the subject outrank documents merely *discussing* it. It currently fails hard: a hybrid run returned Campus report volumes (news articles reflecting on ROTC), Annual register 1917-1919, Announcement of courses 1918-1930 and an alumni oral-history interview, and did not surface a single 1960s 'Courses and degrees' volume in the top ten. The World War I-era material scores high because it uses the theme's exact words ('MILITARY TRAINING' as a section heading, 'Reserve Officers Training Corps'), while the 1960s catalogs describe the same programs under the drier institutional labels 'Naval Science' and 'Military Science'. The failure mode is vocabulary-era mismatch, not topical error.",
+    "expected_answer": null,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": false,
+    "judgments": [
+      {"document_id": "gm285dy9710", "score": 3, "explanation": "'Courses and degrees. 1964-1965' is an instance of the theme: pages 340-341 carry the full Naval Science curriculum ('111. Naval Orientation—Mission, ideals, standards, traditions and customs of the Naval Service', '311M. Evolution of the Art of War I') plus NROTC eligibility rules including the First Class swimmer requirement."},
+      {"document_id": "ky485kb7086", "score": 3, "explanation": "'Courses and degrees. 1966-1967' lists 'Military Science 275' and 'Naval Science 300' as departments in its contents and prints the NROTC course sequence on pages 302-303."},
+      {"document_id": "vx713nh1109", "score": 3, "explanation": "'Courses and degrees. 1967-1968' carries Naval Science 111-413 with Amphibious Warfare and Military Justice courses (pages 313-314) and lists Military Science and Naval Science in its contents."},
+      {"document_id": "bt133qb4616", "score": 3, "explanation": "'Courses and degrees. 1969-1970' prints the reorganized Naval Science curriculum ('111. Principles of Naval Organization and Management') and the Naval Science Laboratory drill-field requirement on pages 326-327."},
+      {"document_id": "vg827dg7208", "score": 2, "explanation": "'Campus report. Volume 16, 1983-1984' is strongly on-theme and factually rich ('An Army program was established in 1919; Air Force and Navy programs were established in 1946... ROTC programs were finally phased out at Stanford in 1973'), but it is a news account discussing the programs retrospectively, not a document listing the training itself."},
+      {"document_id": "mw124yw7676", "score": 2, "explanation": "'Campus report. Volume 3, 1970-1971' reports the Academic Council vote and the Navy's plan to phase out NROTC by June 1973 — substantively about undergraduate military training on campus, but again commentary rather than the curriculum."},
+      {"document_id": "zr737tq7072", "score": 1, "explanation": "'Annual register. 1918-1919' contains an extensive MILITARY TRAINING section with the ROTC infantry unit and summer instruction camps. It matches the query's words better than any 1960s volume, but it is a different serial from a different era; defensible as a neighbour, and worth documenting as the reason the target decade gets displaced."},
+      {"document_id": "pk480dd8197", "score": 1, "explanation": "'Announcement of courses. 1918-1919' — same reasoning: verbatim 'MILITARY TRAINING' heading and R.O.T.C. prose from the predecessor series, forty years before the queried decades."},
+      {"document_id": "vk076cc1012", "score": 1, "explanation": "'Announcement of courses. 1930-1931' lists 'MILITARY SCIENCE AND TACTICS' with the R.O.T.C. basic and advanced courses. Right theme, wrong series and era."},
+      {"document_id": "rf628wg9328", "score": 0, "explanation": "'Interview with Richard Anderson : Alumni Stories'. Retrieved because a reminiscence about NROTC drills matches the theme's surface language ('we drilled on a practice field... we carried rifles'), but an oral-history transcript is not a record of instruction offered and answers no part of the underlying need."},
+      {"document_id": "jb027vq8263", "score": 0, "explanation": "'Annual register. 1917-1918'. Wartime military-training prose; a false positive on era, driven by the heading 'MILITARY, PHYSICAL TRAINING' rather than by any relation to the 1960s-80s catalogs."}
+    ]
+  },
+  {
+    "test_id": "courses-and-degrees-5",
+    "subject_id": "courses-and-degrees",
+    "query": "a booklet that lists every class you could sign up for and what you needed to graduate",
+    "test_type": "synonym_match",
+    "test_description": "A descriptive paraphrase of the 'Courses and degrees' genre using none of its vocabulary: 'booklet' for bulletin, 'class' for course, 'sign up for' for register, 'what you needed to graduate' for degree requirements. Tests whether embeddings bridge from colloquial description to institutional publication. A vector run partly succeeds — the 1966-67 volume reaches rank 3 and four other volumes appear in the top ten, and the collection facet shows 33 of 130 matches are from this series — but the top two ranks go to 'Information. 1966' and 'Annual register. 1901-1902', both of which match because they contain admission-and-graduation prose rather than course listings. The distractor pattern to watch is that the paraphrase's second clause ('what you needed to graduate') pulls harder than its first ('lists every class'), so documents heavy on requirements and light on course listings outrank the actual course catalogs.",
+    "expected_answer": null,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "ky485kb7086", "score": 3, "explanation": "'Courses and degrees. 1966-1967' is exactly what the paraphrase describes: a contents page enumerating every department's offerings plus a DEGREES section giving basic requirements ('English 1, 2, 3. Freshman English', 'Foreign Language or Mathematics')."},
+      {"document_id": "xh791ct8075", "score": 3, "explanation": "'Courses and degrees. 1976-1977' contains both halves of the need — full course listings by department and the graduation checklist on page 12 ('Completed 180 (quarter) units of University work. Completed Writing and Distribution requirements')."},
+      {"document_id": "dd920fk7630", "score": 3, "explanation": "'Courses and degrees. 1978-1979' is the same publication type for the late 1970s; matched on its metadata and CONTENTS chunks."},
+      {"document_id": "rv922pn4986", "score": 3, "explanation": "'Courses and degrees. 1982-1983' serves the identical need for the 1980s, with COURSES OF INSTRUCTION and a full undergraduate-degree section."},
+      {"document_id": "mn533bv3110", "score": 3, "explanation": "'Courses and degrees. 1957-1958'. Its contents page and 'AREA REQUIREMENTS FOR ALL STUDENTS' section match both clauses of the paraphrase; outside the three target decades but a fully correct answer to the query as posed."},
+      {"document_id": "gq182vf2721", "score": 1, "explanation": "'Information. 1966' ranked first. It is the companion Stanford bulletin covering admission and entrance requirements, so it answers 'what you needed' — but for getting in, not for graduating, and it lists no classes. Good answer to the query as phrased, wrong answer to the underlying need."},
+      {"document_id": "ms741kv0106", "score": 1, "explanation": "'Information. 1956'. Same series and same partial fit: curriculum-selection and lower-division requirements without course listings."},
+      {"document_id": "zq085xd4686", "score": 1, "explanation": "'Annual register. 1901-1902' ranked second, matching on 'GRADUATION' and 'Bachelor of Arts' prose and a list of entrance subjects. It is a genuine course-and-requirements publication, so it is a defensible neighbour, but from a different series ninety years before the target decades."},
+      {"document_id": "rp656sk1311", "score": 0, "explanation": "'Annual register. 1891-1892'. Retrieved on generic degree-requirement language ('The Degree of Bachelor of Arts (A. B.) will be granted to students who have satisfactorily completed...'). The University's first year of operation; no relationship to the queried genre in the target decades."},
+      {"document_id": "br446qp3144", "score": 0, "explanation": "'Announcement of courses. 1933-1934'. Matched on engineering curriculum tables, i.e. on the word 'curricula' and course-number lists rather than on the described document type. Era and series both wrong."}
+    ]
+  },
+  {
+    "test_id": "courses-and-degrees-6",
+    "subject_id": "courses-and-degrees",
+    "query": "Which foundation funded Stanford's Program in Human Biology?",
+    "test_type": "fact_lookup",
+    "test_description": "A 1970s question with a specific answer — the Ford Foundation — located in one sentence of the Human Biology section. The interesting property is that the answer is time-bounded inside the series: the 1973-74, 1974-75 and 1976-77 volumes all read 'The Program is funded by a grant from the Ford Foundation and leads to an A.B. in Human Biology', but by 1977-78 the sentence has been trimmed to 'The Program leads to an A.B. in Human Biology' with no funder named. So retrieval that lands on the 1977-78 volume reaches the right document and the right section and still cannot answer the question. That makes this a clean test of chunk-level rather than document-level relevance. Watch also for the Program's statement-of-purpose chunks, which are the highest-scoring Human Biology passages for most queries but contain no funding information.",
+    "expected_answer": {
+      "value": "The Ford Foundation.",
+      "evidence": [
+        {"document_id": "qp502st4627", "locator": "00002197_mixed.pdf, chunk_index 1773, page 551", "quote": "The Program is funded by a grant from the Ford Foundation and leads to an A.B. in Human Biology. The curriculum is designed for those students who desire a knowledge of biology, particularly of man, linked with knowledge of the behavioral sciences."},
+        {"document_id": "nm865hg3926", "locator": "00002198_mixed.pdf, chunk_index 1941, page 598", "quote": "The Program is funded by a grant from the Ford Foundation and leads to an A.B. in Human Biology."},
+        {"document_id": "xh791ct8075", "locator": "xh791ct8075_642.pdf / xh791ct8075_641.pdf, page 641-642", "quote": "The Program leads to an A.B. in Human\nBiology. The curriculum is designed for\nthose students who desire a knowledge of\nbiology, particularly of man, linked with\nknowledge of the behavioral and policy sciences."}
+      ]
+    },
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": false,
+    "judgments": [
+      {"document_id": "qp502st4627", "score": 3, "explanation": "'Courses and degrees. 1973-1974' contains the answer verbatim on page 551: 'The Program is funded by a grant from the Ford Foundation and leads to an A.B. in Human Biology.'"},
+      {"document_id": "nm865hg3926", "score": 3, "explanation": "'Courses and degrees. 1974-1975' repeats the same funding sentence on page 598 — an independent answer-bearing chunk in a second volume."},
+      {"document_id": "hb618tx8323", "score": 2, "explanation": "'Courses and degrees. 1977-1978' has the fullest Human Biology section (it ranks first for Human Biology queries, with the statement of purpose on page 359) but the funding clause has been edited out — page 359 reads only 'The Program leads to an A.B. in Human Biology.' Right document, right section, cannot answer the question. This is the most instructive near-miss in the case."},
+      {"document_id": "xh791ct8075", "score": 2, "explanation": "'Courses and degrees. 1976-1977'. Retrieved chunk (page 642) omits the Ford Foundation sentence and describes the Fundamental Program instead; strongly on-theme, not answer-bearing in the passage returned."},
+      {"document_id": "rs159qn4689", "score": 1, "explanation": "'Courses and degrees. 1981-1982'. Its contents list 'Program in Human Biology 411', so it is the same entity in a later volume, but by the 1980s no funder is named anywhere in the section. Same-entity neighbour only."},
+      {"document_id": "fh842qn1658", "score": 0, "explanation": "'Courses and degrees. 1983-1984'. Retrieved for other queries on grant and program language; contains no Human Biology funding statement. A template-similarity false positive across the series."},
+      {"document_id": "bh751km6759", "score": 0, "explanation": "'Stanford University annual financial report. 2005'. Plausible-looking hit for a funding question — it is full of dollar figures, gifts and sponsored-research support — but it concerns 21st-century university finances, not a 1970s program grant. Word-sense collision on 'funded'."}
+    ]
+  },
+  {
+    "test_id": "courses-and-degrees-7",
+    "subject_id": "courses-and-degrees",
+    "query": "undergraduate degree requirements in the 1974-1975 Stanford bulletin, printed book, in English",
+    "test_type": "multi_constraint",
+    "test_description": "Topic (undergraduate degree requirements) + date (1974-1975) + format (printed book) + language (English). The format and language facets live in structured fields — the corpus exposes format_hsim 'Book' and a collection facet — while the date lives only in the title string and in scattered calendar chunks. A hybrid run does get the target to rank 1, matching the DEGREES section on page 9, which is a better result than the keyword path can manage (keyword search ignores year tokens entirely here). But the run also reports 39,440 total matches and fills ranks 3, 4, 6, 8, 9 and 10 with 'Stanford Bulletin' volumes from 2003-2012, which satisfy topic, format and language while violating the date constraint by three decades — and which the query arguably invites by using the word 'bulletin'. The tradeoff this case exposes: the embedding treats the date as soft context, so a stricter test is whether the system can be made to filter on it rather than merely rank by it.",
+    "expected_answer": null,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": false,
+    "judgments": [
+      {"document_id": "nm865hg3926", "score": 3, "explanation": "'Courses and degrees. 1974-1975'. Satisfies every constraint: format_hsim 'Book', English, correct academic year, and page 9-10 is the UNDERGRADUATE DEGREES section listing the 180-unit, Writing, Distribution and residency requirements."},
+      {"document_id": "wz191sv0665", "score": 2, "explanation": "'Courses and degrees. 1975-1976'. Correct topic, format and language, and its degree-requirements text is near-identical (page 10 carries the same six-item graduation checklist), but the year is adjacent rather than the one requested."},
+      {"document_id": "qp502st4627", "score": 2, "explanation": "'Courses and degrees. 1973-1974'. Same reasoning on the other side of the target year; page 7-8 carries the matching UNDERGRADUATE DEGREES section, and its front matter even names the series ('COURSES AND DEGREES September')."},
+      {"document_id": "xh791ct8075", "score": 1, "explanation": "'Courses and degrees. 1976-1977'. Right series, right decade, right facets, but two years off the stated date — a same-series neighbour rather than a constraint satisfier."},
+      {"document_id": "zy332hv3700", "score": 0, "explanation": "'Stanford Bulletin. 2003-2004'. Satisfies topic, format and language and matches the literal word 'bulletin' in the query, but misses the date constraint by ~30 years. The canonical multi-constraint failure: the retriever dropped the facet that lives only in the title."},
+      {"document_id": "fv348gz0255", "score": 0, "explanation": "'Stanford Bulletin. 2004-2005'. Same failure mode; the B.A./B.S. degree-requirements page reads as an almost perfect topical match."},
+      {"document_id": "gs320bx1243", "score": 0, "explanation": "'Stanford Bulletin. 2007-2008'. Same failure mode; date constraint violated."},
+      {"document_id": "sp664gd7172", "score": 0, "explanation": "'Stanford Bulletin. 2011-2012'. Same failure mode, and the furthest from the requested year of the successor-series hits."}
+    ]
+  },
+  {
+    "test_id": "courses-and-degrees-8",
+    "subject_id": "courses-and-degrees",
+    "query": "When were freshmen encouraged to complete the Western Culture requirement?",
+    "test_type": "fact_lookup",
+    "test_description": "A 1980s question whose answer — during the freshman year, though deferral was permitted — appears in a boilerplate paragraph repeated with only the year changed across the 1983-84 through 1986-87 volumes. Because the paragraph is near-verbatim across volumes, the retriever will return several of them and the only thing distinguishing them is the embedded year string ('The following courses are available in 1983-84' / '1984-85' / '1986-87'). That makes this a good test of whether an answer-bearing chunk can be attributed to the right volume. The distractors are the individual Western Culture track descriptions (Great Works, Structured Liberal Education, Ideas in Western Culture, Conflict and Change, Literature and the Arts, Western Culture and Technology), which dominate similarity scores for anything mentioning Western Culture but state track content rather than timing. Volumes from 1989-90 onward are the period trap: by then the requirement had been replaced by Cultures, Ideas, and Values (CIV), so they cannot answer the question.",
+    "expected_answer": {
+      "value": "During the freshman year — students were strongly encouraged to complete it then, though some could defer it, and the entire sequence had to be finished to satisfy the requirement.",
+      "evidence": [
+        {"document_id": "fh842qn1658", "locator": "00002180_mixed.pdf, chunk_index 2163, page 588", "quote": "Students are strongly encouraged to fulfill the Western Culture Requirement during their freshman year, however some students may choose to defer it. Since the sequences do not all proceed at the same pace, or cover the material in the same order, students must complete one entire sequence to satisfy the Western Culture portion of the Distribution Requirements. The following courses are available in 1983-84."},
+        {"document_id": "jv126qc0516", "locator": "00002181_mixed.pdf, chunk_index 2305, page 624", "quote": "Students are strongly encouraged to fulfill the Western Culture Requirement during their freshman year, however some students may choose to defer it. Since the sequences do not all proceed at the same pace, or cover the material in the same order, students must complete one entire sequence to satisfy the Western Culture portion of the Distribution Requirements. The following courses are available in 1984-85."},
+        {"document_id": "md860xb2653", "locator": "00002182_mixed.pdf, chunk_index 2384, page 637", "quote": "Students are strongly encouraged to fulfill the Western Culture Requirement during their freshman year; however, some students may choose to defer it. Since the sequences do not all proceed at the same pace, or cover the material in the same order, students must complete one entire sequence to satisfy the Western Culture portion of the Distribution Requirements. The following courses are available in 1986-87."}
+      ]
+    },
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": false,
+    "judgments": [
+      {"document_id": "fh842qn1658", "score": 3, "explanation": "'Courses and degrees. 1983-1984' carries the answer sentence verbatim on page 588 and self-dates it with 'The following courses are available in 1983-84'."},
+      {"document_id": "jv126qc0516", "score": 3, "explanation": "'Courses and degrees. 1984-1985' repeats the answer on page 624 with '1984-85' as the internal date stamp; independently answer-bearing."},
+      {"document_id": "md860xb2653", "score": 3, "explanation": "'Courses and degrees. 1986-1987' carries the answer on page 637 (with a semicolon variant in the punctuation) and dates itself '1986-87'."},
+      {"document_id": "qt625pw1904", "score": 2, "explanation": "'Courses and degrees. 1985-1986'. Sits inside the Western Culture period and has the same CONTENTS and School of Humanities and Sciences structure, but the chunks returned for this query were engineering curriculum tables rather than the requirement paragraph — on target as a volume, not as evidence."},
+      {"document_id": "wj882zw7267", "score": 2, "explanation": "'Courses and degrees. 1987-1988'. Same requirement era; supports the answer for the late 1980s but no requirement-timing chunk surfaced, only index text."},
+      {"document_id": "rv922pn4986", "score": 1, "explanation": "'Courses and degrees. 1982-1983'. Its index carries 'Distribution Requirements, 11' and the Appendix pointer, so it is the immediately preceding state of the same requirement, but the Western Culture timing paragraph as quoted does not appear. Same-entity neighbour."},
+      {"document_id": "mg231pz7645", "score": 0, "explanation": "'Courses and degrees. 1989-1990'. Period trap: by this volume the freshman requirement had become Cultures, Ideas, and Values, so a confident answer drawn from here would be about a different requirement. Retrieved on general distribution-requirement similarity."},
+      {"document_id": "kc757jx7381", "score": 0, "explanation": "'Courses and degrees. 1990-1991'. Its contents list 'Cultures, Ideas, and Values, Program in (CIV) 350' and no Western Culture requirement at all — a false match on requirement vocabulary after the thing queried had been renamed."}
+    ]
+  },
+  {
+    "test_id": "courses-and-degrees-9",
+    "subject_id": "courses-and-degrees",
+    "query": "Feminist Studies",
+    "test_type": "keyword_search",
+    "test_description": "A bare program name, minimally specified, chosen because it is a genuine lexical discriminator within the series: 'Program in Feminist Studies' appears in the contents of the 1981-82 volume and persists through the early 1990s, but is absent from every 1960s and most 1970s volume. A correct run should therefore concentrate on the 1980s and later volumes and should *not* return 1960s volumes at all. The distractor to watch is thematic drift rather than lexical collision — 'Center for Research on Women', 'Physical Education, Women' and similar index entries occupy nearby embedding space and will be pulled in by a vector or hybrid path even though they are different programs. A run that surfaces 1960s volumes here has fallen back on series-level title similarity, which is the same failure this suite documents in the known_item case.",
+    "expected_answer": null,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "rs159qn4689", "score": 3, "explanation": "'Courses and degrees. 1981-1982'. Contents page (page 6) lists 'Program in Feminist Studies 366' — the literal queried term in a structured position, and the earliest volume in the series to carry it."},
+      {"document_id": "kc757jx7381", "score": 3, "explanation": "'Courses and degrees. 1990-1991'. Contents page lists 'Feminist Studies, Program in 407' — exact term match."},
+      {"document_id": "rv922pn4986", "score": 2, "explanation": "'Courses and degrees. 1982-1983'. Continues the program established the prior year and carries the related 'Center for Research on Women' apparatus, but the retrieved index chunk shows the surrounding entries rather than the Feminist Studies line itself."},
+      {"document_id": "jv126qc0516", "score": 2, "explanation": "'Courses and degrees. 1984-1985'. Same period and same program; on target as a volume, with the term reachable in its index rather than in the chunks that rank highest."},
+      {"document_id": "mg231pz7645", "score": 2, "explanation": "'Courses and degrees. 1989-1990'. Program is present in this era of the series; the surfaced index chunk covers adjacent 'A'-through-'C' entries rather than the queried term."},
+      {"document_id": "ry567fw5185", "score": 1, "explanation": "'Courses and degrees. 1979-1980'. Immediately precedes the program's appearance — its index runs from 'Berlin, Stanford Program in' to 'Business, Graduate School of' with no Feminist Studies entry. Defensible only as the same-series volume that shows the term's absence."},
+      {"document_id": "vx713nh1109", "score": 0, "explanation": "'Courses and degrees. 1967-1968'. Contains no Feminist Studies program; the program did not exist. Any retrieval here is series-title similarity, the same year-blind behaviour documented in courses-degrees-2."},
+      {"document_id": "ky485kb7086", "score": 0, "explanation": "'Courses and degrees. 1966-1967'. Same reasoning — its contents list 'Behavioral Sciences' and 'Social Sciences (Special Program)' but nothing resembling the queried program."}
+    ]
+  },
+  {
+    "test_id": "courses-and-degrees-10",
+    "subject_id": "courses-and-degrees",
+    "query": "Courses and degrees 1985/1986",
+    "test_type": "known_item",
+    "test_description": "The same known-item need as courses-degrees-2 but with the year written in slash form rather than the hyphenated form used in the catalog title ('Courses and degrees. 1985-1986'), and with the trailing period dropped. This mirrors how the corpus itself is inconsistent — the 'Announcement of courses' series includes titles like 'Announcement of courses 1934/1935-1935/1936 (duplicate)' and 'Announcement of courses 1922/23-1923/24 (duplicate)' — so slash-delimited years are real corpus vocabulary and could pull the retriever toward the wrong series. Success is rank 1 for the 1985-86 volume. The failure modes to watch are: normalizing the slash away entirely and reverting to year-blind series matching; matching the slash form to the 'Announcement of courses' duplicates that literally use it; or drifting to the adjacent 1984-85 and 1986-87 volumes, whose Western Culture and Statistics sections are near-verbatim identical to the target's.",
+    "expected_answer": null,
+    "judge": "claude-opus-5",
+    "judged_on": "2026-09-02",
+    "human_reviewed": true,
+    "judgments": [
+      {"document_id": "qt625pw1904", "score": 3, "explanation": "The target. 'Courses and degrees. 1985-1986' — the slash form in the query denotes exactly this academic year, and the volume's CONTENTS chunk (page 6) confirms it."},
+      {"document_id": "jv126qc0516", "score": 1, "explanation": "'Courses and degrees. 1984-1985'. Shares the year 1985 across the hyphen and is textually near-identical to the target in its Western Culture and Statistics sections. Defensible neighbour, wrong volume."},
+      {"document_id": "md860xb2653", "score": 1, "explanation": "'Courses and degrees. 1986-1987'. Shares the year 1986 and carries the '1987-88' calendar table; same adjacency reasoning."},
+      {"document_id": "jg847ff8520", "score": 0, "explanation": "'Announcement of courses 1934/1935-1935/1936 (duplicate)'. The only titles in the corpus that literally use slash-delimited years belong to this series, so a retriever leaning on the punctuation pattern can land here. Wrong series, wrong half-century."},
+      {"document_id": "jz849yx4202", "score": 0, "explanation": "'Announcement of courses 1922/23-1923/24 (duplicate)'. Same slash-form artifact; a formatting false positive with no relation to the queried year."},
+      {"document_id": "fg044qg9969", "score": 0, "explanation": "'Courses and degrees. 1993-1994'. Ranks in keyword runs for any query beginning 'Courses and degrees' regardless of year — the year-blind lexical behaviour this case is designed to expose."}
+    ]
+  }
+]
