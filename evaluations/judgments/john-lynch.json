@@ -6,7 +6,6 @@
     "test_type": "keyword_search",
     "test_description": "Bare personal name, the least specified form of the need. Both manifestations of the 2010 oral history should take ranks 1 and 2; everything below them is surname or given-name collision. Also compares search_type=keyword against search_type=hybrid on an identical query to see whether the hybrid path adds anything when the lexical signal is already decisive.",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-21",
     "human_reviewed": true,
@@ -35,7 +34,6 @@
     "test_type": "known_item",
     "test_description": "Full title supplied verbatim. The Stanford Historical Society series gives dozens of documents the shape 'Interview with X : Stanford Athletics ... Oral History Project', so the discriminating content is one name inside a long template. Tests whether the template overwhelms the name.",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-21",
     "human_reviewed": true,
@@ -64,7 +62,6 @@
         {"document_id": "bb051hp9404", "locator": "bb051hp9404_script.pdf chunk 4, abstract", "quote": "Lynch talked about how he nearly quit football but Bill Walsh convinced him that he could be a Pro Bowl safety in the NFL"}
       ]
     },
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-21",
     "human_reviewed": true,
@@ -87,7 +84,6 @@
         {"document_id": "zv638jb7154", "locator": "zv638jb7154_15.pdf chunk 0", "quote": "Yes, I threw the first pitch m the organization's history up m Erie, Pennsylvania."}
       ]
     },
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-21",
     "human_reviewed": true,
@@ -106,7 +102,6 @@
     "test_type": "synonym_match",
     "test_description": "Descriptive paraphrase using the team nickname and a post-playing role, with no personal name. Tests both paraphrase bridging.",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-21",
     "human_reviewed": true,
@@ -129,7 +124,6 @@
     "test_type": "synonym_match",
     "test_description": "A fair description of the target document rendered entirely in period idiom: 'gridiron' for football, 'the Farm' for Stanford, 'reminiscences' for oral history. No name, position, date, or sport term that the document itself uses. Establishes the outer limit of paraphrase the embedding space will bridge. Both target manifestations are expected to be missed; the interesting output is which documents the register attracts instead.",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-21",
     "human_reviewed": true,
@@ -151,7 +145,6 @@
     "test_type": "conceptual_thematic",
     "test_description": "A theme of which the John Lynch is a prime example. Tests the ranking of aboutness against mention: the Marquess interviews name Lynch in a single sentence, the Lynch interviews discuss his dual-sport career for pages.",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-21",
     "human_reviewed": true,
@@ -173,7 +166,6 @@
     "test_type": "conceptual_thematic",
     "test_description": "States in wholly abstract terms the exact dilemma the target document narrates concretely: the Marlins offered Lynch two contracts, one contingent on giving up football, and Walsh talked him into returning for his senior year. Tests whether abstract thematic retrieval can reach a concrete narrative instance, or whether it only finds documents that theorise about the theme.",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-21",
     "human_reviewed": true,

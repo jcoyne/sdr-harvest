@@ -14,7 +14,6 @@ A test file is a **JSON array of test-case objects**. Each case pairs one query 
 | `test_type` | enum | yes | What retrieval capability the case exercises. See vocabulary below. |
 | `test_description` | string | yes | Prose rationale: what the query is designed to stress, what the expected outcome is, and which distractors or failure modes to watch for. This is the analytic core of the case. |
 | `expected_answer` | object \| null | yes | `null` when the case has no single correct answer (relevance-ranking cases). An object when the query is a question with a factual answer. |
-| `expected_no_results` | boolean | yes | `true` when an "out of scope" test case is expected to return no results. |
 | `judge` | string | yes | Model or person that produced the judgments (`"claude-opus-5"`). |
 | `judged_on` | string (ISO date) | yes | Date the judgments were made — judgments go stale as the corpus and retriever change. |
 | `human_reviewed` | boolean | yes | Whether a human has verified the machine-generated judgments. |
@@ -40,7 +39,6 @@ All cases use a 0-3 graded rubric:
 | `fact_lookup` | Natural-language question with a specific answer | A question with a specific answer located in identifiable passages. Tests whether retrieval reaches the answer-bearing chunk, not merely the right document. |
 | `synonym_match` | Descriptive paraphrase, no name or corpus vocabulary | The need is described in terms that do not appear in the document. Tests whether embeddings bridge the gap. |
 | `conceptual_thematic` | Abstract theme or situation | The need is a theme or category; relevant documents are instances of it. Tests whether documents about a subject outrank documents merely mentioning it. |
-| `out_of_scope` | Plausible queries with nothing relevant in the corpus | Tests whether the system returns nothing rather than confident garbage. Semantic search always returns something, so this checks whether scores fall low enough to signal "no results" instead of surfacing confident junk. |
 | `multi_constraint` | Topic + Date + Format + Language | Facets that live in structured fields, not prose. Semantic retrieval routinely drops one constraint (usually the date), so these expose filter-vs-embedding tradeoffs. |
 
 Extend the vocabulary as needed, but keep values stable across a suite — they are the grouping key for reporting.
@@ -78,7 +76,6 @@ Note: The order of documents in the array is not meaningful because this set of 
     "test_type": "keyword_search",
     "test_description": "<what this stresses, expected outcome, distractors to watch>",
     "expected_answer": null,
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-24",
     "human_reviewed": false,
@@ -99,7 +96,6 @@ Note: The order of documents in the array is not meaningful because this set of 
         {"document_id": "<id>", "locator": "<file, chunk, page or timestamp>", "quote": "<verbatim text>"}
       ]
     },
-    "expected_no_results": false,
     "judge": "claude-opus-5",
     "judged_on": "2026-08-24",
     "human_reviewed": false,
