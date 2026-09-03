@@ -22,8 +22,8 @@ from sdr_harvest.evaluation import (
 )
 
 
-def _case(judgment_id, judgments, query="q"):
-    return {
+def _case(judgment_id, judgments, query="q", test_type=None):
+    case = {
         "test_id": judgment_id,
         "query": query,
         "judgments": [
@@ -31,6 +31,9 @@ def _case(judgment_id, judgments, query="q"):
             for druid, score in judgments
         ],
     }
+    if test_type is not None:
+        case["test_type"] = test_type
+    return case
 
 
 class JudgmentTest(unittest.TestCase):
@@ -50,6 +53,40 @@ class JudgmentTest(unittest.TestCase):
 
             self.assertEqual({"aa123bb4567": 1.0}, judgments[0].relevant)
             self.assertEqual({"cc123dd4567": 3.0}, judgments[1].relevant)
+
+    def test_filters_by_test_type(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "judgments.json"
+            path.write_text(
+                json.dumps(
+                    [
+                        _case(
+                            "one",
+                            [("aa123bb4567", 1)],
+                            test_type="fact_lookup",
+                        ),
+                        _case(
+                            "two",
+                            [("cc123dd4567", 3)],
+                            test_type="keyword_search",
+                        ),
+                    ]
+                )
+            )
+
+            judgments = load_judgments(path, test_type="fact_lookup")
+
+            self.assertEqual(["one"], [j.id for j in judgments])
+
+    def test_rejects_unmatched_test_type(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "judgments.json"
+            path.write_text(
+                json.dumps([_case("one", [("aa123bb4567", 1)], test_type="fact_lookup")])
+            )
+
+            with self.assertRaisesRegex(StageError, "No judgments found"):
+                load_judgments(path, test_type="keyword_search")
 
     def test_rejects_duplicate_ids(self):
         with tempfile.TemporaryDirectory() as directory:

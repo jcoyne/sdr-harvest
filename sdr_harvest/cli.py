@@ -80,6 +80,10 @@ def parser() -> argparse.ArgumentParser:
         required=True,
         help="test-case JSON file, or a directory of them, evaluated together",
     )
+    evaluate.add_argument(
+        "--test-type",
+        help="restrict evaluation to test cases with this test_type (e.g. fact_lookup)",
+    )
     evaluate.add_argument("--output", type=Path, required=True)
     evaluate.add_argument("--baseline", type=Path)
     evaluate.add_argument("--target", default="http://localhost:8983/solr/sdr-search")
@@ -308,7 +312,7 @@ def main(argv: list[str] | None = None) -> None:
             evaluator, session = live_evaluator(args.target, verify_tls=verify_tls)
             try:
                 report = evaluator.run(
-                    load_judgments(args.judgments),
+                    load_judgments(args.judgments, test_type=args.test_type),
                     cutoffs=cutoffs,
                     candidate_count=args.candidates,
                 )
