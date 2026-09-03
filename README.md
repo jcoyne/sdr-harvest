@@ -219,19 +219,22 @@ full field reference). Each case has a stable test ID, a query, and a
 ```
 
 Test cases live under [`evaluations/judgments/`](evaluations/judgments/),
-one file per subject named after its `subject_id` (e.g. `john-lynch.json`).
+one file per subject named after its `subject_id` (e.g. `shs-oral-histories.json`).
 Create a new file for a new subject, or add miscellaneous judgments to `judgments.json`.
 
 Run an evaluation against the local collection and save it as the baseline for
 the current pipeline. Pointing `--judgments` at the `judgments` directory
 evaluates every subject together; pointing it at one file evaluates just that
-subject:
+subject.
 
 ```shell
 LITELLM_API_KEY=<key> uv run sdr-harvest evaluate \
   --judgments evaluations/judgments \
   --output evaluations/baseline.json
 ```
+Optionally add `--test-type <test_type>` to further restrict the run to test cases of that
+type (e.g., `--test-type known_item` or any value from the
+[`test_type` vocabulary](./evaluations/test-cases-schema.md#test_type-vocabulary)).
 
 The evaluator embeds queries with the same Gemini model as the pipeline,
 retrieves chunk candidates from Solr, and collapses them by DRUID before
@@ -262,9 +265,9 @@ score, filename, and snippet for diagnosis. Use `--cutoffs` to change the
 reported ranks and `--candidates` to change how many chunks are retrieved
 before collapsing.
 
-Treat the judgment file as a maintained test fixture: include representative
+Treat the judgment files as a maintained test fixture: include representative
 query types, difficult terminology, known near-misses, and more than one
-relevant object where appropriate. Keep the file fixed while comparing two
+relevant object where appropriate. Keep the files fixed while comparing two
 pipeline versions; the evaluator rejects a baseline made with different
 judgments or metrics.
 

@@ -31,6 +31,7 @@ class Judgment:
     id: str
     query: str
     relevant: dict[str, float]
+    test_type: str = ""
 
 
 def retrieval_query(query: str) -> str:
@@ -41,9 +42,10 @@ def retrieval_query(query: str) -> str:
 SCORE_RANGE = (0, 3)
 
 
-def load_judgments(path: Path) -> list[Judgment]:
+def load_judgments(path: Path, *, test_type: str | None = None) -> list[Judgment]:
     """Load test cases from a JSON file, or every *.json file in a directory
-    (see evaluations/test-cases-schema.md)."""
+    (see evaluations/test-cases-schema.md), optionally restricted to a single
+    test_type."""
     paths = sorted(path.glob("*.json")) if path.is_dir() else [path]
     if not paths:
         raise StageError(f"No JSON test case files found in {path}")
@@ -52,8 +54,11 @@ def load_judgments(path: Path) -> list[Judgment]:
     judgments = []
     for file_path in paths:
         judgments.extend(_load_judgment_file(file_path, seen_ids))
+    if test_type:
+        judgments = [j for j in judgments if j.test_type == test_type]
     if not judgments:
-        raise StageError(f"No judgments found in {path}")
+        suffix = f" with test_type={test_type!r}" if test_type else ""
+        raise StageError(f"No judgments found in {path}{suffix}")
     return judgments
 
 
@@ -69,6 +74,7 @@ def _load_judgment_file(path: Path, seen_ids: set[str]) -> list[Judgment]:
     for index, row in enumerate(data):
         judgment_id = str(row.get("test_id", "")).strip()
         query = str(row.get("query", "")).strip()
+        test_type = str(row.get("test_type", "")).strip()
         label = judgment_id or f"entry {index}"
         if not judgment_id or not query:
             raise StageError(f"{path} {label} requires non-empty test_id and query")
@@ -113,7 +119,7 @@ def _load_judgment_file(path: Path, seen_ids: set[str]) -> list[Judgment]:
             )
 
         seen_ids.add(judgment_id)
-        judgments.append(Judgment(judgment_id, query, relevant))
+        judgments.append(Judgment(judgment_id, query, relevant, test_type))
     if not judgments:
         raise StageError(f"No judgments found in {path}")
     return judgments
